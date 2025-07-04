@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+*.log
+*.lock
+package-lock.json
+yarn.lock
+.git/
+.DS_Store
+coverage/
+*.md
+android/
+ios/
+__tests__/
+.bundle/ 
