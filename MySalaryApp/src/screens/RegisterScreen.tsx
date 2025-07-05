@@ -9,6 +9,7 @@ import {
   Alert,
   SafeAreaView,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   registerScreenStyles,
   layoutStyles,
@@ -291,13 +292,43 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
         ...(selectedCountry && { country_id: selectedCountry }),
       };
 
-      await apiService.register(registerData);
+      // Получаем authAPI из App.tsx через глобальную переменную
+      const authAPI = (global as any).authAPI;
 
-      // Сразу перенаправляем на главную страницу после успешной регистрации
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'MainTabs' }],
-      });
+      if (!authAPI) {
+        throw new Error('API сервис недоступен');
+      }
+
+      const result = await authAPI.register(registerData);
+
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+
+      // Сохраняем данные пользователя и токен
+      if (result.data.token) {
+        await AsyncStorage.setItem('userToken', result.data.token);
+      }
+      await AsyncStorage.setItem('userData', JSON.stringify(result.data.user));
+
+      // Устанавливаем глобальные данные пользователя
+      (global as any).currentUser = result.data.user;
+      (global as any).userToken = result.data.token;
+
+      console.log('Registration successful, user data:', result.data.user);
+
+      Alert.alert('Успех', result.message, [
+        {
+          text: 'OK',
+          onPress: () => {
+            // Сразу перенаправляем на главную страницу после успешной регистрации
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'MainTabs' }],
+            });
+          },
+        },
+      ]);
     } catch (error) {
       const errorMessage =
         error instanceof Error

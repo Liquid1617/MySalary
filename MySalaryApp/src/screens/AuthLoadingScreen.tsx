@@ -1,9 +1,7 @@
 import React, { useEffect } from 'react';
-import { View, Text, ActivityIndicator, SafeAreaView } from 'react-native';
-import { authLoadingScreenStyles, typographyStyles } from '../styles';
-import { colors } from '../styles/colors';
-import { apiService } from '../services/api';
-import { biometricService } from '../services/biometric';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { typographyStyles, layoutStyles } from '../styles';
 
 interface AuthLoadingScreenProps {
   navigation: any;
@@ -13,81 +11,55 @@ export const AuthLoadingScreen: React.FC<AuthLoadingScreenProps> = ({
   navigation,
 }) => {
   useEffect(() => {
-    checkAuthAndNavigate();
+    checkAuthStatus();
   }, []);
 
-  const checkAuthAndNavigate = async () => {
+  const checkAuthStatus = async () => {
     try {
-      const isAuthenticated = await apiService.checkAuthStatus();
+      // Проверяем, есть ли сохраненный токен и данные пользователя
+      const token = await AsyncStorage.getItem('userToken');
+      const userData = await AsyncStorage.getItem('userData');
 
-      if (!isAuthenticated) {
-        // Если пользователь не авторизован, переходим на логин
-        setTimeout(() => {
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'Login' }],
-          });
-        }, 1000);
-        return;
-      }
+      if (token && userData) {
+        // Пользователь авторизован, переходим на главную
+        const user = JSON.parse(userData);
+        console.log('User already logged in:', user);
 
-      // Если пользователь авторизован, проверяем биометрию
-      const canUseBiometric = await biometricService.canUseBiometricLogin();
+        // Устанавливаем глобальные данные пользователя
+        (global as any).currentUser = user;
+        (global as any).userToken = token;
 
-      if (canUseBiometric) {
-        // Добавляем дополнительную задержку для показа логотипа
-        setTimeout(async () => {
-          const biometricAuth =
-            await biometricService.authenticateWithBiometrics();
-
-          if (biometricAuth.success) {
-            // Биометрия успешна - переходим на главную
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'MainTabs' }],
-            });
-          } else {
-            // Биометрия неуспешна - переходим на логин
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            });
-          }
-        }, 1500);
+        navigation.replace('MainTabs');
       } else {
-        // Биометрия не настроена - переходим сразу на главную
-        setTimeout(() => {
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'MainTabs' }],
-          });
-        }, 1000);
+        // Пользователь не авторизован, переходим на экран входа
+        navigation.replace('Login');
       }
     } catch (error) {
-      console.error('Ошибка проверки авторизации:', error);
-      setTimeout(() => {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Login' }],
-        });
-      }, 1000);
+      console.error('Error checking auth status:', error);
+      // В случае ошибки переходим на экран входа
+      navigation.replace('Login');
     }
   };
-  return (
-    <SafeAreaView style={authLoadingScreenStyles.container}>
-      <View style={authLoadingScreenStyles.content}>
-        <View style={authLoadingScreenStyles.logoContainer}>
-          <Text style={authLoadingScreenStyles.logo}>💰</Text>
-          <Text style={[typographyStyles.h1, authLoadingScreenStyles.appName]}>
-            MySalary
-          </Text>
-        </View>
 
-        <View style={authLoadingScreenStyles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={authLoadingScreenStyles.loadingText}>Загрузка...</Text>
-        </View>
-      </View>
-    </SafeAreaView>
+  return (
+    <View style={styles.container}>
+      <ActivityIndicator size="large" color="#007AFF" />
+      <Text style={[typographyStyles.body1, styles.loadingText]}>
+        Загрузка...
+      </Text>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  loadingText: {
+    marginTop: 16,
+    color: '#666',
+  },
+});

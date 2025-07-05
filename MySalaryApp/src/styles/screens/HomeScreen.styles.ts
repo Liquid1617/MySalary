@@ -107,4 +107,28 @@ export const homeScreenStyles = StyleSheet.create({
     fontSize: 14,
     color: colors.darkGray,
   },
+  addButton: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  addButtonText: {
+    fontSize: 32,
+    color: '#fff',
+    marginTop: -2,
+  },
 });

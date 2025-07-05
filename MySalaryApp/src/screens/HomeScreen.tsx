@@ -2,191 +2,171 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  SafeAreaView,
-  Alert,
-  Switch,
   TouchableOpacity,
+  SafeAreaView,
+  StyleSheet,
 } from 'react-native';
-import { homeScreenStyles, layoutStyles, typographyStyles } from '../styles';
-import { CustomButton } from '../components/CustomButton';
-import { apiService } from '../services/api';
-import { biometricService, BiometricCapability } from '../services/biometric';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { homeScreenStyles } from '../styles/screens/HomeScreen.styles';
+import { typographyStyles } from '../styles';
+import { Colors } from '../styles/colors';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-interface HomeScreenProps {
-  navigation: any;
-}
+type HomeScreenProps = {
+  navigation: NativeStackNavigationProp<any, 'Home'>;
+};
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
-  const [loading, setLoading] = useState(false);
-  const [biometricCapability, setBiometricCapability] =
-    useState<BiometricCapability | null>(null);
-  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    initializeBiometric();
+    loadUserData();
   }, []);
 
-  const initializeBiometric = async () => {
+  const loadUserData = async () => {
     try {
-      const capability = await biometricService.checkBiometricCapability();
-      setBiometricCapability(capability);
+      // Получаем данные пользователя из глобальной области или AsyncStorage
+      let userData = (global as any).currentUser;
+      console.log('HomeScreen - Global user data:', userData);
 
-      if (capability.available) {
-        const isEnabled = await biometricService.isBiometricEnabled();
-        setBiometricEnabled(isEnabled);
-      }
-    } catch (error) {
-      console.error('Ошибка инициализации биометрии:', error);
-    }
-  };
-
-  const handleBiometricToggle = async (value: boolean) => {
-    try {
-      if (value) {
-        // Если включаем биометрию, сначала тестируем её
-        const authResult = await biometricService.authenticateWithBiometrics(
-          'Подтвердите настройку биометрической аутентификации',
-        );
-
-        if (authResult.success) {
-          await biometricService.setBiometricEnabled(true);
-          setBiometricEnabled(true);
-          Alert.alert(
-            'Успех',
-            `${biometricService.getBiometryDisplayName(
-              biometricCapability?.biometryType || null,
-            )} успешно настроен для входа в приложение`,
-          );
-        } else {
-          Alert.alert(
-            'Ошибка',
-            authResult.error || 'Не удалось настроить биометрию',
-          );
+      if (!userData) {
+        const storedUserData = await AsyncStorage.getItem('userData');
+        console.log('HomeScreen - Stored user data:', storedUserData);
+        if (storedUserData) {
+          userData = JSON.parse(storedUserData);
+          (global as any).currentUser = userData;
         }
-      } else {
-        await biometricService.setBiometricEnabled(false);
-        setBiometricEnabled(false);
-        Alert.alert('Биометрия отключена', 'Вход по биометрии отключен');
       }
-    } catch (error) {
-      console.error('Ошибка настройки биометрии:', error);
-      Alert.alert('Ошибка', 'Не удалось изменить настройки биометрии');
-    }
-  };
 
-  const handleLogout = async () => {
-    Alert.alert('Выход', 'Вы уверены, что хотите выйти из аккаунта?', [
-      {
-        text: 'Отмена',
-        style: 'cancel',
-      },
-      {
-        text: 'Выйти',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            setLoading(true);
-            await apiService.logout();
-            await biometricService.clearBiometricSettings(); // Очищаем настройки биометрии
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            });
-          } catch (error) {
-            console.error('Ошибка при выходе:', error);
-            Alert.alert('Ошибка', 'Не удалось выйти из аккаунта');
-          } finally {
-            setLoading(false);
-          }
-        },
-      },
-    ]);
+      setUser(userData);
+      console.log('HomeScreen - Final user data:', userData);
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
   };
 
   return (
     <SafeAreaView style={homeScreenStyles.container}>
-      <View style={homeScreenStyles.content}>
-        <View style={homeScreenStyles.header}>
-          <Text style={[typographyStyles.h1, homeScreenStyles.welcomeTitle]}>
-            Добро пожаловать в MySalary! 🎉
+      {/* Заголовок с информацией о пользователе */}
+      <View style={styles.header}>
+        <View style={styles.userInfo}>
+          <Text style={[typographyStyles.h2, styles.welcomeText]}>
+            Добро пожаловать!
           </Text>
-          <Text style={[typographyStyles.body1, homeScreenStyles.subtitle]}>
-            Теперь вы можете управлять своими финансами легко и эффективно
-          </Text>
-        </View>
-
-        <View style={homeScreenStyles.mainContent}>
-          <View style={homeScreenStyles.featureCard}>
-            <Text style={homeScreenStyles.featureEmoji}>💰</Text>
-            <Text style={homeScreenStyles.featureTitle}>
-              Управление доходами
+          {user && (
+            <Text style={[typographyStyles.body1, styles.userText]}>
+              {user.login || user.email}
             </Text>
-            <Text style={homeScreenStyles.featureDescription}>
-              Отслеживайте все источники дохода
-            </Text>
-          </View>
-
-          <View style={homeScreenStyles.featureCard}>
-            <Text style={homeScreenStyles.featureEmoji}>📊</Text>
-            <Text style={homeScreenStyles.featureTitle}>
-              Аналитика расходов
-            </Text>
-            <Text style={homeScreenStyles.featureDescription}>
-              Анализируйте траты по категориям
-            </Text>
-          </View>
-
-          <View style={homeScreenStyles.featureCard}>
-            <Text style={homeScreenStyles.featureEmoji}>🎯</Text>
-            <Text style={homeScreenStyles.featureTitle}>
-              Планирование бюджета
-            </Text>
-            <Text style={homeScreenStyles.featureDescription}>
-              Ставьте цели и достигайте их
-            </Text>
-          </View>
-        </View>
-
-        <View style={homeScreenStyles.footer}>
-          <Text style={homeScreenStyles.comingSoonText}>
-            Функционал находится в разработке...
-          </Text>
-
-          {biometricCapability?.available && (
-            <View style={homeScreenStyles.biometricContainer}>
-              <TouchableOpacity
-                style={homeScreenStyles.biometricRow}
-                onPress={() => handleBiometricToggle(!biometricEnabled)}>
-                <View style={homeScreenStyles.biometricInfo}>
-                  <Text style={homeScreenStyles.biometricTitle}>
-                    Вход по{' '}
-                    {biometricService.getBiometryDisplayName(
-                      biometricCapability.biometryType,
-                    )}
-                  </Text>
-                  <Text style={homeScreenStyles.biometricDescription}>
-                    Быстрая и безопасная аутентификация
-                  </Text>
-                </View>
-                <Switch
-                  value={biometricEnabled}
-                  onValueChange={handleBiometricToggle}
-                  trackColor={{ false: '#E5E5EA', true: '#34C759' }}
-                  thumbColor={biometricEnabled ? '#FFFFFF' : '#FFFFFF'}
-                  ios_backgroundColor="#E5E5EA"
-                />
-              </TouchableOpacity>
-            </View>
           )}
+        </View>
+        <TouchableOpacity
+          style={styles.profileButton}
+          onPress={() => navigation.navigate('Profile')}>
+          <Text style={styles.profileButtonText}>
+            {user?.login ? user.login.charAt(0).toUpperCase() : '?'}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-          <CustomButton
-            title="Выйти из аккаунта"
-            variant="secondary"
-            onPress={handleLogout}
-            loading={loading}
-          />
+      <View style={homeScreenStyles.content}>
+        <Text style={styles.subtitle}>
+          Управляйте своими финансами легко и удобно
+        </Text>
+
+        {/* Быстрые действия */}
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('AddTransaction')}>
+            <Text style={styles.actionButtonIcon}>💰</Text>
+            <Text style={styles.actionButtonText}>Добавить транзакцию</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('Profile')}>
+            <Text style={styles.actionButtonIcon}>👤</Text>
+            <Text style={styles.actionButtonText}>Личный кабинет</Text>
+          </TouchableOpacity>
         </View>
       </View>
+
+      {/* Плавающая кнопка добавления */}
+      <TouchableOpacity
+        style={homeScreenStyles.addButton}
+        onPress={() => navigation.navigate('AddTransaction')}>
+        <Text style={homeScreenStyles.addButtonText}>+</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#f8f9fa',
+  },
+  userInfo: {
+    flex: 1,
+  },
+  welcomeText: {
+    color: '#000',
+    marginBottom: 4,
+  },
+  userText: {
+    color: '#666',
+  },
+  profileButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileButtonText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  subtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#666',
+    marginBottom: 40,
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  actionButton: {
+    width: '47%',
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  actionButtonIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
+    textAlign: 'center',
+  },
+});

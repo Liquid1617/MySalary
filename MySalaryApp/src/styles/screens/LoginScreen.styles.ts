@@ -73,4 +73,35 @@ export const loginScreenStyles = StyleSheet.create({
     color: colors.primary,
     marginTop: 16,
   },
+  loginButton: {
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  registerButton: {
+    alignItems: 'center',
+    padding: 12,
+    marginBottom: 24,
+  },
+  registerButtonText: {
+    fontSize: 16,
+    color: colors.primary,
+    fontWeight: '500',
+  },
+  demoContainer: {
+    backgroundColor: '#f0f0f0',
+    padding: 16,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  demoTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  demoText: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
 });

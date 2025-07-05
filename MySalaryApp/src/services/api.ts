@@ -1,7 +1,35 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
-const API_BASE_URL = 'http://192.168.31.188:3001/api'; // Для iOS simulator
-// const API_BASE_URL = 'http://10.0.2.2:3001/api'; // Для Android emulator
+// Выбираем URL в зависимости от платформы и окружения
+const getBaseUrl = () => {
+  if (__DEV__) {
+    // Для разработки
+    if (Platform.OS === 'ios') {
+      return Platform.select({
+        // Для iOS симулятора
+        ios: 'http://localhost:3001/api',
+        // Для физического устройства iOS используем IP компьютера
+        default: 'http://192.168.31.132:3001/api',
+      });
+    }
+    // Для Android эмулятора
+    return 'http://10.0.2.2:3001/api';
+  }
+  // Для продакшена
+  return 'https://api.mysalary.app/api';
+};
+
+const API_BASE_URL = getBaseUrl();
+
+// Добавляем обработку ошибок сети
+const handleNetworkError = (error: any) => {
+  console.error('Network Error:', error);
+  if (!error.response) {
+    throw new Error('Ошибка сети. Проверьте подключение к интернету.');
+  }
+  throw error;
+};
 
 interface LoginRequest {
   email: string;
@@ -75,10 +103,7 @@ class ApiService {
 
       return data as T;
     } catch (error) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Ошибка сети');
+      handleNetworkError(error);
     }
   }
 

@@ -9,11 +9,10 @@ import {
   Alert,
   SafeAreaView,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { loginScreenStyles, layoutStyles, typographyStyles } from '../styles';
 import { CustomInput } from '../components/CustomInput';
 import { CustomButton } from '../components/CustomButton';
-import { apiService } from '../services/api';
-import { biometricService } from '../services/biometric';
 
 interface LoginScreenProps {
   navigation: any;
@@ -64,88 +63,44 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     setLoading(true);
 
     try {
-      await apiService.login({
-        email,
-        password,
-      });
+      // Получаем authAPI из глобальной области
+      const authAPI = (global as any).authAPI;
 
-      // Проверяем, доступна ли биометрия и не настроена ли уже
-      const capability = await biometricService.checkBiometricCapability();
-      const isAlreadyEnabled = await biometricService.isBiometricEnabled();
-
-      console.log('Biometric capability:', capability);
-      console.log('Biometric already enabled:', isAlreadyEnabled);
-
-      // Временный диагностический алерт
-      const diagnosticMessage = `Доступна: ${capability.available}
-Тип: ${capability.biometryType || 'Нет'}
-Включена: ${isAlreadyEnabled}
-Ошибка: ${capability.error || 'Нет'}`;
-
-      Alert.alert('Диагностика биометрии', diagnosticMessage, [{ text: 'OK' }]);
-
-      if (capability.available && !isAlreadyEnabled) {
-        // Предлагаем настроить биометрию
-        Alert.alert(
-          'Настройка входа',
-          `Хотите настроить вход по ${biometricService.getBiometryDisplayName(
-            capability.biometryType,
-          )} для быстрого доступа к приложению?`,
-          [
-            {
-              text: 'Не сейчас',
-              style: 'cancel',
-              onPress: () => {
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: 'MainTabs' }],
-                });
-              },
-            },
-            {
-              text: 'Настроить',
-              onPress: async () => {
-                const authResult =
-                  await biometricService.authenticateWithBiometrics(
-                    'Подтвердите настройку биометрической аутентификации',
-                  );
-
-                if (authResult.success) {
-                  await biometricService.setBiometricEnabled(true);
-                  Alert.alert(
-                    'Успех!',
-                    `${biometricService.getBiometryDisplayName(
-                      capability.biometryType,
-                    )} настроен. Теперь вы можете входить в приложение быстрее!`,
-                    [
-                      {
-                        text: 'OK',
-                        onPress: () => {
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: 'MainTabs' }],
-                          });
-                        },
-                      },
-                    ],
-                  );
-                } else {
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'MainTabs' }],
-                  });
-                }
-              },
-            },
-          ],
-        );
-      } else {
-        // Сразу перенаправляем на главную страницу
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'MainTabs' }],
-        });
+      if (!authAPI) {
+        throw new Error('API сервис недоступен');
       }
+
+      const result = await authAPI.login(email, password);
+
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+
+      console.log('Login API response:', result);
+      console.log('User data from API:', result.data.user);
+
+      // Сохраняем данные пользователя и токен
+      if (result.data.token) {
+        await AsyncStorage.setItem('userToken', result.data.token);
+        console.log('Token saved to AsyncStorage');
+      }
+      await AsyncStorage.setItem('userData', JSON.stringify(result.data.user));
+      console.log(
+        'User data saved to AsyncStorage:',
+        JSON.stringify(result.data.user),
+      );
+
+      // Устанавливаем глобальные данные пользователя
+      (global as any).currentUser = result.data.user;
+      (global as any).userToken = result.data.token;
+
+      console.log('Global user data set:', (global as any).currentUser);
+
+      // Переходим на главную страницу
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'MainTabs' }],
+      });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Ошибка авторизации';
@@ -205,48 +160,35 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 }}
                 error={passwordError}
                 placeholder="Введите ваш пароль"
-                isPassword
+                secureTextEntry
               />
-            </View>
 
-            <TouchableOpacity style={loginScreenStyles.forgotPassword}>
-              <Text
-                style={[
-                  typographyStyles.body2,
-                  loginScreenStyles.forgotPasswordText,
-                ]}>
-                Забыли пароль?
-              </Text>
-            </TouchableOpacity>
-
-            <View style={loginScreenStyles.buttonSpacing}>
               <CustomButton
-                title="Войти"
+                title={loading ? 'Вход...' : 'Войти'}
                 onPress={handleLogin}
                 loading={loading}
+                style={loginScreenStyles.loginButton}
               />
-            </View>
 
-            <CustomButton
-              title="Создать аккаунт"
-              variant="secondary"
-              onPress={navigateToRegister}
-            />
-
-            <View style={loginScreenStyles.footer}>
-              <Text
-                style={[typographyStyles.body2, loginScreenStyles.footerText]}>
-                Нет аккаунта?
-              </Text>
-              <TouchableOpacity onPress={navigateToRegister}>
-                <Text
-                  style={[
-                    typographyStyles.body2,
-                    loginScreenStyles.registerLink,
-                  ]}>
-                  Зарегистрироваться
+              <TouchableOpacity
+                style={loginScreenStyles.registerButton}
+                onPress={navigateToRegister}>
+                <Text style={loginScreenStyles.registerButtonText}>
+                  Нет аккаунта? Зарегистрироваться
                 </Text>
               </TouchableOpacity>
+
+              <View style={loginScreenStyles.demoContainer}>
+                <Text style={loginScreenStyles.demoTitle}>
+                  Тестовые аккаунты:
+                </Text>
+                <Text style={loginScreenStyles.demoText}>
+                  • demo@example.com / demo123
+                </Text>
+                <Text style={loginScreenStyles.demoText}>
+                  • test@test.com / 123456 (fallback)
+                </Text>
+              </View>
             </View>
           </View>
         </ScrollView>

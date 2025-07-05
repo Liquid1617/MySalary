@@ -1,28 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar, Alert, TouchableOpacity, Text } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Импорт экранов
+import { AuthLoadingScreen } from '../screens/AuthLoadingScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
+import { HomeScreen } from '../screens/HomeScreen';
 import { FinancesScreen } from '../screens/FinancesScreen';
 import { ChatScreen } from '../screens/ChatScreen';
 import { StatisticsScreen } from '../screens/StatisticsScreen';
-import { HomeScreen } from '../screens/HomeScreen';
-import { AuthLoadingScreen } from '../screens/AuthLoadingScreen';
+import { AddTransactionScreen } from '../screens/AddTransactionScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
+
 import { Colors } from '../styles/colors';
-import { apiService } from '../services/api';
-import { biometricService } from '../services/biometric';
 
 export type RootStackParamList = {
   AuthLoading: undefined;
   Login: undefined;
   Register: undefined;
-  Home: undefined;
   MainTabs: undefined;
+  AddTransaction: undefined;
+  Profile: undefined;
 };
 
 export type TabParamList = {
+  Home: undefined;
   Finances: undefined;
   Chat: undefined;
   Statistics: undefined;
@@ -32,37 +38,6 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
 const MainTabNavigator: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const [loading, setLoading] = useState(false);
-
-  const handleLogout = async () => {
-    Alert.alert('Выход', 'Вы уверены, что хотите выйти из аккаунта?', [
-      {
-        text: 'Отмена',
-        style: 'cancel',
-      },
-      {
-        text: 'Выйти',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            setLoading(true);
-            await apiService.logout();
-            await biometricService.clearBiometricSettings();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            });
-          } catch (error) {
-            console.error('Ошибка при выходе:', error);
-            Alert.alert('Ошибка', 'Не удалось выйти из аккаунта');
-          } finally {
-            setLoading(false);
-          }
-        },
-      },
-    ]);
-  };
-
   return (
     <Tab.Navigator
       screenOptions={{
@@ -75,27 +50,6 @@ const MainTabNavigator: React.FC<{ navigation: any }> = ({ navigation }) => {
           fontSize: 18,
         },
         headerShadowVisible: false,
-        headerRight: () => (
-          <TouchableOpacity
-            onPress={handleLogout}
-            style={{
-              marginRight: 16,
-              backgroundColor: Colors.secondary,
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 8,
-            }}
-            disabled={loading}>
-            <Text
-              style={{
-                color: Colors.primary,
-                fontSize: 14,
-                fontWeight: '600',
-              }}>
-              {loading ? 'Выход...' : 'Выйти'}
-            </Text>
-          </TouchableOpacity>
-        ),
         tabBarStyle: {
           backgroundColor: Colors.background,
           borderTopWidth: 1,
@@ -112,6 +66,17 @@ const MainTabNavigator: React.FC<{ navigation: any }> = ({ navigation }) => {
           marginTop: 4,
         },
       }}>
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          title: 'Главная',
+          tabBarLabel: 'Главная',
+          tabBarIcon: ({ color }) => (
+            <Text style={{ fontSize: 24, color }}>🏠</Text>
+          ),
+        }}
+      />
       <Tab.Screen
         name="Finances"
         component={FinancesScreen}
@@ -197,18 +162,32 @@ export const AppNavigator: React.FC = () => {
           }}
         />
         <Stack.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{
-            title: 'MySalary',
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
           name="MainTabs"
           component={MainTabNavigator}
           options={{
             headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="AddTransaction"
+          component={AddTransactionScreen}
+          options={{
+            title: 'Добавить транзакцию',
+            headerStyle: {
+              backgroundColor: '#fff',
+            },
+            headerTintColor: '#000',
+          }}
+        />
+        <Stack.Screen
+          name="Profile"
+          component={ProfileScreen}
+          options={{
+            title: 'Личный кабинет',
+            headerStyle: {
+              backgroundColor: '#fff',
+            },
+            headerTintColor: '#000',
           }}
         />
       </Stack.Navigator>
