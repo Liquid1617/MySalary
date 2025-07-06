@@ -30,6 +30,7 @@ export const colors = {
   warning: '#FF9500',
   error: '#FF3B30',
   red: '#FF3B30',
+  disabled: '#C7C7CC',
 
   // Border colors
   border: '#C6C6C8',

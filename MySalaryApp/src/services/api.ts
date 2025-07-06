@@ -189,6 +189,16 @@ class ApiService {
   async delete<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: 'DELETE' });
   }
+
+  async getAccountBalance(accountId: number): Promise<{
+    balance: number;
+    currency: { id: number; code: string; name: string; symbol: string };
+  }> {
+    return this.request<{
+      balance: number;
+      currency: { id: number; code: string; name: string; symbol: string };
+    }>(`/accounts/${accountId}/balance`);
+  }
 }
 
 export const apiService = new ApiService();

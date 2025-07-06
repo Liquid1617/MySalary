@@ -13,6 +13,7 @@ import {
 import { apiService } from '../services/api';
 import { layoutStyles, typographyStyles } from '../styles';
 import { Colors } from '../styles/colors';
+import { useDebounce } from '../utils/useDebounce';
 
 interface Account {
   id: number;
@@ -55,10 +56,24 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [balanceError, setBalanceError] = useState<string | null>(null);
+  const [checkingBalance, setCheckingBalance] = useState(false);
+  
+  // Debounce для проверки баланса
+  const debouncedAmount = useDebounce(amount, 800);
 
   useEffect(() => {
     loadInitialData();
   }, []);
+
+  // Проверка баланса при изменении суммы для расходов
+  useEffect(() => {
+    if (transactionType === 'expense' && selectedAccount && debouncedAmount) {
+      checkBalance();
+    } else {
+      setBalanceError(null);
+    }
+  }, [debouncedAmount, selectedAccount, transactionType]);
 
   const loadInitialData = async () => {
     try {
@@ -82,6 +97,35 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
       setCategories([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const checkBalance = async () => {
+    if (!selectedAccount || !debouncedAmount) return;
+
+    const numericAmount = parseFloat(debouncedAmount);
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      setBalanceError(null);
+      return;
+    }
+
+    try {
+      setCheckingBalance(true);
+      const response = await apiService.getAccountBalance(selectedAccount.id);
+      const currentBalance = parseFloat(response.balance.toString());
+      
+      if (numericAmount > currentBalance) {
+        setBalanceError(
+          `Недостаточно средств. Доступно: ${currentBalance.toFixed(2)} ${response.currency.symbol}`
+        );
+      } else {
+        setBalanceError(null);
+      }
+    } catch (error) {
+      console.error('Ошибка проверки баланса:', error);
+      setBalanceError('Ошибка проверки баланса');
+    } finally {
+      setCheckingBalance(false);
     }
   };
 
@@ -171,6 +215,7 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
                 onPress={() => {
                   setTransactionType('income');
                   setSelectedCategory(null);
+                  setBalanceError(null);
                 }}>
                 <Text style={{
                   color: transactionType === 'income' ? Colors.white : Colors.text,
@@ -189,6 +234,7 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
                 onPress={() => {
                   setTransactionType('expense');
                   setSelectedCategory(null);
+                  setBalanceError(null);
                 }}>
                 <Text style={{
                   color: transactionType === 'expense' ? Colors.white : Colors.text,
@@ -254,21 +300,44 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
             <Text style={[typographyStyles.h3, { marginBottom: 8 }]}>
               Сумма
             </Text>
-            <TextInput
-              style={{
-                borderWidth: 1,
-                borderColor: Colors.border,
-                borderRadius: 8,
-                padding: 12,
-                backgroundColor: Colors.background,
-                fontSize: 16,
-              }}
-              value={amount}
-              onChangeText={setAmount}
-              placeholder="Введите сумму"
-              keyboardType="numeric"
-              placeholderTextColor={Colors.textSecondary}
-            />
+            <View style={{ position: 'relative' }}>
+              <TextInput
+                style={{
+                  borderWidth: 1,
+                  borderColor: balanceError ? Colors.error : Colors.border,
+                  borderRadius: 8,
+                  padding: 12,
+                  backgroundColor: Colors.background,
+                  fontSize: 16,
+                  paddingRight: checkingBalance ? 40 : 12,
+                }}
+                value={amount}
+                onChangeText={setAmount}
+                placeholder="Введите сумму"
+                keyboardType="numeric"
+                placeholderTextColor={Colors.textSecondary}
+              />
+              {checkingBalance && (
+                <ActivityIndicator
+                  size="small"
+                  color={Colors.primary}
+                  style={{
+                    position: 'absolute',
+                    right: 12,
+                    top: 14,
+                  }}
+                />
+              )}
+            </View>
+            {balanceError && (
+              <Text style={{
+                color: Colors.error,
+                fontSize: 14,
+                marginTop: 4,
+              }}>
+                {balanceError}
+              </Text>
+            )}
           </View>
 
           {/* Описание */}
@@ -298,14 +367,14 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
           {/* Кнопка сохранения */}
           <TouchableOpacity
             style={{
-              backgroundColor: Colors.primary,
+              backgroundColor: (loading || balanceError) ? Colors.disabled : Colors.primary,
               paddingVertical: 16,
               borderRadius: 8,
               alignItems: 'center',
               marginBottom: 20,
             }}
             onPress={handleSubmit}
-            disabled={loading}>
+            disabled={loading || !!balanceError}>
             {loading ? (
               <ActivityIndicator size="small" color={Colors.white} />
             ) : (
@@ -346,6 +415,7 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
                   onPress={() => {
                     setSelectedAccount(account);
                     setShowAccountModal(false);
+                    setBalanceError(null);
                   }}>
                   <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
                     {account.account_name}

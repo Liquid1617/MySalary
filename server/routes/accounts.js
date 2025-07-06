@@ -25,6 +25,34 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
+// GET /api/accounts/:id/balance - получить баланс конкретного счета
+router.get('/:id/balance', authMiddleware, async (req, res) => {
+  try {
+    const account = await Account.findOne({
+      where: { id: req.params.id, user_id: req.user.id },
+      include: [
+        {
+          model: Currency,
+          as: 'currency',
+          attributes: ['id', 'code', 'name', 'symbol']
+        }
+      ]
+    });
+
+    if (!account) {
+      return res.status(404).json({ error: 'Счет не найден' });
+    }
+
+    res.json({ 
+      balance: account.balance,
+      currency: account.currency
+    });
+  } catch (error) {
+    console.error('Ошибка при получении баланса:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
 // POST /api/accounts - создать новый счет
 router.post('/', authMiddleware, async (req, res) => {
   try {

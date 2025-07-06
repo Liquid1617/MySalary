@@ -34,34 +34,93 @@ export type TabParamList = {
 };
 
 // Кастомные минималистичные иконки
-const FinanceIcon = ({ color, size = 24 }: { color: string; size?: number }) => (
-  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
-    <View style={{
-      width: size - 2,
-      height: size - 2,
-      borderRadius: 4,
-      borderWidth: 1.5,
-      borderColor: color,
+const FinanceIcon = ({
+  color,
+  size = 24,
+}: {
+  color: string;
+  size?: number;
+}) => (
+  <View
+    style={{
+      width: size,
+      height: size,
       justifyContent: 'center',
       alignItems: 'center',
     }}>
+    <View
+      style={{
+        width: size - 2,
+        height: size - 2,
+        borderRadius: 4,
+        borderWidth: 1.5,
+        borderColor: color,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}>
       <Text style={{ fontSize: size - 10, color, fontWeight: '600' }}>$</Text>
     </View>
   </View>
 );
 
-const AnalyticsIcon = ({ color, size = 24 }: { color: string; size?: number }) => (
-  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+const AnalyticsIcon = ({
+  color,
+  size = 24,
+}: {
+  color: string;
+  size?: number;
+}) => (
+  <View
+    style={{
+      width: size,
+      height: size,
+      justifyContent: 'center',
+      alignItems: 'center',
+    }}>
     <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 2 }}>
-      <View style={{ width: 3, height: 12, backgroundColor: color, borderRadius: 1.5 }} />
-      <View style={{ width: 3, height: 18, backgroundColor: color, borderRadius: 1.5 }} />
-      <View style={{ width: 3, height: 10, backgroundColor: color, borderRadius: 1.5 }} />
-      <View style={{ width: 3, height: 16, backgroundColor: color, borderRadius: 1.5 }} />
+      <View
+        style={{
+          width: 3,
+          height: 12,
+          backgroundColor: color,
+          borderRadius: 1.5,
+        }}
+      />
+      <View
+        style={{
+          width: 3,
+          height: 18,
+          backgroundColor: color,
+          borderRadius: 1.5,
+        }}
+      />
+      <View
+        style={{
+          width: 3,
+          height: 10,
+          backgroundColor: color,
+          borderRadius: 1.5,
+        }}
+      />
+      <View
+        style={{
+          width: 3,
+          height: 16,
+          backgroundColor: color,
+          borderRadius: 1.5,
+        }}
+      />
     </View>
   </View>
 );
 
-const ChatIcon = ({ focused, size = 24 }: { focused: boolean; size?: number }) => (
+const ChatIcon = ({
+  focused,
+  size = 24,
+}: {
+  focused: boolean;
+  size?: number;
+}) => (
   <LinearGradient
     colors={['#FFAF7B', '#D76D77']}
     start={{ x: 0, y: 0 }}
@@ -81,75 +140,99 @@ const ChatIcon = ({ focused, size = 24 }: { focused: boolean; size?: number }) =
       shadowRadius: focused ? 5.65 : 4.65,
       elevation: focused ? 10 : 8,
     }}>
-    <View style={{
-      width: size - 6,
-      height: size - 8,
-      borderRadius: 6,
-      borderWidth: 1.5,
-      borderColor: 'white',
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'transparent',
-    }}>
-      <View style={{
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: 'white',
-        marginBottom: 2,
-      }} />
-      <View style={{
-        width: 8,
-        height: 1.5,
-        backgroundColor: 'white',
-        borderRadius: 0.75,
-      }} />
+    <View
+      style={{
+        width: size - 6,
+        height: size - 8,
+        borderRadius: 6,
+        borderWidth: 1.5,
+        borderColor: 'white',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'transparent',
+      }}>
+      <View
+        style={{
+          width: 6,
+          height: 6,
+          borderRadius: 3,
+          backgroundColor: 'white',
+          marginBottom: 2,
+        }}
+      />
+      <View
+        style={{
+          width: 8,
+          height: 1.5,
+          backgroundColor: 'white',
+          borderRadius: 0.75,
+        }}
+      />
     </View>
   </LinearGradient>
 );
 
-const LogoutIcon = ({ size = 22, color = '#DC3545' }: { size?: number; color?: string }) => (
-  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
-    <View style={{
-      width: size - 4,
-      height: size - 2,
-      borderWidth: 1.5,
-      borderColor: color,
-      borderRadius: 2,
-      backgroundColor: 'transparent',
-      position: 'relative',
+const LogoutIcon = ({
+  size = 22,
+  color = '#DC3545',
+}: {
+  size?: number;
+  color?: string;
+}) => (
+  <View
+    style={{
+      width: size,
+      height: size,
+      justifyContent: 'center',
+      alignItems: 'center',
     }}>
-      {/* Дверная ручка */}
-      <View style={{
-        width: 2,
-        height: 2,
-        backgroundColor: color,
-        borderRadius: 1,
-        position: 'absolute',
-        right: 2,
-        top: (size - 6) / 2,
-      }} />
-      {/* Стрелка выхода */}
-      <View style={{
-        position: 'absolute',
-        right: size - 8,
-        top: (size - 6) / 2 - 1,
-        width: 6,
-        height: 1.5,
-        backgroundColor: color,
-        borderRadius: 0.75,
-      }} />
-      <View style={{
-        position: 'absolute',
-        right: size - 6,
-        top: (size - 6) / 2 - 2,
-        width: 2,
-        height: 2,
-        borderTopWidth: 1.5,
-        borderRightWidth: 1.5,
+    <View
+      style={{
+        width: size - 4,
+        height: size - 2,
+        borderWidth: 1.5,
         borderColor: color,
-        transform: [{ rotate: '45deg' }],
-      }} />
+        borderRadius: 2,
+        backgroundColor: 'transparent',
+        position: 'relative',
+      }}>
+      {/* Дверная ручка */}
+      <View
+        style={{
+          width: 2,
+          height: 2,
+          backgroundColor: color,
+          borderRadius: 1,
+          position: 'absolute',
+          right: 2,
+          top: (size - 6) / 2,
+        }}
+      />
+      {/* Стрелка выхода */}
+      <View
+        style={{
+          position: 'absolute',
+          right: size - 8,
+          top: (size - 6) / 2 - 1,
+          width: 6,
+          height: 1.5,
+          backgroundColor: color,
+          borderRadius: 0.75,
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          right: size - 6,
+          top: (size - 6) / 2 - 2,
+          width: 2,
+          height: 2,
+          borderTopWidth: 1.5,
+          borderRightWidth: 1.5,
+          borderColor: color,
+          transform: [{ rotate: '45deg' }],
+        }}
+      />
     </View>
   </View>
 );
@@ -310,9 +393,7 @@ const MainTabNavigator: React.FC<{ navigation: any }> = ({ navigation }) => {
             </TouchableOpacity>
           ),
           tabBarLabel: 'Finances',
-          tabBarIcon: ({ color }) => (
-            <FinanceIcon color={color} size={24} />
-          ),
+          tabBarIcon: ({ color }) => <FinanceIcon color={color} size={24} />,
         }}
       />
       <Tab.Screen
@@ -321,9 +402,7 @@ const MainTabNavigator: React.FC<{ navigation: any }> = ({ navigation }) => {
         options={{
           title: 'AI Assistant',
           tabBarLabel: '', // Убираем подпись для центральной кнопки
-          tabBarIcon: ({ focused }) => (
-            <ChatIcon focused={focused} size={24} />
-          ),
+          tabBarIcon: ({ focused }) => <ChatIcon focused={focused} size={24} />,
         }}
       />
       <Tab.Screen
@@ -332,9 +411,7 @@ const MainTabNavigator: React.FC<{ navigation: any }> = ({ navigation }) => {
         options={{
           title: 'Analytics',
           tabBarLabel: 'Analytics',
-          tabBarIcon: ({ color }) => (
-            <AnalyticsIcon color={color} size={24} />
-          ),
+          tabBarIcon: ({ color }) => <AnalyticsIcon color={color} size={24} />,
         }}
       />
     </Tab.Navigator>
@@ -428,4 +505,3 @@ export const AppNavigator: React.FC = () => {
     </NavigationContainer>
   );
 };
-
