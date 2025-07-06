@@ -1,20 +1,23 @@
-// Цвета
-export { colors } from './colors';
+// Global styles
+export * from './globalStyles';
 
-// Общие стили
-export { layoutStyles } from './common/layout.styles';
-export { typographyStyles } from './common/typography.styles';
+// Colors
+export * from './colors';
 
-// Стили компонентов
-export { customButtonStyles } from './components/CustomButton.styles';
-export { customInputStyles } from './components/CustomInput.styles';
+// Common styles
+export * from './common/layout.styles';
+export * from './common/typography.styles';
 
-// Стили экранов
-export { loginScreenStyles } from './screens/LoginScreen.styles';
-export { registerScreenStyles } from './screens/RegisterScreen.styles';
-export { homeScreenStyles } from './screens/HomeScreen.styles';
-export { authLoadingScreenStyles } from './screens/AuthLoadingScreen.styles';
-export { profileScreenStyles } from './screens/ProfileScreen.styles';
+// Component styles
+export * from './components/CustomButton.styles';
+export * from './components/CustomInput.styles';
+export * from './components/CustomSelect.styles';
+export * from './components/CountryCodeSelector.styles';
 
-// Глобальные стили (для обратной совместимости)
-export { globalStyles } from './globalStyles';
+// Screen styles
+export * from './screens/AuthLoadingScreen.styles';
+export * from './screens/HomeScreen.styles';
+export * from './screens/LoginScreen.styles';
+export * from './screens/ProfileScreen.styles';
+export * from './screens/RegisterScreen.styles';
+export * from './screens/ChatScreen.styles';

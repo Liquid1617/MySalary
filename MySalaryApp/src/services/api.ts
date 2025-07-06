@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = 'http://localhost:3001/api'; // Для iOS simulator
-// const API_BASE_URL = 'http://10.0.2.2:3001/api'; // Для Android emulator
+// const API_BASE_URL = 'http://localhost:3001/api'; // Для iOS simulator (не работает)
+const API_BASE_URL = 'http://127.0.0.1:3001/api'; // Для iOS simulator
 
 interface LoginRequest {
   email: string;

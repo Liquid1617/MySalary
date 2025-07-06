@@ -148,9 +148,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         </View>
 
         <View style={homeScreenStyles.footer}>
-          <Text style={homeScreenStyles.comingSoonText}>
-            Feature in development...
-          </Text>
+          <CustomButton
+            title="Start Managing Finances 💰"
+            variant="primary"
+            onPress={() => navigation.navigate('MainTabs', { screen: 'Finances' })}
+            style={{ marginBottom: 12 }}
+          />
+          
+          <CustomButton
+            title="AI Financial Assistant 🤖"
+            variant="secondary"
+            onPress={() => navigation.navigate('MainTabs', { screen: 'Chat' })}
+            style={{ marginBottom: 16 }}
+          />
 
           {biometricCapability?.available && (
             <View style={homeScreenStyles.biometricContainer}>
