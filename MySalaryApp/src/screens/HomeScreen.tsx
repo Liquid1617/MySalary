@@ -108,10 +108,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       <View style={homeScreenStyles.content}>
         <View style={homeScreenStyles.header}>
           <Text style={[typographyStyles.h1, homeScreenStyles.welcomeTitle]}>
-            Добро пожаловать в MySalary! 🎉
+            Welcome to MySalary! 🎉
           </Text>
           <Text style={[typographyStyles.body1, homeScreenStyles.subtitle]}>
-            Теперь вы можете управлять своими финансами легко и эффективно
+            Now you can manage your finances easily and efficiently
           </Text>
         </View>
 
@@ -119,37 +119,37 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           <View style={homeScreenStyles.featureCard}>
             <Text style={homeScreenStyles.featureEmoji}>💰</Text>
             <Text style={homeScreenStyles.featureTitle}>
-              Управление доходами
+              Income Management
             </Text>
             <Text style={homeScreenStyles.featureDescription}>
-              Отслеживайте все источники дохода
+              Track all your income sources
             </Text>
           </View>
 
           <View style={homeScreenStyles.featureCard}>
             <Text style={homeScreenStyles.featureEmoji}>📊</Text>
             <Text style={homeScreenStyles.featureTitle}>
-              Аналитика расходов
+              Expense Analytics
             </Text>
             <Text style={homeScreenStyles.featureDescription}>
-              Анализируйте траты по категориям
+              Analyze spending by categories
             </Text>
           </View>
 
           <View style={homeScreenStyles.featureCard}>
             <Text style={homeScreenStyles.featureEmoji}>🎯</Text>
             <Text style={homeScreenStyles.featureTitle}>
-              Планирование бюджета
+              Budget Planning
             </Text>
             <Text style={homeScreenStyles.featureDescription}>
-              Ставьте цели и достигайте их
+              Set goals and achieve them
             </Text>
           </View>
         </View>
 
         <View style={homeScreenStyles.footer}>
           <Text style={homeScreenStyles.comingSoonText}>
-            Функционал находится в разработке...
+            Feature in development...
           </Text>
 
           {biometricCapability?.available && (
@@ -159,13 +159,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 onPress={() => handleBiometricToggle(!biometricEnabled)}>
                 <View style={homeScreenStyles.biometricInfo}>
                   <Text style={homeScreenStyles.biometricTitle}>
-                    Вход по{' '}
+                    Sign in with{' '}
                     {biometricService.getBiometryDisplayName(
                       biometricCapability.biometryType,
                     )}
                   </Text>
                   <Text style={homeScreenStyles.biometricDescription}>
-                    Быстрая и безопасная аутентификация
+                    Fast and secure authentication
                   </Text>
                 </View>
                 <Switch
@@ -180,7 +180,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           )}
 
           <CustomButton
-            title="Выйти из аккаунта"
+            title="Sign Out"
             variant="secondary"
             onPress={handleLogout}
             loading={loading}

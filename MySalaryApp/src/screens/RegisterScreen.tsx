@@ -62,8 +62,8 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
       const response = await apiService.getCountries();
       setCountries(response.countries);
     } catch (error) {
-      console.error('Ошибка загрузки стран:', error);
-      Alert.alert('Ошибка', 'Не удалось загрузить список стран');
+      console.error('Error loading countries:', error);
+      Alert.alert('Error', 'Failed to load countries list');
     } finally {
       setCountriesLoading(false);
     }
@@ -71,22 +71,22 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
 
   const validateLogin = (loginValue: string): boolean => {
     if (!loginValue.trim()) {
-      setLoginError('Логин обязателен');
+      setLoginError('Username is required');
       return false;
     }
     if (loginValue.trim().length < 3) {
-      setLoginError('Логин должен быть не менее 3 символов');
+      setLoginError('Username must be at least 3 characters');
       return false;
     }
     if (loginValue.trim().length > 50) {
-      setLoginError('Логин должен быть не более 50 символов');
+      setLoginError('Username must be no more than 50 characters');
       return false;
     }
 
     const loginRegex = /^[a-zA-Z0-9._]+$/;
     if (!loginRegex.test(loginValue.trim())) {
       setLoginError(
-        'Логин может содержать только буквы, цифры, точки и подчеркивания',
+        'Username can only contain letters, numbers, dots and underscores',
       );
       return false;
     }
@@ -103,12 +103,12 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
     try {
       setLoginChecking(true);
       await apiService.checkLoginAvailability(loginValue.trim());
-      setLoginError(''); // Логин доступен
+      setLoginError(''); // Username available
     } catch (error) {
       if (error instanceof Error) {
         setLoginError(error.message);
       } else {
-        setLoginError('Ошибка проверки логина');
+        setLoginError('Error checking username');
       }
     } finally {
       setLoginChecking(false);
@@ -123,12 +123,12 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
     try {
       setEmailChecking(true);
       await apiService.checkEmailAvailability(emailValue.trim());
-      setEmailError(''); // Email доступен
+      setEmailError(''); // Email available
     } catch (error) {
       if (error instanceof Error) {
         setEmailError(error.message);
       } else {
-        setEmailError('Ошибка проверки email');
+        setEmailError('Error checking email');
       }
     } finally {
       setEmailChecking(false);
@@ -138,11 +138,11 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
   const validateEmail = (mail: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!mail) {
-      setEmailError('Email обязателен');
+      setEmailError('Email is required');
       return false;
     }
     if (!emailRegex.test(mail)) {
-      setEmailError('Введите корректный email');
+      setEmailError('Please enter a valid email');
       return false;
     }
     setEmailError('');
@@ -154,7 +154,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
       return;
     }
 
-    // Если поле пустое, не проверяем (телефон необязательный)
+    // If field is empty, don't check (phone is optional)
     if (!phoneValue.trim()) {
       return;
     }
@@ -163,12 +163,12 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
       setPhoneChecking(true);
       const fullPhoneNumber = `${selectedCountryCode}${phoneValue.trim()}`;
       await apiService.checkPhoneAvailability(fullPhoneNumber);
-      setPhoneError(''); // Телефон доступен
+      setPhoneError(''); // Phone available
     } catch (error) {
       if (error instanceof Error) {
         setPhoneError(error.message);
       } else {
-        setPhoneError('Ошибка проверки номера телефона');
+        setPhoneError('Error checking phone number');
       }
     } finally {
       setPhoneChecking(false);
@@ -176,13 +176,13 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
   };
 
   const handlePhoneInput = (text: string): string => {
-    // Фильтруем только цифры
+    // Filter only digits
     const numbersOnly = text.replace(/[^0-9]/g, '');
 
-    // Если пользователь пытался ввести нецифровой символ, показываем подсказку
+    // If user tried to enter non-digit character, show hint
     if (text !== numbersOnly) {
-      setPhoneInputHint('Доступны только цифры');
-      // Скрываем подсказку через 2 секунды
+      setPhoneInputHint('Only digits are allowed');
+      // Hide hint after 2 seconds
       setTimeout(() => {
         setPhoneInputHint('');
       }, 2000);
@@ -194,14 +194,14 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
   const validatePhone = (phoneNumber: string): boolean => {
     if (!phoneNumber.trim()) {
       setPhoneError('');
-      return true; // Телефон необязательный
+      return true; // Phone is optional
     }
 
-    // Проверка на формат локального номера (без кода страны)
+    // Check local number format (without country code)
     const phoneRegex = /^[0-9]{6,15}$/;
     if (!phoneRegex.test(phoneNumber.trim())) {
       setPhoneError(
-        'Введите корректный номер телефона (только цифры, 6-15 символов)',
+        'Enter a valid phone number (digits only, 6-15 characters)',
       );
       return false;
     }
@@ -225,16 +225,16 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
 
   const validatePassword = (pass: string): boolean => {
     if (!pass) {
-      setPasswordError('Пароль обязателен');
+      setPasswordError('Password is required');
       return false;
     }
     if (pass.length < 6) {
-      setPasswordError('Пароль должен быть не менее 6 символов');
+      setPasswordError('Password must be at least 6 characters');
       return false;
     }
     if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(pass)) {
       setPasswordError(
-        'Пароль должен содержать заглавную букву, строчную букву и цифру',
+        'Password must contain uppercase letter, lowercase letter and digit',
       );
       return false;
     }
@@ -244,11 +244,11 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
 
   const validateConfirmPassword = (confirmPass: string): boolean => {
     if (!confirmPass) {
-      setConfirmPasswordError('Подтверждение пароля обязательно');
+      setConfirmPasswordError('Password confirmation is required');
       return false;
     }
     if (confirmPass !== password) {
-      setConfirmPasswordError('Пароли не совпадают');
+      setConfirmPasswordError('Passwords do not match');
       return false;
     }
     setConfirmPasswordError('');
@@ -263,7 +263,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
     const isPhoneValid = validatePhone(phone);
 
     if (!acceptTerms) {
-      Alert.alert('Ошибка', 'Необходимо принять условия использования');
+      Alert.alert('Error', 'You must accept the terms of service');
       return;
     }
 
@@ -293,7 +293,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
 
       await apiService.register(registerData);
 
-      // Сразу перенаправляем на главную страницу после успешной регистрации
+      // Redirect to main screen immediately after successful registration
       navigation.reset({
         index: 0,
         routes: [{ name: 'MainTabs' }],
@@ -302,8 +302,8 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
       const errorMessage =
         error instanceof Error
           ? error.message
-          : 'Не удалось создать аккаунт. Попробуйте позже.';
-      Alert.alert('Ошибка', errorMessage);
+          : 'Failed to create account. Please try again later.';
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -345,11 +345,11 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
 
   const getPasswordStrengthLabel = () => {
     if (passwordStrength.strength === 'weak') {
-      return 'Слабый';
+      return 'Weak';
     } else if (passwordStrength.strength === 'medium') {
-      return 'Средний';
+      return 'Medium';
     } else {
-      return 'Сильный';
+      return 'Strong';
     }
   };
 
@@ -367,17 +367,17 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
           <View style={registerScreenStyles.content}>
             <View style={registerScreenStyles.header}>
               <Text style={[typographyStyles.h1, registerScreenStyles.title]}>
-                Создать аккаунт
+                Create Account
               </Text>
               <Text
                 style={[typographyStyles.body1, registerScreenStyles.subtitle]}>
-                Присоединяйтесь к MySalary и управляйте своими финансами
+                Join MySalary and manage your finances
               </Text>
             </View>
 
             <View style={registerScreenStyles.form}>
               <CustomInput
-                label="Логин"
+                label="Username"
                 value={login}
                 onChangeText={text => {
                   setLogin(text);
@@ -391,7 +391,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
                   }
                 }}
                 error={loginError}
-                placeholder="Введите логин"
+                placeholder="Enter username"
                 loading={loginChecking}
               />
 
@@ -410,14 +410,14 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
                   }
                 }}
                 error={emailError}
-                placeholder="Введите ваш email"
+                placeholder="Enter your email"
                 keyboardType="email-address"
                 loading={emailChecking}
               />
 
               <View>
                 <Text style={registerScreenStyles.phoneLabel}>
-                  Телефон (необязательно)
+                  Phone (optional)
                 </Text>
                 <View style={registerScreenStyles.phoneContainer}>
                   <CountryCodeSelector
@@ -443,7 +443,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
                       }
                     }}
                     error={phoneError}
-                    placeholder="Введите номер телефона"
+                    placeholder="Enter phone number"
                     keyboardType="phone-pad"
                     loading={phoneChecking}
                     style={registerScreenStyles.phoneInput}
@@ -457,7 +457,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
               </View>
 
               <CustomSelect
-                label="Страна (необязательно)"
+                label="Country (optional)"
                 value={selectedCountry}
                 options={countries.map(country => ({
                   id: country.id,
@@ -465,13 +465,13 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
                   code: country.code,
                 }))}
                 onSelect={option => setSelectedCountry(option.id as number)}
-                placeholder="Выберите страну"
+                placeholder="Select country"
                 disabled={countriesLoading}
               />
 
               <View>
                 <CustomInput
-                  label="Пароль"
+                  label="Password"
                   value={password}
                   onChangeText={text => {
                     setPassword(text);
@@ -483,13 +483,13 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
                     }
                   }}
                   error={passwordError}
-                  placeholder="Создайте пароль"
+                  placeholder="Create password"
                   isPassword
                 />
                 {password.length > 0 && (
                   <View style={registerScreenStyles.passwordStrengthContainer}>
                     <Text style={getPasswordStrengthTextStyle()}>
-                      Надежность: {getPasswordStrengthLabel()}
+                      Strength: {getPasswordStrengthLabel()}
                     </Text>
                     <View style={registerScreenStyles.strengthIndicator}>
                       <View style={getPasswordStrengthStyle()} />
@@ -499,7 +499,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
               </View>
 
               <CustomInput
-                label="Подтвердите пароль"
+                label="Confirm Password"
                 value={confirmPassword}
                 onChangeText={text => {
                   setConfirmPassword(text);
@@ -508,7 +508,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
                   }
                 }}
                 error={confirmPasswordError}
-                placeholder="Повторите пароль"
+                placeholder="Repeat password"
                 isPassword
               />
             </View>
@@ -529,20 +529,20 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
                   typographyStyles.body2,
                   registerScreenStyles.termsText,
                 ]}>
-                Я принимаю{' '}
+                I accept the{' '}
                 <Text style={registerScreenStyles.termsLink}>
-                  Условия использования
+                  Terms of Service
                 </Text>{' '}
-                и{' '}
+                and{' '}
                 <Text style={registerScreenStyles.termsLink}>
-                  Политику конфиденциальности
+                  Privacy Policy
                 </Text>
               </Text>
             </View>
 
             <View style={registerScreenStyles.buttonSpacing}>
               <CustomButton
-                title="Создать аккаунт"
+                title="Create Account"
                 onPress={handleRegister}
                 loading={loading}
                 disabled={
@@ -556,7 +556,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
             </View>
 
             <CustomButton
-              title="Уже есть аккаунт? Войти"
+              title="Already have an account? Sign In"
               variant="secondary"
               onPress={navigateToLogin}
             />
@@ -567,7 +567,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
                   typographyStyles.body2,
                   registerScreenStyles.footerText,
                 ]}>
-                Уже есть аккаунт?
+                Already have an account?
               </Text>
               <TouchableOpacity onPress={navigateToLogin}>
                 <Text
@@ -575,7 +575,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
                     typographyStyles.body2,
                     registerScreenStyles.loginLink,
                   ]}>
-                  Войти
+                  Sign In
                 </Text>
               </TouchableOpacity>
             </View>

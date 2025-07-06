@@ -14,6 +14,7 @@ export { loginScreenStyles } from './screens/LoginScreen.styles';
 export { registerScreenStyles } from './screens/RegisterScreen.styles';
 export { homeScreenStyles } from './screens/HomeScreen.styles';
 export { authLoadingScreenStyles } from './screens/AuthLoadingScreen.styles';
+export { profileScreenStyles } from './screens/ProfileScreen.styles';
 
 // Глобальные стили (для обратной совместимости)
 export { globalStyles } from './globalStyles';

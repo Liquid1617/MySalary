@@ -3,9 +3,19 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // Создаем функцию для проверки согласованности category_type и transaction_type
+    // Сначала удаляем триггер
     await queryInterface.sequelize.query(`
-      CREATE OR REPLACE FUNCTION check_category_transaction_consistency()
+      DROP TRIGGER IF EXISTS check_category_consistency_trigger ON "Transactions";
+    `);
+    
+    // Потом удаляем функцию
+    await queryInterface.sequelize.query(`
+      DROP FUNCTION IF EXISTS check_category_transaction_consistency();
+    `);
+    
+    // Создаем функцию заново с правильным сравнением типов
+    await queryInterface.sequelize.query(`
+      CREATE FUNCTION check_category_transaction_consistency()
       RETURNS trigger AS $$
       DECLARE
         cat_type text;
@@ -15,9 +25,9 @@ module.exports = {
         FROM "Categories"
         WHERE id = NEW.category_id;
         
-        -- Проверяем согласованность
+        -- Проверяем согласованность (явно приводим enum к тексту)
         IF cat_type != NEW.transaction_type::text THEN
-          RAISE EXCEPTION 'Category type (%) does not match transaction type (%)', cat_type, NEW.transaction_type;
+          RAISE EXCEPTION 'Category type (%) does not match transaction type (%)', cat_type, NEW.transaction_type::text;
         END IF;
         
         RETURN NEW;
@@ -25,7 +35,7 @@ module.exports = {
       $$ LANGUAGE plpgsql;
     `);
     
-    // Создаем триггер на таблице Transactions
+    // Создаем триггер заново
     await queryInterface.sequelize.query(`
       CREATE TRIGGER check_category_consistency_trigger
       BEFORE INSERT OR UPDATE ON "Transactions"
@@ -33,7 +43,7 @@ module.exports = {
       EXECUTE FUNCTION check_category_transaction_consistency();
     `);
     
-    console.log('Added category-transaction consistency check');
+    console.log('Force-recreated category-transaction consistency check function');
   },
 
   async down(queryInterface, Sequelize) {
@@ -47,6 +57,6 @@ module.exports = {
       DROP FUNCTION IF EXISTS check_category_transaction_consistency();
     `);
     
-    console.log('Removed category-transaction consistency check');
+    console.log('Removed force-recreated function');
   }
-};
+}; 
