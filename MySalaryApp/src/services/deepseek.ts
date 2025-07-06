@@ -25,9 +25,9 @@ interface DeepSeekResponse {
 
 // В реальном приложении токен должен быть в .env файле
 // Для React Native используйте react-native-dotenv или react-native-config
-// Пока что определяем константу, которую нужно будет заменить на реальный токен
-const DEEPSEEK_API_KEY = 'sk-cb19875cb7a74140822b7f93fd4ee69b'; // Замените на реальный токен из .env
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+const DEEPSEEK_API_KEY: string = 'sk-cb19875cb7a74140822b7f93fd4ee69b'; // Замените на реальный токен из .env
+const DEMO_API_KEY: string = 'YOUR_DEEPSEEK_API_KEY_HERE';
+const DEEPSEEK_API_URL = 'http://127.0.0.1:3001/api/chat'; // URL для локального сервера
 
 const FINANCIAL_SYSTEM_PROMPT = `Ты — искусственный интеллект, выступающий персональным финансовым помощником пользователя.
 Твоя зона ответственности строго ограничена вопросами личных финансов, бюджета и финансового планирования.

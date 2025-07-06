@@ -10,6 +10,7 @@ const currenciesRoutes = require('./routes/currencies');
 const categoriesRoutes = require('./routes/categories');
 const transactionsRoutes = require('./routes/transactions');
 const networthRoutes = require('./routes/networth');
+const chatRoutes = require('./routes/chat');
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use('/api/currencies', currenciesRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/transactions', transactionsRoutes);
 app.use('/api/networth', networthRoutes);
+app.use('/api', chatRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {
