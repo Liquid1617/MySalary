@@ -29,11 +29,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const validateEmail = (emailValue: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailValue) {
-      setEmailError('Email обязателен');
+      setEmailError('Email is required');
       return false;
     }
     if (!emailRegex.test(emailValue)) {
-      setEmailError('Введите корректный email');
+      setEmailError('Please enter a valid email');
       return false;
     }
     setEmailError('');
@@ -42,11 +42,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   const validatePassword = (passwordValue: string): boolean => {
     if (!passwordValue) {
-      setPasswordError('Пароль обязателен');
+      setPasswordError('Password is required');
       return false;
     }
     if (passwordValue.length < 6) {
-      setPasswordError('Пароль должен быть не менее 6 символов');
+      setPasswordError('Password must be at least 6 characters');
       return false;
     }
     setPasswordError('');
@@ -76,24 +76,24 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       console.log('Biometric capability:', capability);
       console.log('Biometric already enabled:', isAlreadyEnabled);
 
-      // Временный диагностический алерт
-      const diagnosticMessage = `Доступна: ${capability.available}
-Тип: ${capability.biometryType || 'Нет'}
-Включена: ${isAlreadyEnabled}
-Ошибка: ${capability.error || 'Нет'}`;
+      // Temporary diagnostic alert
+      const diagnosticMessage = `Available: ${capability.available}
+Type: ${capability.biometryType || 'None'}
+Enabled: ${isAlreadyEnabled}
+Error: ${capability.error || 'None'}`;
 
-      Alert.alert('Диагностика биометрии', diagnosticMessage, [{ text: 'OK' }]);
+      Alert.alert('Biometric Diagnostics', diagnosticMessage, [{ text: 'OK' }]);
 
       if (capability.available && !isAlreadyEnabled) {
-        // Предлагаем настроить биометрию
+        // Suggest setting up biometrics
         Alert.alert(
-          'Настройка входа',
-          `Хотите настроить вход по ${biometricService.getBiometryDisplayName(
+          'Setup Biometric Login',
+          `Would you like to set up ${biometricService.getBiometryDisplayName(
             capability.biometryType,
-          )} для быстрого доступа к приложению?`,
+          )} for quick access to the app?`,
           [
             {
-              text: 'Не сейчас',
+              text: 'Not now',
               style: 'cancel',
               onPress: () => {
                 navigation.reset({
@@ -103,20 +103,20 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               },
             },
             {
-              text: 'Настроить',
+              text: 'Set up',
               onPress: async () => {
                 const authResult =
                   await biometricService.authenticateWithBiometrics(
-                    'Подтвердите настройку биометрической аутентификации',
+                    'Confirm biometric authentication setup',
                   );
 
                 if (authResult.success) {
                   await biometricService.setBiometricEnabled(true);
                   Alert.alert(
-                    'Успех!',
+                    'Success!',
                     `${biometricService.getBiometryDisplayName(
                       capability.biometryType,
-                    )} настроен. Теперь вы можете входить в приложение быстрее!`,
+                    )} is now set up. You can now sign in faster!`,
                     [
                       {
                         text: 'OK',
@@ -140,7 +140,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           ],
         );
       } else {
-        // Сразу перенаправляем на главную страницу
+        // Redirect to main screen immediately
         navigation.reset({
           index: 0,
           routes: [{ name: 'MainTabs' }],
@@ -148,8 +148,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       }
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Ошибка авторизации';
-      Alert.alert('Ошибка', errorMessage);
+        error instanceof Error ? error.message : 'Authentication error';
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -171,11 +171,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           <View style={loginScreenStyles.content}>
             <View style={loginScreenStyles.header}>
               <Text style={[typographyStyles.h1, loginScreenStyles.title]}>
-                Добро пожаловать!
+                Welcome!
               </Text>
               <Text
                 style={[typographyStyles.body1, loginScreenStyles.subtitle]}>
-                Войдите в свой аккаунт MySalary
+                Sign in to your MySalary account
               </Text>
             </View>
 
@@ -190,12 +190,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                   }
                 }}
                 error={emailError}
-                placeholder="Введите ваш email"
+                placeholder="Enter your email"
                 keyboardType="email-address"
               />
 
               <CustomInput
-                label="Пароль"
+                label="Password"
                 value={password}
                 onChangeText={text => {
                   setPassword(text);
@@ -204,7 +204,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                   }
                 }}
                 error={passwordError}
-                placeholder="Введите ваш пароль"
+                placeholder="Enter your password"
                 isPassword
               />
             </View>
@@ -215,20 +215,20 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                   typographyStyles.body2,
                   loginScreenStyles.forgotPasswordText,
                 ]}>
-                Забыли пароль?
+                Forgot password?
               </Text>
             </TouchableOpacity>
 
             <View style={loginScreenStyles.buttonSpacing}>
               <CustomButton
-                title="Войти"
+                title="Sign In"
                 onPress={handleLogin}
                 loading={loading}
               />
             </View>
 
             <CustomButton
-              title="Создать аккаунт"
+              title="Create Account"
               variant="secondary"
               onPress={navigateToRegister}
             />
@@ -236,7 +236,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <View style={loginScreenStyles.footer}>
               <Text
                 style={[typographyStyles.body2, loginScreenStyles.footerText]}>
-                Нет аккаунта?
+                Don't have an account?
               </Text>
               <TouchableOpacity onPress={navigateToRegister}>
                 <Text
@@ -244,7 +244,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                     typographyStyles.body2,
                     loginScreenStyles.registerLink,
                   ]}>
-                  Зарегистрироваться
+                  Sign Up
                 </Text>
               </TouchableOpacity>
             </View>

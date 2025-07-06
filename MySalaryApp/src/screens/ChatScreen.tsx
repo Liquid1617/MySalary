@@ -8,44 +8,44 @@ export const ChatScreen: React.FC = () => {
       <ScrollView style={homeScreenStyles.content}>
         <View style={homeScreenStyles.header}>
           <Text style={[typographyStyles.h1, homeScreenStyles.welcomeTitle]}>
-            ИИ Помощник 🤖
+            AI Assistant 🤖
           </Text>
           <Text style={[typographyStyles.body1, homeScreenStyles.subtitle]}>
-            Получайте персональные советы по управлению финансами
+            Get personalized financial management advice
           </Text>
         </View>
 
         <View style={homeScreenStyles.mainContent}>
           <View style={homeScreenStyles.featureCard}>
             <Text style={homeScreenStyles.featureEmoji}>💡</Text>
-            <Text style={homeScreenStyles.featureTitle}>Финансовые советы</Text>
+            <Text style={homeScreenStyles.featureTitle}>Financial Tips</Text>
             <Text style={homeScreenStyles.featureDescription}>
-              Персональные рекомендации по планированию бюджета
+              Personalized budget planning recommendations
             </Text>
           </View>
 
           <View style={homeScreenStyles.featureCard}>
             <Text style={homeScreenStyles.featureEmoji}>📈</Text>
-            <Text style={homeScreenStyles.featureTitle}>Анализ трат</Text>
+            <Text style={homeScreenStyles.featureTitle}>Spending Analysis</Text>
             <Text style={homeScreenStyles.featureDescription}>
-              Выявление закономерностей в расходах
+              Identify patterns in your expenses
             </Text>
           </View>
 
           <View style={homeScreenStyles.featureCard}>
             <Text style={homeScreenStyles.featureEmoji}>🎯</Text>
             <Text style={homeScreenStyles.featureTitle}>
-              Планирование целей
+              Goal Planning
             </Text>
             <Text style={homeScreenStyles.featureDescription}>
-              Помощь в достижении финансовых целей
+              Help achieve your financial goals
             </Text>
           </View>
         </View>
 
         <View style={homeScreenStyles.footer}>
           <Text style={homeScreenStyles.comingSoonText}>
-            ИИ чат находится в разработке...
+            AI chat in development...
           </Text>
         </View>
       </ScrollView>

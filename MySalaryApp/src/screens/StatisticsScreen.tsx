@@ -8,10 +8,10 @@ export const StatisticsScreen: React.FC = () => {
       <ScrollView style={homeScreenStyles.content}>
         <View style={homeScreenStyles.header}>
           <Text style={[typographyStyles.h1, homeScreenStyles.welcomeTitle]}>
-            Статистика 📊
+            Statistics 📊
           </Text>
           <Text style={[typographyStyles.body1, homeScreenStyles.subtitle]}>
-            Анализируйте свои финансы и отслеживайте прогресс
+            Analyze your finances and track progress
           </Text>
         </View>
 
@@ -19,35 +19,35 @@ export const StatisticsScreen: React.FC = () => {
           <View style={homeScreenStyles.featureCard}>
             <Text style={homeScreenStyles.featureEmoji}>📊</Text>
             <Text style={homeScreenStyles.featureTitle}>
-              Графики и диаграммы
+              Charts and Graphs
             </Text>
             <Text style={homeScreenStyles.featureDescription}>
-              Визуализация доходов и расходов
+              Visualize income and expenses
             </Text>
           </View>
 
           <View style={homeScreenStyles.featureCard}>
             <Text style={homeScreenStyles.featureEmoji}>📅</Text>
             <Text style={homeScreenStyles.featureTitle}>
-              Отчеты по периодам
+              Period Reports
             </Text>
             <Text style={homeScreenStyles.featureDescription}>
-              Месячные, квартальные, годовые отчеты
+              Monthly, quarterly, and yearly reports
             </Text>
           </View>
 
           <View style={homeScreenStyles.featureCard}>
             <Text style={homeScreenStyles.featureEmoji}>🏆</Text>
-            <Text style={homeScreenStyles.featureTitle}>Достижения</Text>
+            <Text style={homeScreenStyles.featureTitle}>Achievements</Text>
             <Text style={homeScreenStyles.featureDescription}>
-              Прогресс в достижении финансовых целей
+              Progress toward financial goals
             </Text>
           </View>
         </View>
 
         <View style={homeScreenStyles.footer}>
           <Text style={homeScreenStyles.comingSoonText}>
-            Детальная статистика находится в разработке...
+            Detailed statistics in development...
           </Text>
         </View>
       </ScrollView>

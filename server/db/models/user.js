@@ -16,6 +16,12 @@ module.exports = (sequelize, DataTypes) => {
         as: 'country'
       });
       
+      // Связь с основной валютой пользователя
+      User.belongsTo(models.Currency, {
+        foreignKey: 'primary_currency_id',
+        as: 'primaryCurrency'
+      });
+      
       // Связь с моделью Account
       User.hasMany(models.Account, {
         foreignKey: 'user_id',
@@ -78,6 +84,15 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       references: {
         model: 'Countries',
+        key: 'id'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL'
+    },
+    primary_currency_id: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'Currencies',
         key: 'id'
       },
       onUpdate: 'CASCADE',

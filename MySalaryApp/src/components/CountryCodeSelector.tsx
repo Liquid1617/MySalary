@@ -144,7 +144,7 @@ const CountryCodeSelector: React.FC<CountryCodeSelectorProps> = ({
           <View style={countryCodeSelectorStyles.modalContent}>
             <View style={countryCodeSelectorStyles.modalHeader}>
               <Text style={countryCodeSelectorStyles.modalTitle}>
-                Выберите страну
+                Select Country
               </Text>
               <TouchableOpacity
                 style={countryCodeSelectorStyles.closeButton}
