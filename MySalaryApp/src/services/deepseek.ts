@@ -1,3 +1,5 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 interface DeepSeekMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -112,11 +114,18 @@ class DeepSeekService {
     });
 
     try {
+      // Получаем JWT токен пользователя для авторизации
+      const token = await AsyncStorage.getItem('token');
+
+      if (!token) {
+        throw new Error('Пользователь не авторизован');
+      }
+
       const response = await fetch(DEEPSEEK_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           model: 'deepseek-chat',
