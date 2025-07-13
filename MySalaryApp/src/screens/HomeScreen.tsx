@@ -104,8 +104,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={homeScreenStyles.container}>
-      <View style={homeScreenStyles.content}>
+    <SafeAreaView style={[homeScreenStyles.container, { backgroundColor: '#F6F7F8' }]}>
+      <View style={[homeScreenStyles.content, { backgroundColor: '#F6F7F8' }]}>
         <View style={homeScreenStyles.header}>
           <Text style={[typographyStyles.h1, homeScreenStyles.welcomeTitle]}>
             Welcome to MySalary! 🎉

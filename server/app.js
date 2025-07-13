@@ -35,6 +35,9 @@ app.get('/api/health', (req, res) => {
   res.json({ message: 'Server is running', timestamp: new Date().toISOString() });
 });
 
+// Chart debugging enabled
+console.log('📊 Chart API debugging enabled');
+
 const PORT = process.env.PORT || 3001;
 
 async function testConnection() {

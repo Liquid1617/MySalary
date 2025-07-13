@@ -6,6 +6,7 @@ const auth = require('../middleware/auth');
 // Получить все транзакции пользователя
 router.get('/', auth, async (req, res) => {
   try {
+    console.log('🔍 Fetching transactions with ORDER BY createdAt DESC');
     const transactions = await Transaction.findAll({
       where: { 
         '$account.user_id$': req.user.id 
@@ -26,7 +27,7 @@ router.get('/', auth, async (req, res) => {
           as: 'category',
         }
       ],
-      order: [['transaction_date', 'DESC']],
+      order: [['createdAt', 'DESC']], // Сортировка по времени создания
     });
     res.json(transactions);
   } catch (error) {
@@ -175,6 +176,56 @@ router.put('/:id', auth, async (req, res) => {
     res.json(transaction);
   } catch (error) {
     console.error('Ошибка обновления транзакции:', error);
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
+});
+
+// Удалить все транзакции по account_id  
+router.delete('/account/:accountId/all', auth, async (req, res) => {
+  try {
+    const { accountId } = req.params;
+    console.log('🗑️ Deleting transactions for account:', accountId);
+    
+    // Проверяем, что счет принадлежит пользователю
+    const account = await Account.findOne({
+      where: { id: accountId, user_id: req.user.id }
+    });
+    
+    if (!account) {
+      return res.status(404).json({ message: 'Счет не найден' });
+    }
+    
+    // Находим все транзакции по этому счету
+    const transactions = await Transaction.findAll({
+      where: { account_id: accountId },
+      include: [
+        {
+          model: Account,
+          as: 'account',
+          where: { user_id: req.user.id }
+        }
+      ]
+    });
+    
+    // Откатываем все изменения баланса и удаляем транзакции
+    let totalBalanceChange = 0;
+    for (const transaction of transactions) {
+      const balanceChange = transaction.transaction_type === 'income' ? -transaction.amount : transaction.amount;
+      totalBalanceChange += parseFloat(balanceChange);
+      await transaction.destroy();
+    }
+    
+    // Обновляем баланс счета
+    await account.update({
+      balance: parseFloat(account.balance) + totalBalanceChange
+    });
+    
+    res.json({ 
+      message: `Удалено ${transactions.length} транзакций`,
+      deletedCount: transactions.length 
+    });
+  } catch (error) {
+    console.error('Ошибка удаления транзакций по счету:', error);
     res.status(500).json({ message: 'Ошибка сервера' });
   }
 });

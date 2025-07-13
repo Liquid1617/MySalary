@@ -12,12 +12,12 @@ export const colors = {
   white: '#FFFFFF',
   black: '#000000',
   gray: '#C6C6C8',
-  lightGray: '#F2F2F7',
+  lightGray: '#F6F7F8',
   darkGray: '#8E8E93',
 
   // Background colors
   background: '#FFFFFF',
-  backgroundSecondary: '#F2F2F7',
+  backgroundSecondary: '#F6F7F8',
   backgroundTertiary: '#FFFFFF',
 
   // Text colors

@@ -11,6 +11,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { profileScreenStyles, layoutStyles, typographyStyles } from '../styles';
 import { apiService } from '../services/api';
+import { biometricService } from '../services/biometric';
 import { AddAccountModal } from '../components/AddAccountModal';
 
 interface ProfileScreenProps {
@@ -93,6 +94,32 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
     navigation.goBack();
   };
 
+  const handleLogout = async () => {
+    Alert.alert('Выход', 'Вы уверены, что хотите выйти из аккаунта?', [
+      {
+        text: 'Отмена',
+        style: 'cancel',
+      },
+      {
+        text: 'Выйти',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await apiService.logout();
+            await biometricService.clearBiometricSettings();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Login' }],
+            });
+          } catch (error) {
+            console.error('Ошибка при выходе:', error);
+            Alert.alert('Ошибка', 'Не удалось выйти из аккаунта');
+          }
+        },
+      },
+    ]);
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={profileScreenStyles.container}>
@@ -107,6 +134,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
     <SafeAreaView style={profileScreenStyles.container}>
       <ScrollView style={profileScreenStyles.content}>
         <View style={profileScreenStyles.header}>
+          <View style={{ width: 44 }} />
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <Text style={[typographyStyles.h2, profileScreenStyles.title]}>
+              Profile
+            </Text>
+          </View>
           <TouchableOpacity 
             onPress={handleClose} 
             style={profileScreenStyles.closeButton}
@@ -115,12 +148,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           >
             <Text style={profileScreenStyles.closeButtonText}>✕</Text>
           </TouchableOpacity>
-          <View style={{ flex: 1, alignItems: 'center' }}>
-            <Text style={[typographyStyles.h2, profileScreenStyles.title]}>
-              Profile
-            </Text>
-          </View>
-          <View style={{ width: 44 }} />
         </View>
 
         <View style={profileScreenStyles.avatarContainer}>
@@ -198,6 +225,31 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
               </View>
             ))
           )}
+        </View>
+
+        {/* Logout Button */}
+        <View style={{
+          paddingHorizontal: 16,
+          paddingVertical: 40,
+          paddingBottom: 60,
+        }}>
+          <TouchableOpacity
+            style={{
+              backgroundColor: '#DC3545',
+              paddingVertical: 16,
+              borderRadius: 12,
+              alignItems: 'center',
+            }}
+            onPress={handleLogout}
+            activeOpacity={0.8}>
+            <Text style={{
+              color: '#FFFFFF',
+              fontSize: 16,
+              fontWeight: '600',
+            }}>
+              Logout
+            </Text>
+          </TouchableOpacity>
         </View>
 
       </ScrollView>

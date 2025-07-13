@@ -228,9 +228,9 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
         backgroundColor="transparent"
         translucent={true}
       />
-
-      <ScrollView
-        style={{ flex: 1, backgroundColor: 'transparent' }}
+      
+      <ScrollView 
+        style={{ flex: 1, backgroundColor: '#F6F7F8' }}
         contentContainerStyle={{ flexGrow: 1 }}
         showsVerticalScrollIndicator={false}>
         {/* Полноэкранный градиентный фон только для верхней части */}
@@ -366,14 +366,8 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
         </LinearGradient>
 
         {/* Transaction History секция НА БЕЛОМ ФОНЕ */}
-        <View
-          style={{
-            backgroundColor: '#F8F9FA',
-            paddingBottom: 24,
-            paddingHorizontal: 24,
-          }}>
-          <View
-            style={[homeScreenStyles.mainContent, { marginTop: 24, gap: 10 }]}>
+        <View style={{ backgroundColor: '#F6F7F8', paddingBottom: 24, paddingHorizontal: 24 }}>
+          <View style={[homeScreenStyles.mainContent, { marginTop: 24, gap: 10 }]}>
             <View style={profileScreenStyles.sectionHeader}>
               <Text
                 style={[

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StatusBar, Alert, TouchableOpacity, Text, View } from 'react-native';
+import { StatusBar, TouchableOpacity, Text, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { LoginScreen } from '../screens/LoginScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
@@ -14,8 +14,6 @@ import { AuthLoadingScreen } from '../screens/AuthLoadingScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { BalanceChangeScreen } from '../screens/BalanceChangeScreen';
 import { Colors } from '../styles/colors';
-import { apiService } from '../services/api';
-import { biometricService } from '../services/biometric';
 
 export type RootStackParamList = {
   AuthLoading: undefined;
@@ -172,106 +170,10 @@ const ChatIcon = ({
   </LinearGradient>
 );
 
-const LogoutIcon = ({
-  size = 22,
-  color = '#DC3545',
-}: {
-  size?: number;
-  color?: string;
-}) => (
-  <View
-    style={{
-      width: size,
-      height: size,
-      justifyContent: 'center',
-      alignItems: 'center',
-    }}>
-    <View
-      style={{
-        width: size - 4,
-        height: size - 2,
-        borderWidth: 1.5,
-        borderColor: color,
-        borderRadius: 2,
-        backgroundColor: 'transparent',
-        position: 'relative',
-      }}>
-      {/* Дверная ручка */}
-      <View
-        style={{
-          width: 2,
-          height: 2,
-          backgroundColor: color,
-          borderRadius: 1,
-          position: 'absolute',
-          right: 2,
-          top: (size - 6) / 2,
-        }}
-      />
-      {/* Стрелка выхода */}
-      <View
-        style={{
-          position: 'absolute',
-          right: size - 8,
-          top: (size - 6) / 2 - 1,
-          width: 6,
-          height: 1.5,
-          backgroundColor: color,
-          borderRadius: 0.75,
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          right: size - 6,
-          top: (size - 6) / 2 - 2,
-          width: 2,
-          height: 2,
-          borderTopWidth: 1.5,
-          borderRightWidth: 1.5,
-          borderColor: color,
-          transform: [{ rotate: '45deg' }],
-        }}
-      />
-    </View>
-  </View>
-);
-
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
 const MainTabNavigator: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const [loading, setLoading] = useState(false);
-
-  const handleLogout = async () => {
-    Alert.alert('Выход', 'Вы уверены, что хотите выйти из аккаунта?', [
-      {
-        text: 'Отмена',
-        style: 'cancel',
-      },
-      {
-        text: 'Выйти',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            setLoading(true);
-            await apiService.logout();
-            await biometricService.clearBiometricSettings();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            });
-          } catch (error) {
-            console.error('Ошибка при выходе:', error);
-            Alert.alert('Ошибка', 'Не удалось выйти из аккаунта');
-          } finally {
-            setLoading(false);
-          }
-        },
-      },
-    ]);
-  };
-
   return (
     <Tab.Navigator
       screenOptions={{
@@ -284,11 +186,11 @@ const MainTabNavigator: React.FC<{ navigation: any }> = ({ navigation }) => {
           fontSize: 18,
         },
         headerShadowVisible: false,
-        headerLeft: () => (
+        headerRight: () => (
           <TouchableOpacity
             onPress={() => navigation.navigate('Profile')}
             style={{
-              marginLeft: 16,
+              marginRight: 16,
               width: 40,
               height: 40,
               borderRadius: 20,
@@ -306,39 +208,20 @@ const MainTabNavigator: React.FC<{ navigation: any }> = ({ navigation }) => {
             </Text>
           </TouchableOpacity>
         ),
-        headerRight: () => (
-          <TouchableOpacity
-            onPress={handleLogout}
-            style={{
-              marginRight: 16,
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-            disabled={loading}>
-            {loading ? (
-              <Text style={{ color: '#DC3545', fontSize: 12 }}>...</Text>
-            ) : (
-              <LogoutIcon />
-            )}
-          </TouchableOpacity>
-        ),
         tabBarStyle: {
           backgroundColor: Colors.background,
           borderTopWidth: 1,
           borderTopColor: '#E5E5EA',
-          paddingBottom: 12,
-          paddingTop: 10,
-          height: 92,
+          paddingBottom: 8,
+          paddingTop: 3,
+          height: 80,
         },
         tabBarActiveTintColor: '#000000',
         tabBarInactiveTintColor: '#8E8E93',
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '500',
-          marginTop: -2,
+          marginTop: -8,
         },
       }}>
       <Tab.Screen
@@ -350,11 +233,11 @@ const MainTabNavigator: React.FC<{ navigation: any }> = ({ navigation }) => {
           headerStyle: {
             backgroundColor: 'transparent',
           },
-          headerLeft: () => (
+          headerRight: () => (
             <TouchableOpacity
               onPress={() => navigation.navigate('Profile')}
               style={{
-                marginLeft: 16,
+                marginRight: 16,
                 width: 40,
                 height: 40,
                 borderRadius: 20,
@@ -370,26 +253,6 @@ const MainTabNavigator: React.FC<{ navigation: any }> = ({ navigation }) => {
                 }}>
                 U
               </Text>
-            </TouchableOpacity>
-          ),
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={handleLogout}
-              style={{
-                marginRight: 16,
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-              disabled={loading}>
-              {loading ? (
-                <Text style={{ color: 'white', fontSize: 12 }}>...</Text>
-              ) : (
-                <LogoutIcon color="white" />
-              )}
             </TouchableOpacity>
           ),
           tabBarLabel: 'Finances',
@@ -409,7 +272,33 @@ const MainTabNavigator: React.FC<{ navigation: any }> = ({ navigation }) => {
         name="Statistics"
         component={StatisticsScreen}
         options={{
-          title: 'Analytics',
+          title: '',
+          headerTransparent: true,
+          headerStyle: {
+            backgroundColor: 'transparent',
+          },
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Profile')}
+              style={{
+                marginRight: 16,
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
+              <Text
+                style={{
+                  color: 'white',
+                  fontSize: 16,
+                  fontWeight: '600',
+                }}>
+                U
+              </Text>
+            </TouchableOpacity>
+          ),
           tabBarLabel: 'Analytics',
           tabBarIcon: ({ color }) => <AnalyticsIcon color={color} size={24} />,
         }}
@@ -456,7 +345,7 @@ export const AppNavigator: React.FC = () => {
           name="Login"
           component={LoginScreen}
           options={{
-            title: 'Вход',
+            title: 'Login',
             headerShown: false,
           }}
         />
@@ -464,9 +353,9 @@ export const AppNavigator: React.FC = () => {
           name="Register"
           component={RegisterScreen}
           options={{
-            title: 'Регистрация',
+            title: 'Register',
             headerShown: true,
-            headerBackTitle: 'Назад',
+            headerBackTitle: 'Back',
           }}
         />
         <Stack.Screen
@@ -488,7 +377,7 @@ export const AppNavigator: React.FC = () => {
           name="Profile"
           component={ProfileScreen}
           options={{
-            title: 'Профиль',
+            title: 'Profile',
             headerShown: false,
           }}
         />
@@ -496,9 +385,9 @@ export const AppNavigator: React.FC = () => {
           name="BalanceChange"
           component={BalanceChangeScreen}
           options={{
-            title: 'Изменение баланса',
+            title: 'Balance Change',
             headerShown: true,
-            headerBackTitle: 'Назад',
+            headerBackTitle: 'Back',
           }}
         />
       </Stack.Navigator>

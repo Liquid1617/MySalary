@@ -3,11 +3,14 @@ const router = express.Router();
 const { Account, Currency } = require('../db/models');
 const authMiddleware = require('../middleware/auth');
 
-// GET /api/accounts - получить все счета пользователя
+// GET /api/accounts - получить активные счета пользователя
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const accounts = await Account.findAll({
-      where: { user_id: req.user.id },
+      where: { 
+        user_id: req.user.id,
+        is_active: true  // Показываем только активные счета
+      },
       include: [
         {
           model: Currency,
@@ -21,6 +24,31 @@ router.get('/', authMiddleware, async (req, res) => {
     res.json(accounts);
   } catch (error) {
     console.error('Ошибка при получении счетов:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// GET /api/accounts/deactivated - получить деактивированные счета пользователя
+router.get('/deactivated', authMiddleware, async (req, res) => {
+  try {
+    const deactivatedAccounts = await Account.findAll({
+      where: { 
+        user_id: req.user.id,
+        is_active: false  // Показываем только деактивированные счета
+      },
+      include: [
+        {
+          model: Currency,
+          as: 'currency',
+          attributes: ['id', 'code', 'name', 'symbol']
+        }
+      ],
+      order: [['updatedAt', 'DESC']]  // Сортируем по дате деактивации
+    });
+
+    res.json(deactivatedAccounts);
+  } catch (error) {
+    console.error('Ошибка при получении деактивированных счетов:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -168,9 +196,33 @@ router.put('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// DELETE /api/accounts/:id - удалить счет
+// DELETE /api/accounts/:id - деактивировать счет (soft delete)
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
+    console.log('🔄 Deactivating account:', req.params.id);
+    const account = await Account.findOne({
+      where: { id: req.params.id, user_id: req.user.id, is_active: true }
+    });
+
+    if (!account) {
+      return res.status(404).json({ error: 'Активный счет не найден' });
+    }
+
+    // Деактивируем счет вместо удаления
+    await account.update({ is_active: false });
+    console.log('✅ Account deactivated successfully:', req.params.id);
+    
+    res.json({ message: 'Счет успешно деактивирован' });
+  } catch (error) {
+    console.error('Ошибка при деактивации счета:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// DELETE /api/accounts/:id/permanently - полностью удалить счет и все его транзакции
+router.delete('/:id/permanently', authMiddleware, async (req, res) => {
+  try {
+    console.log('💀 Permanently deleting account and transactions:', req.params.id);
     const account = await Account.findOne({
       where: { id: req.params.id, user_id: req.user.id }
     });
@@ -179,10 +231,43 @@ router.delete('/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Счет не найден' });
     }
 
+    // Сначала удаляем все транзакции этого счета
+    const { Transaction } = require('../db/models');
+    const transactions = await Transaction.findAll({
+      where: { account_id: req.params.id },
+      include: [
+        {
+          model: Account,
+          as: 'account',
+          where: { user_id: req.user.id }
+        }
+      ]
+    });
+
+    // Откатываем баланс и удаляем транзакции
+    let totalBalanceChange = 0;
+    for (const transaction of transactions) {
+      const balanceChange = transaction.transaction_type === 'income' ? -transaction.amount : transaction.amount;
+      totalBalanceChange += parseFloat(balanceChange);
+      await transaction.destroy();
+    }
+    console.log(`🗑️ Deleted ${transactions.length} transactions`);
+
+    // Обновляем баланс счета перед удалением (хотя он все равно будет удален)
+    await account.update({
+      balance: parseFloat(account.balance) + totalBalanceChange
+    });
+
+    // Теперь физически удаляем счет
     await account.destroy();
-    res.json({ message: 'Счет успешно удален' });
+    console.log('✅ Account permanently deleted:', req.params.id);
+    
+    res.json({ 
+      message: `Счет и ${transactions.length} транзакций успешно удалены`,
+      deletedTransactions: transactions.length 
+    });
   } catch (error) {
-    console.error('Ошибка при удалении счета:', error);
+    console.error('Ошибка при полном удалении счета:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
