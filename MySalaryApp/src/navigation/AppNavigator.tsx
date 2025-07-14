@@ -4,6 +4,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar, TouchableOpacity, Text, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { LoginScreen } from '../screens/LoginScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
 import { FinancesScreen } from '../screens/FinancesScreen';
@@ -13,7 +15,10 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { AuthLoadingScreen } from '../screens/AuthLoadingScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { BalanceChangeScreen } from '../screens/BalanceChangeScreen';
+import { AccountDetailsScreen } from '../screens/AccountDetailsScreen';
+import { AllTransactionsScreen } from '../screens/AllTransactionsScreen';
 import { Colors } from '../styles/colors';
+import { ChatModal } from '../components/ChatModal';
 
 export type RootStackParamList = {
   AuthLoading: undefined;
@@ -23,42 +28,27 @@ export type RootStackParamList = {
   MainTabs: undefined;
   Profile: undefined;
   BalanceChange: undefined;
+  AccountDetails: { account: any };
+  AllTransactions: undefined;
 };
 
 export type TabParamList = {
-  Finances: undefined;
-  Chat: undefined;
-  Statistics: undefined;
+  Home: undefined;
+  Analytics: undefined;
+  ChatButton: undefined;
+  Discover: undefined;
+  Settings: undefined;
 };
 
-// Кастомные минималистичные иконки
-const FinanceIcon = ({
+// FontAwesome иконки навигации
+const HomeIcon = ({
   color,
   size = 24,
 }: {
   color: string;
   size?: number;
 }) => (
-  <View
-    style={{
-      width: size,
-      height: size,
-      justifyContent: 'center',
-      alignItems: 'center',
-    }}>
-    <View
-      style={{
-        width: size - 2,
-        height: size - 2,
-        borderRadius: 4,
-        borderWidth: 1.5,
-        borderColor: color,
-        justifyContent: 'center',
-        alignItems: 'center',
-      }}>
-      <Text style={{ fontSize: size - 10, color, fontWeight: '600' }}>$</Text>
-    </View>
-  </View>
+  <FontAwesome5 name="home" size={size} color={color} solid />
 );
 
 const AnalyticsIcon = ({
@@ -68,48 +58,27 @@ const AnalyticsIcon = ({
   color: string;
   size?: number;
 }) => (
-  <View
-    style={{
-      width: size,
-      height: size,
-      justifyContent: 'center',
-      alignItems: 'center',
-    }}>
-    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 2 }}>
-      <View
-        style={{
-          width: 3,
-          height: 12,
-          backgroundColor: color,
-          borderRadius: 1.5,
-        }}
-      />
-      <View
-        style={{
-          width: 3,
-          height: 18,
-          backgroundColor: color,
-          borderRadius: 1.5,
-        }}
-      />
-      <View
-        style={{
-          width: 3,
-          height: 10,
-          backgroundColor: color,
-          borderRadius: 1.5,
-        }}
-      />
-      <View
-        style={{
-          width: 3,
-          height: 16,
-          backgroundColor: color,
-          borderRadius: 1.5,
-        }}
-      />
-    </View>
-  </View>
+  <FontAwesome5 name="chart-bar" size={size} color={color} solid />
+);
+
+const DiscoverIcon = ({
+  color,
+  size = 24,
+}: {
+  color: string;
+  size?: number;
+}) => (
+  <FontAwesome5 name="compass" size={size} color={color} />
+);
+
+const SettingsIcon = ({
+  color,
+  size = 24,
+}: {
+  color: string;
+  size?: number;
+}) => (
+  <FontAwesome5 name="cog" size={size} color={color} solid />
 );
 
 const ChatIcon = ({
@@ -120,13 +89,15 @@ const ChatIcon = ({
   size?: number;
 }) => (
   <LinearGradient
-    colors={['#FFAF7B', '#D76D77']}
-    start={{ x: 0, y: 0 }}
-    end={{ x: 1, y: 1 }}
+    colors={['#D1CCFF', '#8CE6F3', '#7AF0C4', '#C7FB33']}
+    start={{ x: 0, y: 1 }}
+    end={{ x: 1, y: 0 }}
+    useAngle={true}
+    angle={30}
     style={{
-      width: size + 20,
-      height: size + 20,
-      borderRadius: (size + 20) / 2,
+      width: size + 22,
+      height: size + 22,
+      borderRadius: (size + 22) / 2,
       justifyContent: 'center',
       alignItems: 'center',
       shadowColor: '#000',
@@ -138,35 +109,7 @@ const ChatIcon = ({
       shadowRadius: focused ? 5.65 : 4.65,
       elevation: focused ? 10 : 8,
     }}>
-    <View
-      style={{
-        width: size - 6,
-        height: size - 8,
-        borderRadius: 6,
-        borderWidth: 1.5,
-        borderColor: 'white',
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'transparent',
-      }}>
-      <View
-        style={{
-          width: 6,
-          height: 6,
-          borderRadius: 3,
-          backgroundColor: 'white',
-          marginBottom: 2,
-        }}
-      />
-      <View
-        style={{
-          width: 8,
-          height: 1.5,
-          backgroundColor: 'white',
-          borderRadius: 0.75,
-        }}
-      />
-    </View>
+    <FontAwesome5 name="comment" size={size - 2} color="#000" />
   </LinearGradient>
 );
 
@@ -174,7 +117,9 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
 const MainTabNavigator: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const [isChatModalVisible, setIsChatModalVisible] = React.useState(false);
   return (
+    <>
     <Tab.Navigator
       screenOptions={{
         headerStyle: {
@@ -186,46 +131,33 @@ const MainTabNavigator: React.FC<{ navigation: any }> = ({ navigation }) => {
           fontSize: 18,
         },
         headerShadowVisible: false,
-        headerRight: () => (
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Profile')}
-            style={{
-              marginRight: 16,
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: Colors.primary,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}>
-            <Text
-              style={{
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: '600',
-              }}>
-              U
-            </Text>
-          </TouchableOpacity>
-        ),
         tabBarStyle: {
           backgroundColor: Colors.background,
           borderTopWidth: 1,
           borderTopColor: '#E5E5EA',
-          paddingBottom: 8,
-          paddingTop: 3,
-          height: 80,
+          paddingBottom: 20,
+          paddingTop: 8,
+          paddingHorizontal: 30, // Добавляем горизонтальные отступы для сжатия иконок к центру
+          height: 78,
         },
-        tabBarActiveTintColor: '#000000',
-        tabBarInactiveTintColor: '#8E8E93',
+        tabBarActiveTintColor: '#000000', // Черный как в референсе
+        tabBarInactiveTintColor: '#C7C7CC', // Серый для неактивных
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '500',
-          marginTop: -8,
+          marginTop: -2,
+          marginBottom: 2,
+        },
+        tabBarIconStyle: {
+          marginBottom: -2,
+        },
+        tabBarItemStyle: {
+          marginHorizontal: -5, // Уменьшаем отрицательный margin между иконками
+          paddingHorizontal: 8, // Уменьшаем внутренние отступы каждой иконки
         },
       }}>
       <Tab.Screen
-        name="Finances"
+        name="Home"
         component={FinancesScreen}
         options={{
           title: '',
@@ -233,43 +165,12 @@ const MainTabNavigator: React.FC<{ navigation: any }> = ({ navigation }) => {
           headerStyle: {
             backgroundColor: 'transparent',
           },
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Profile')}
-              style={{
-                marginRight: 16,
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}>
-              <Text
-                style={{
-                  color: 'white',
-                  fontSize: 16,
-                  fontWeight: '600',
-                }}>
-                U
-              </Text>
-            </TouchableOpacity>
-          ),
-          tabBarLabel: 'Finances',
-          tabBarIcon: ({ color }) => <FinanceIcon color={color} size={24} />,
+          tabBarLabel: 'Home',
+          tabBarIcon: ({ color }) => <HomeIcon color={color} size={24} />,
         }}
       />
       <Tab.Screen
-        name="Chat"
-        component={ChatScreen}
-        options={{
-          title: 'AI Assistant',
-          tabBarLabel: '', // Убираем подпись для центральной кнопки
-          tabBarIcon: ({ focused }) => <ChatIcon focused={focused} size={24} />,
-        }}
-      />
-      <Tab.Screen
-        name="Statistics"
+        name="Analytics"
         component={StatisticsScreen}
         options={{
           title: '',
@@ -277,33 +178,61 @@ const MainTabNavigator: React.FC<{ navigation: any }> = ({ navigation }) => {
           headerStyle: {
             backgroundColor: 'transparent',
           },
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Profile')}
-              style={{
-                marginRight: 16,
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}>
-              <Text
-                style={{
-                  color: 'white',
-                  fontSize: 16,
-                  fontWeight: '600',
-                }}>
-                U
-              </Text>
-            </TouchableOpacity>
-          ),
           tabBarLabel: 'Analytics',
           tabBarIcon: ({ color }) => <AnalyticsIcon color={color} size={24} />,
         }}
       />
+      <Tab.Screen
+        name="ChatButton"
+        component={View} // Dummy component, won't be rendered
+        options={{
+          title: 'AI Assistant',
+          tabBarLabel: '', // Убираем подпись для центральной кнопки
+          tabBarIcon: ({ focused }) => <ChatIcon focused={focused} size={24} />,
+          tabBarIconStyle: { marginTop: 6, marginBottom: -1 }, // Опускаем кнопку еще ниже для идеальной центровки
+        }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            setIsChatModalVisible(true);
+          },
+        }}
+      />
+      <Tab.Screen
+        name="Discover"
+        component={View} // Dummy component for inactive tab
+        options={{
+          title: 'Discover',
+          tabBarLabel: 'Discover',
+          tabBarIcon: ({ color }) => <DiscoverIcon color={'#C7C7CC'} size={24} />, // Всегда серая
+        }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            // Ничего не делаем - кнопка неактивна
+          },
+        }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={ProfileScreen}
+        options={{
+          title: '',
+          headerTransparent: true,
+          headerStyle: {
+            backgroundColor: 'transparent',
+          },
+          tabBarLabel: 'Settings',
+          tabBarIcon: ({ color }) => <SettingsIcon color={color} size={24} />,
+        }}
+      />
     </Tab.Navigator>
+    
+    <ChatModal 
+      visible={isChatModalVisible} 
+      onClose={() => setIsChatModalVisible(false)} 
+    />
+    </>
   );
 };
 
@@ -374,20 +303,26 @@ export const AppNavigator: React.FC = () => {
           }}
         />
         <Stack.Screen
-          name="Profile"
-          component={ProfileScreen}
-          options={{
-            title: 'Profile',
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
           name="BalanceChange"
           component={BalanceChangeScreen}
           options={{
             title: 'Balance Change',
             headerShown: true,
             headerBackTitle: 'Back',
+          }}
+        />
+        <Stack.Screen
+          name="AccountDetails"
+          component={AccountDetailsScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="AllTransactions"
+          component={AllTransactionsScreen}
+          options={{
+            headerShown: false,
           }}
         />
       </Stack.Navigator>

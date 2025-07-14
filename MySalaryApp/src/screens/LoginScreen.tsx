@@ -8,10 +8,12 @@ import {
   TouchableOpacity,
   Alert,
   SafeAreaView,
+  TextInput,
 } from 'react-native';
 import { loginScreenStyles, layoutStyles, typographyStyles } from '../styles';
 import { CustomInput } from '../components/CustomInput';
 import { CustomButton } from '../components/CustomButton';
+import { BackgroundCurve } from '../components/BackgroundCurve';
 import { apiService } from '../services/api';
 import { biometricService } from '../services/biometric';
 
@@ -160,93 +162,179 @@ Error: ${capability.error || 'None'}`;
   };
 
   return (
-    <SafeAreaView style={loginScreenStyles.container}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <BackgroundCurve />
+      
       <KeyboardAvoidingView
-        style={layoutStyles.flex1}
+        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView
-          contentContainerStyle={loginScreenStyles.scrollView}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
-          <View style={loginScreenStyles.content}>
-            <View style={loginScreenStyles.header}>
-              <Text style={[typographyStyles.h1, loginScreenStyles.title]}>
-                Welcome!
+          
+          <View style={{ paddingHorizontal: 32, paddingVertical: 40 }}>
+            {/* Logo */}
+            <View style={{ alignItems: 'center', marginBottom: 60 }}>
+              <Text style={{
+                fontSize: 24,
+                fontWeight: 'bold',
+                fontFamily: 'Commissioner-Bold',
+                color: '#252234',
+                marginBottom: 32,
+              }}>
+                tempo
               </Text>
-              <Text
-                style={[typographyStyles.body1, loginScreenStyles.subtitle]}>
-                Sign in to your MySalary account
+              
+              <Text style={{
+                fontSize: 28,
+                fontWeight: 'bold',
+                fontFamily: 'Commissioner-Bold',
+                color: '#333333',
+                marginBottom: 8,
+                textAlign: 'center',
+              }}>
+                Sign in to your account
+              </Text>
+              
+              <Text style={{
+                fontSize: 16,
+                fontFamily: 'Commissioner-Regular',
+                color: '#666666',
+                textAlign: 'center',
+              }}>
+                Achieve financial wellness with AI
               </Text>
             </View>
 
-            <View style={loginScreenStyles.form}>
-              <CustomInput
-                label="Email"
-                value={email}
-                onChangeText={text => {
-                  setEmail(text);
-                  if (emailError) {
-                    validateEmail(text);
-                  }
+            {/* Form */}
+            <View style={{ marginBottom: 32 }}>
+              {/* Email Input */}
+              <View style={{ marginBottom: 20 }}>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: emailError ? '#EF4444' : '#E5E5EA',
+                    borderRadius: 16,
+                    paddingHorizontal: 20,
+                    paddingVertical: 18,
+                    fontSize: 16,
+                    fontFamily: 'Commissioner-Regular',
+                    backgroundColor: '#FFFFFF',
+                    color: '#252234',
+                  }}
+                  value={email}
+                  onChangeText={text => {
+                    setEmail(text);
+                    if (emailError) {
+                      validateEmail(text);
+                    }
+                  }}
+                  placeholder="Email"
+                  placeholderTextColor="#999999"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="emailAddress"
+                />
+                {emailError ? (
+                  <Text style={{
+                    color: '#EF4444',
+                    fontSize: 14,
+                    fontFamily: 'Commissioner-Regular',
+                    marginTop: 8,
+                    marginLeft: 4,
+                  }}>
+                    {emailError}
+                  </Text>
+                ) : null}
+              </View>
+
+              {/* Password Input */}
+              <View style={{ marginBottom: 32 }}>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: passwordError ? '#EF4444' : '#E5E5EA',
+                    borderRadius: 16,
+                    paddingHorizontal: 20,
+                    paddingVertical: 18,
+                    fontSize: 16,
+                    fontFamily: 'Commissioner-Regular',
+                    backgroundColor: '#FFFFFF',
+                    color: '#252234',
+                  }}
+                  value={password}
+                  onChangeText={text => {
+                    setPassword(text);
+                    if (passwordError) {
+                      validatePassword(text);
+                    }
+                  }}
+                  placeholder="Password"
+                  placeholderTextColor="#999999"
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="password"
+                />
+                {passwordError ? (
+                  <Text style={{
+                    color: '#EF4444',
+                    fontSize: 14,
+                    fontFamily: 'Commissioner-Regular',
+                    marginTop: 8,
+                    marginLeft: 4,
+                  }}>
+                    {passwordError}
+                  </Text>
+                ) : null}
+              </View>
+
+              {/* Sign In Button */}
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#252234',
+                  borderRadius: 16,
+                  paddingVertical: 18,
+                  alignItems: 'center',
+                  marginBottom: 24,
+                  opacity: loading ? 0.7 : 1,
                 }}
-                error={emailError}
-                placeholder="Enter your email"
-                keyboardType="email-address"
-              />
-
-              <CustomInput
-                label="Password"
-                value={password}
-                onChangeText={text => {
-                  setPassword(text);
-                  if (passwordError) {
-                    validatePassword(text);
-                  }
-                }}
-                error={passwordError}
-                placeholder="Enter your password"
-                isPassword
-              />
-            </View>
-
-            <TouchableOpacity style={loginScreenStyles.forgotPassword}>
-              <Text
-                style={[
-                  typographyStyles.body2,
-                  loginScreenStyles.forgotPasswordText,
-                ]}>
-                Forgot password?
-              </Text>
-            </TouchableOpacity>
-
-            <View style={loginScreenStyles.buttonSpacing}>
-              <CustomButton
-                title="Sign In"
                 onPress={handleLogin}
-                loading={loading}
-              />
-            </View>
-
-            <CustomButton
-              title="Create Account"
-              variant="secondary"
-              onPress={navigateToRegister}
-            />
-
-            <View style={loginScreenStyles.footer}>
-              <Text
-                style={[typographyStyles.body2, loginScreenStyles.footerText]}>
-                Don't have an account?
-              </Text>
-              <TouchableOpacity onPress={navigateToRegister}>
-                <Text
-                  style={[
-                    typographyStyles.body2,
-                    loginScreenStyles.registerLink,
-                  ]}>
-                  Sign Up
+                disabled={loading}>
+                <Text style={{
+                  color: '#FFFFFF',
+                  fontSize: 18,
+                  fontWeight: '600',
+                  fontFamily: 'Commissioner-SemiBold',
+                }}>
+                  {loading ? 'Signing In...' : 'Sign In'}
                 </Text>
               </TouchableOpacity>
+            </View>
+
+            {/* Footer */}
+            <View style={{ alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{
+                  fontSize: 16,
+                  color: '#666666',
+                  marginRight: 8,
+                }}>
+                  Don't have an account?
+                </Text>
+                <TouchableOpacity onPress={navigateToRegister}>
+                  <Text style={{
+                    fontSize: 16,
+                    color: '#252234',
+                    fontWeight: '600',
+                    fontFamily: 'Commissioner-SemiBold',
+                  }}>
+                    Sign up
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </ScrollView>
