@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { User } = require('../db/models');
+const { User, Currency } = require('../db/models');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
@@ -145,7 +145,7 @@ router.post('/check-phone', async (req, res) => {
 // Регистрация пользователя
 router.post('/register', async (req, res) => {
   try {
-    const { login, email, password, phone, country_id } = req.body;
+    const { name, login, email, password } = req.body;
 
     // Проверка обязательных полей
     if (!login || !email || !password) {
@@ -190,6 +190,13 @@ router.post('/register', async (req, res) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
+    // Устанавливаем USD как валюту по умолчанию
+    let currencyId = null;
+    const usdCurrency = await Currency.findOne({ where: { code: 'USD' } });
+    if (usdCurrency) {
+      currencyId = usdCurrency.id;
+    }
+
     // Создание пользователя
     const userData = {
       login: trimmedLogin,
@@ -197,17 +204,26 @@ router.post('/register', async (req, res) => {
       password: hashedPassword
     };
 
-    // Добавляем телефон если указан
-    if (phone && phone.trim()) {
-      userData.phone = phone.trim();
+    // Добавляем имя если указано
+    if (name && name.trim()) {
+      userData.name = name.trim();
     }
 
-    // Добавляем country_id если указан
-    if (country_id) {
-      userData.country_id = parseInt(country_id);
+    // Добавляем primary_currency_id (USD по умолчанию)
+    if (currencyId) {
+      userData.primary_currency_id = currencyId;
     }
 
     const user = await User.create(userData);
+
+    // Получаем пользователя с валютой для ответа
+    const userWithCurrency = await User.findByPk(user.id, {
+      include: [{
+        model: Currency,
+        as: 'primaryCurrency',
+        attributes: ['id', 'code', 'name', 'symbol']
+      }]
+    });
 
     // Создание JWT токена
     const token = jwt.sign(
@@ -219,11 +235,14 @@ router.post('/register', async (req, res) => {
     res.status(201).json({
       message: 'Пользователь успешно зарегистрирован',
       user: {
-        id: user.id,
-        login: user.login,
-        email: user.email,
-        phone: user.phone,
-        country_id: user.country_id
+        id: userWithCurrency.id,
+        name: userWithCurrency.name,
+        login: userWithCurrency.login,
+        email: userWithCurrency.email,
+        phone: userWithCurrency.phone,
+        country_id: userWithCurrency.country_id,
+        primary_currency_id: userWithCurrency.primary_currency_id,
+        primaryCurrency: userWithCurrency.primaryCurrency
       },
       token
     });
@@ -284,6 +303,7 @@ router.post('/login', async (req, res) => {
       message: 'Авторизация прошла успешно',
       user: {
         id: user.id,
+        name: user.name,
         login: user.login,
         email: user.email
       },
@@ -299,18 +319,84 @@ router.post('/login', async (req, res) => {
 // Получение информации о текущем пользователе
 router.get('/me', authMiddleware, async (req, res) => {
   try {
+    const user = await User.findByPk(req.user.id, {
+      include: [{
+        model: Currency,
+        as: 'primaryCurrency',
+        attributes: ['id', 'code', 'name', 'symbol']
+      }]
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
     res.json({
       user: {
-        id: req.user.id,
-        login: req.user.login,
-        email: req.user.email,
-        phone: req.user.phone,
-        country_id: req.user.country_id
+        id: user.id,
+        name: user.name,
+        login: user.login,
+        email: user.email,
+        phone: user.phone,
+        country_id: user.country_id,
+        primary_currency_id: user.primary_currency_id,
+        primaryCurrency: user.primaryCurrency
       }
     });
   } catch (error) {
     console.error('Ошибка получения профиля:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Обновление профиля пользователя
+router.patch('/profile', authMiddleware, async (req, res) => {
+  try {
+    const { primary_currency_id } = req.body;
+
+    if (primary_currency_id) {
+      // Проверяем, что валюта существует и активна
+      const currency = await Currency.findOne({ 
+        where: { id: primary_currency_id, is_active: true } 
+      });
+      if (!currency) {
+        return res.status(400).json({ 
+          error: 'Указанная валюта не найдена или неактивна' 
+        });
+      }
+    }
+
+    // Обновляем пользователя
+    await User.update(
+      { primary_currency_id },
+      { where: { id: req.user.id } }
+    );
+
+    // Получаем обновленного пользователя с валютой
+    const updatedUser = await User.findByPk(req.user.id, {
+      include: [{
+        model: Currency,
+        as: 'primaryCurrency',
+        attributes: ['id', 'code', 'name', 'symbol']
+      }]
+    });
+
+    res.json({
+      message: 'Профиль успешно обновлен',
+      user: {
+        id: updatedUser.id,
+        name: updatedUser.name,
+        login: updatedUser.login,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        country_id: updatedUser.country_id,
+        primary_currency_id: updatedUser.primary_currency_id,
+        primaryCurrency: updatedUser.primaryCurrency
+      }
+    });
+  } catch (error) {
+    console.error('Ошибка обновления профиля:', error);
+    res.status(500).json({ error: 'Ошибка сервера при обновлении профиля' });
   }
 });
 

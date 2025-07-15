@@ -20,7 +20,159 @@ import {
   profileScreenStyles,
 } from '../styles';
 import { biometricService, BiometricCapability } from '../services/biometric';
-import { apiService } from '../services/api';
+import { apiService, type Currency } from '../services/api';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
+import { AddTransactionModal } from '../components/AddTransactionModal';
+import { EditTransactionModal } from '../components/EditTransactionModal';
+import { AccountsManagementModal } from '../components/AccountsManagementModal';
+import { AddAccountModal } from '../components/AddAccountModal';
+import { formatCurrencyAmount, formatCurrencyAmountShort, formatCurrencyCompact } from '../utils/formatCurrency';
+
+// Helper functions for greeting and date
+const getTimeBasedGreeting = () => {
+  const currentHour = new Date().getHours();
+  
+  if (currentHour >= 5 && currentHour < 12) {
+    return 'Good morning,';
+  } else if (currentHour >= 12 && currentHour < 18) {
+    return 'Good afternoon,';
+  } else if (currentHour >= 18 && currentHour < 22) {
+    return 'Good evening,';
+  } else {
+    return 'Good night,';
+  }
+};
+
+const getCurrentDate = () => {
+  const today = new Date();
+  return today.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric' 
+  });
+};
+
+// Function to convert amount from one currency to another
+const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string): number => {
+  if (fromCurrency === toCurrency) return amount;
+  
+  // Exchange rates (approximate, could be fetched from API)
+  const exchangeRates: { [key: string]: number } = {
+    'USD': 1.0,
+    'RUB': 0.011,  // 1 RUB = 0.011 USD (approximately 90 RUB per USD)
+    'EUR': 1.09,   // 1 EUR = 1.09 USD
+    'GBP': 1.27,   // 1 GBP = 1.27 USD
+    'CNY': 0.14,   // 1 CNY = 0.14 USD
+    'KZT': 0.002,  // 1 KZT = 0.002 USD
+    'BYN': 0.30,   // 1 BYN = 0.30 USD
+    'UAH': 0.025,  // 1 UAH = 0.025 USD
+  };
+  
+  // Convert from source currency to USD, then from USD to target currency
+  const fromRate = exchangeRates[fromCurrency?.toUpperCase()] || 1.0;
+  const toRate = exchangeRates[toCurrency?.toUpperCase()] || 1.0;
+  
+  const amountInUSD = amount * fromRate;
+  return amountInUSD / toRate;
+};
+
+// Functions to calculate monthly totals from transactions in user's currency
+const calculateMonthlyTotals = (transactions: any[], userCurrency: Currency | null) => {
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth();
+  const currentYear = currentDate.getFullYear();
+  
+  let monthlyIncome = 0;
+  let monthlyExpenses = 0;
+  
+  const targetCurrency = userCurrency?.code || 'USD';
+  
+  transactions.forEach(transaction => {
+    const transactionDate = new Date(transaction.transaction_date);
+    if (transactionDate.getMonth() === currentMonth && transactionDate.getFullYear() === currentYear) {
+      const amount = parseFloat(transaction.amount) || 0;
+      const transactionCurrency = transaction.account?.currency?.code || 'USD';
+      const convertedAmount = convertCurrency(amount, transactionCurrency, targetCurrency);
+      
+      if (transaction.transaction_type === 'income') {
+        monthlyIncome += convertedAmount;
+      } else if (transaction.transaction_type === 'expense') {
+        monthlyExpenses += convertedAmount;
+      }
+    }
+  });
+  
+  return { monthlyIncome, monthlyExpenses };
+};
+
+// Function to calculate previous month totals for comparison in user's currency
+const calculatePreviousMonthTotals = (transactions: any[], userCurrency: Currency | null) => {
+  const currentDate = new Date();
+  const previousMonth = currentDate.getMonth() === 0 ? 11 : currentDate.getMonth() - 1;
+  const previousYear = currentDate.getMonth() === 0 ? currentDate.getFullYear() - 1 : currentDate.getFullYear();
+  
+  let previousMonthIncome = 0;
+  let previousMonthExpenses = 0;
+  
+  const targetCurrency = userCurrency?.code || 'USD';
+  
+  transactions.forEach(transaction => {
+    const transactionDate = new Date(transaction.transaction_date);
+    if (transactionDate.getMonth() === previousMonth && transactionDate.getFullYear() === previousYear) {
+      const amount = parseFloat(transaction.amount) || 0;
+      const transactionCurrency = transaction.account?.currency?.code || 'USD';
+      const convertedAmount = convertCurrency(amount, transactionCurrency, targetCurrency);
+      
+      if (transaction.transaction_type === 'income') {
+        previousMonthIncome += convertedAmount;
+      } else if (transaction.transaction_type === 'expense') {
+        previousMonthExpenses += convertedAmount;
+      }
+    }
+  });
+  
+  return { previousMonthIncome, previousMonthExpenses };
+};
+
+// Function to calculate net worth change percentage
+const calculateNetWorthChange = (transactions: any[], userCurrency: Currency | null) => {
+  const { monthlyIncome, monthlyExpenses } = calculateMonthlyTotals(transactions, userCurrency);
+  const { previousMonthIncome, previousMonthExpenses } = calculatePreviousMonthTotals(transactions, userCurrency);
+  
+  const currentNetFlow = monthlyIncome - monthlyExpenses;
+  const previousNetFlow = previousMonthIncome - previousMonthExpenses;
+  
+  if (previousNetFlow === 0) {
+    return { 
+      change: currentNetFlow > 0 ? 100 : currentNetFlow < 0 ? 100 : 0, 
+      isPositive: currentNetFlow >= 0 
+    };
+  }
+  
+  const percentChange = ((currentNetFlow - previousNetFlow) / Math.abs(previousNetFlow)) * 100;
+  return { 
+    change: percentChange, 
+    isPositive: percentChange >= 0 
+  };
+};
+
+// Function to get account type icon and color
+const getAccountTypeIcon = (accountType: string) => {
+  switch (accountType) {
+    case 'debit_card':
+      return { icon: 'credit-card', color: '#3B82F6', name: 'Debit Card' }; // Blue
+    case 'credit_card':
+      return { icon: 'credit-card', color: '#8B5CF6', name: 'Credit Card' }; // Purple
+    case 'bank_account':
+      return { icon: 'university', color: '#10B981', name: 'Bank Account' }; // Green
+    case 'cash':
+      return { icon: 'wallet', color: '#F59E0B', name: 'Cash' }; // Orange
+    case 'digital_wallet':
+      return { icon: 'mobile-alt', color: '#EF4444', name: 'Digital Wallet' }; // Red
+    default:
+      return { icon: 'piggy-bank', color: '#6B7280', name: 'Account' }; // Gray
+  }
+};
 
 // Минималистичная иконка изменения баланса
 const BalanceChangeIcon = ({
@@ -89,17 +241,34 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
   const [transactionsLoading, setTransactionsLoading] = useState(false);
   const [netWorth, setNetWorth] = useState<any>(null);
   const [netWorthLoading, setNetWorthLoading] = useState(false);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [accountsLoading, setAccountsLoading] = useState(false);
+  const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
+  const [showEditTransactionModal, setShowEditTransactionModal] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  const [showAccountsManagementModal, setShowAccountsManagementModal] = useState(false);
+  const [showAddAccountModal, setShowAddAccountModal] = useState(false);
+  const [userCurrency, setUserCurrency] = useState<Currency | null>(null);
+  const [user, setUser] = useState<any>(null);
+
+  // Calculate monthly totals and net worth change
+  const { monthlyIncome, monthlyExpenses } = calculateMonthlyTotals(transactions, userCurrency);
+  const { change: netWorthChangePercent, isPositive: isNetWorthPositive } = calculateNetWorthChange(transactions, userCurrency);
 
   useEffect(() => {
     initializeBiometric();
+    loadUserProfile();
     loadTransactions();
     loadNetWorth();
+    loadAccounts();
   }, []);
 
   useFocusEffect(
     useCallback(() => {
+      loadUserProfile();
       loadTransactions();
       loadNetWorth();
+      loadAccounts();
     }, []),
   );
 
@@ -114,6 +283,30 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
       }
     } catch (error) {
       console.error('Ошибка инициализации биометрии:', error);
+    }
+  };
+
+  const loadUserProfile = async () => {
+    try {
+      const currentUser = await apiService.getCurrentUser();
+      if (currentUser && currentUser.user) {
+        setUser(currentUser.user);
+        if (currentUser.user.primaryCurrency) {
+          setUserCurrency(currentUser.user.primaryCurrency);
+        }
+      } else {
+        // Fallback to stored user
+        const storedUser = await apiService.getStoredUser();
+        if (storedUser) {
+          setUser(storedUser);
+          if (storedUser.primaryCurrency) {
+            setUserCurrency(storedUser.primaryCurrency);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+      // Continue without currency, will fallback to USD
     }
   };
 
@@ -143,48 +336,121 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
     }
   };
 
-  const formatNetWorth = (amount: number) => {
-    return new Intl.NumberFormat('ru-RU', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
+
+  const loadAccounts = async () => {
+    try {
+      setAccountsLoading(true);
+      const accountsData = await apiService.get<any[]>('/accounts');
+      // Sort accounts by balance in USD equivalent (highest to lowest)
+      const sortedAccounts = (accountsData || []).sort((a, b) => {
+        const balanceAInUSD = convertCurrency(parseFloat(a.balance) || 0, a.currency?.code || 'USD', 'USD');
+        const balanceBInUSD = convertCurrency(parseFloat(b.balance) || 0, b.currency?.code || 'USD', 'USD');
+        return balanceBInUSD - balanceAInUSD;
+      });
+      setAccounts(sortedAccounts);
+    } catch (error) {
+      // Тихо обрабатываем ошибку без вывода в консоль
+      setAccounts([]);
+    } finally {
+      setAccountsLoading(false);
+    }
   };
 
+  // Remove the old formatNetWorth function - we'll use formatCurrencyAmount instead
+
   const formatTransactionDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
+    const transactionDate = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    // Reset time to compare dates only
+    const transactionDateOnly = new Date(transactionDate.getFullYear(), transactionDate.getMonth(), transactionDate.getDate());
+    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const yesterdayOnly = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+    
+    if (transactionDateOnly.getTime() === todayOnly.getTime()) {
+      return 'Today';
+    } else if (transactionDateOnly.getTime() === yesterdayOnly.getTime()) {
+      return 'Yesterday';
+    } else {
+      return transactionDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      });
+    }
   };
 
   const getCategoryIcon = (categoryName: string, categoryType: string) => {
-    if (!categoryName) return '💰';
-
-    const name = categoryName.toLowerCase();
-    let icon = '💰';
-
-    if (name.includes('зарплата')) icon = '💰';
-    else if (name.includes('продукты') || name.includes('питание')) icon = '🛒';
-    else if (name.includes('транспорт')) icon = '🚗';
-    else if (name.includes('коммунальные')) icon = '🏠';
-    else if (name.includes('развлечения')) icon = '🎬';
-    else if (name.includes('одежда')) icon = '👕';
-    else if (name.includes('медицина') || name.includes('здоровье'))
-      icon = '⚕️';
-    else if (name.includes('образование')) icon = '📚';
-    else if (name.includes('дом') || name.includes('быт')) icon = '🏠';
-    else if (name.includes('кредит') || name.includes('займ')) icon = '💳';
-    else if (name.includes('спорт') || name.includes('фитнес')) icon = '🏋️';
-    else if (name.includes('путешествия')) icon = '✈️';
-    else if (name.includes('ресторан') || name.includes('кафе')) icon = '🍽️';
-    else if (name.includes('бензин') || name.includes('парковка')) icon = '⛽';
-    else if (name.includes('красота') || name.includes('уход')) icon = '💄';
-    else if (name.includes('подарки')) icon = '🎁';
-    else if (name.includes('прочие')) icon = '💸';
-
-    return icon;
+    // Income category icons
+    if (categoryType === 'income') {
+      switch (categoryName.toLowerCase()) {
+        case 'salary':
+          return { icon: 'money-bill-wave', color: '#6B7280' };
+        case 'bonus & rewards':
+          return { icon: 'gift', color: '#6B7280' };
+        case 'freelance':
+          return { icon: 'laptop', color: '#6B7280' };
+        case 'investments':
+          return { icon: 'chart-line', color: '#6B7280' };
+        case 'sales & trade':
+          return { icon: 'handshake', color: '#6B7280' };
+        case 'rental income':
+          return { icon: 'home', color: '#6B7280' };
+        case 'pension & benefits':
+          return { icon: 'shield-alt', color: '#6B7280' };
+        case 'scholarship':
+          return { icon: 'graduation-cap', color: '#6B7280' };
+        case 'gifts & inheritance':
+          return { icon: 'gift', color: '#6B7280' };
+        case 'tax refund':
+          return { icon: 'file-invoice-dollar', color: '#6B7280' };
+        case 'cashback':
+          return { icon: 'credit-card', color: '#6B7280' };
+        case 'other income':
+          return { icon: 'plus-circle', color: '#6B7280' };
+        default:
+          return { icon: 'arrow-up', color: '#6B7280' };
+      }
+    }
+    
+    // Expense category icons
+    switch (categoryName.toLowerCase()) {
+      case 'food & groceries':
+        return { icon: 'shopping-cart', color: '#6B7280' };
+      case 'transportation':
+        return { icon: 'car', color: '#6B7280' };
+      case 'utilities':
+        return { icon: 'bolt', color: '#6B7280' };
+      case 'entertainment':
+        return { icon: 'gamepad', color: '#6B7280' };
+      case 'clothing & shoes':
+        return { icon: 'tshirt', color: '#6B7280' };
+      case 'healthcare':
+        return { icon: 'heartbeat', color: '#6B7280' };
+      case 'education':
+        return { icon: 'graduation-cap', color: '#6B7280' };
+      case 'home & garden':
+        return { icon: 'home', color: '#6B7280' };
+      case 'loans & credit':
+        return { icon: 'credit-card', color: '#6B7280' };
+      case 'sports & fitness':
+        return { icon: 'dumbbell', color: '#6B7280' };
+      case 'travel':
+        return { icon: 'plane', color: '#6B7280' };
+      case 'restaurants & cafes':
+        return { icon: 'utensils', color: '#6B7280' };
+      case 'gas & parking':
+        return { icon: 'gas-pump', color: '#6B7280' };
+      case 'beauty & care':
+        return { icon: 'spa', color: '#6B7280' };
+      case 'gifts':
+        return { icon: 'gift', color: '#6B7280' };
+      case 'other expenses':
+        return { icon: 'ellipsis-h', color: '#6B7280' };
+      default:
+        return { icon: 'arrow-down', color: '#6B7280' };
+    }
   };
 
   const handleBiometricToggle = async (value: boolean) => {
@@ -220,6 +486,11 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
     }
   };
 
+  const handleTransactionPress = (transaction: any) => {
+    setSelectedTransaction(transaction);
+    setShowEditTransactionModal(true);
+  };
+
   return (
     <>
       {/* Устанавливаем светлый статус-бар */}
@@ -233,231 +504,741 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
         style={{ flex: 1, backgroundColor: '#F6F7F8' }}
         contentContainerStyle={{ flexGrow: 1 }}
         showsVerticalScrollIndicator={false}>
-        {/* Полноэкранный градиентный фон только для верхней части */}
+        {/* New header design with gradient background */}
         <LinearGradient
-          colors={['#FFAF7B', '#D76D77']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+          colors={['#D1CCFF', '#8CE6F3', '#7AF0C4', '#C7FB33']}
+          start={{ x: 0, y: 1 }}
+          end={{ x: 1, y: 0 }}
+          useAngle={true}
+          angle={30}
           style={{
             paddingTop: insets.top, // Отступ для статус-бара
             paddingBottom: 30,
+            borderBottomLeftRadius: 30,
+            borderBottomRightRadius: 30,
           }}>
-          {/* Net Worth без визуального блока */}
-          <View
-            style={{
+          
+          {/* Header with greeting and date */}
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            paddingHorizontal: 24,
+            paddingTop: 20,
+            marginBottom: 40,
+          }}>
+            {/* Left side - Greeting */}
+            <View>
+              <Text style={{
+                fontSize: 18,
+                color: 'rgba(0, 0, 0, 0.7)',
+                marginBottom: 4,
+              }}>
+                {getTimeBasedGreeting()}
+              </Text>
+              <Text style={{
+                fontSize: 32,
+                fontWeight: 'bold',
+                color: '#000',
+              }}>
+                {user?.name || 'User'}!
+              </Text>
+            </View>
+            
+            {/* Right side - Date */}
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={{
+                fontSize: 16,
+                color: 'rgba(0, 0, 0, 0.7)',
+                marginBottom: 4,
+              }}>
+                Today
+              </Text>
+              <Text style={{
+                fontSize: 18,
+                fontWeight: '600',
+                color: '#000',
+              }}>
+                {getCurrentDate()}
+              </Text>
+            </View>
+          </View>
+
+          {/* Net Worth section */}
+          <View style={{
+            paddingHorizontal: 24,
+            marginBottom: 32,
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'flex-start',
               alignItems: 'center',
-              marginBottom: 32,
-              marginTop: 40,
-              paddingHorizontal: 24,
+              marginBottom: 12,
             }}>
-            <Text
-              style={[
-                typographyStyles.h3,
-                {
-                  textAlign: 'center',
-                  marginBottom: 16,
-                  color: 'white',
-                  fontWeight: '600',
-                },
-              ]}>
-              Net Worth
-            </Text>
+              <Text style={{
+                fontSize: 16,
+                color: 'rgba(0, 0, 0, 0.7)',
+                fontWeight: '500',
+              }}>
+                Total Net Worth
+              </Text>
+            </View>
 
             {netWorthLoading ? (
-              <View style={{ alignItems: 'center' }}>
-                <Text style={[typographyStyles.body1, { color: 'white' }]}>
+              <View>
+                <Text style={{
+                  fontSize: 36,
+                  fontWeight: 'bold',
+                  color: '#000',
+                }}>
                   Loading...
                 </Text>
               </View>
             ) : netWorth ? (
-              <View style={{ alignItems: 'center' }}>
-                <Text
-                  style={[
-                    typographyStyles.h1,
-                    {
-                      fontSize: 36,
-                      fontWeight: 'bold',
-                      color: 'white',
-                      marginBottom: 8,
-                    },
-                  ]}>
-                  {formatNetWorth(netWorth.netWorth)}{' '}
-                  {netWorth.primaryCurrency?.symbol || '$'}
+              <View>
+                <Text style={{
+                  fontSize: 36,
+                  fontWeight: 'bold',
+                  color: '#000',
+                  marginBottom: 8,
+                }}>
+                  {formatCurrencyAmountShort(netWorth.netWorth, userCurrency)}
                 </Text>
-                <Text
-                  style={[
-                    typographyStyles.body2,
-                    {
-                      color: 'rgba(255, 255, 255, 0.8)',
-                      textAlign: 'center',
-                      marginBottom: 8,
-                    },
-                  ]}>
-                  in {netWorth.primaryCurrency?.name || 'USD'}
-                </Text>
-                <Text
-                  style={[
-                    typographyStyles.caption,
-                    {
-                      color: 'rgba(255, 255, 255, 0.7)',
-                      textAlign: 'center',
-                    },
-                  ]}>
-                  {netWorth.message}
-                </Text>
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}>
+                  <FontAwesome6 
+                    name={netWorthChangePercent >= 0 ? "arrow-trend-up" : "arrow-trend-down"} 
+                    size={14} 
+                    color={netWorthChangePercent >= 0 ? "#22C55E" : "#EF4444"} 
+                    solid 
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={{
+                    fontSize: 16,
+                    color: netWorthChangePercent >= 0 ? "#22C55E" : "#EF4444",
+                    fontWeight: '500',
+                  }}>
+                    {netWorthChangePercent >= 0 ? '+' : ''}{netWorthChangePercent.toFixed(1)}% this month
+                  </Text>
+                </View>
               </View>
             ) : (
-              <View style={{ alignItems: 'center' }}>
-                <Text
-                  style={[
-                    typographyStyles.body1,
-                    { color: 'rgba(255, 255, 255, 0.8)' },
-                  ]}>
-                  Failed to load data
+              <View>
+                <Text style={{
+                  fontSize: 24,
+                  fontWeight: 'bold',
+                  color: '#000',
+                  marginBottom: 8,
+                }}>
+                  Failed to load
                 </Text>
                 <TouchableOpacity
                   onPress={loadNetWorth}
                   style={{
-                    marginTop: 8,
                     paddingHorizontal: 16,
                     paddingVertical: 8,
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.1)',
                     borderRadius: 8,
-                    borderWidth: 1,
-                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    alignSelf: 'flex-start',
                   }}>
-                  <Text style={{ color: 'white', fontSize: 14 }}>Retry</Text>
+                  <Text style={{ color: '#000', fontSize: 14 }}>Retry</Text>
                 </TouchableOpacity>
               </View>
             )}
           </View>
-
-          {/* Balance Change на полупрозрачном белом блоке */}
-          <View style={{ paddingHorizontal: 24 }}>
-            <TouchableOpacity
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                borderRadius: 16,
-                padding: 24,
-                alignItems: 'center',
-                borderWidth: 1,
-                borderColor: 'rgba(255, 255, 255, 0.2)',
-              }}
-              onPress={() => navigation.navigate('BalanceChange')}>
-              <View style={{ marginBottom: 8 }}>
-                <BalanceChangeIcon size={32} color="light" />
-              </View>
-              <Text
-                style={[
-                  homeScreenStyles.featureTitle,
-                  { color: 'white', fontWeight: '600' },
-                ]}>
-                Balance Change
-              </Text>
-              <Text
-                style={[
-                  homeScreenStyles.featureDescription,
-                  { color: 'rgba(255, 255, 255, 0.8)' },
-                ]}>
-                Income and Expenses
-              </Text>
-            </TouchableOpacity>
-          </View>
         </LinearGradient>
 
-        {/* Transaction History секция НА БЕЛОМ ФОНЕ */}
+        {/* Income/Expenses widgets and Transaction History секция НА БЕЛОМ ФОНЕ */}
         <View style={{ backgroundColor: '#F6F7F8', paddingBottom: 24, paddingHorizontal: 24 }}>
-          <View style={[homeScreenStyles.mainContent, { marginTop: 24, gap: 10 }]}>
-            <View style={profileScreenStyles.sectionHeader}>
-              <Text
-                style={[
-                  typographyStyles.h3,
-                  profileScreenStyles.sectionTitle,
-                  { color: '#000000' },
-                ]}>
-                Transaction History
+          
+          {/* Income and Expenses widgets in a row */}
+          <View style={{ 
+            flexDirection: 'row', 
+            justifyContent: 'space-between', 
+            marginTop: 24, 
+            marginBottom: 16,
+            gap: 12 
+          }}>
+            {/* Income Widget */}
+            <View style={{
+              flex: 1,
+              backgroundColor: 'white',
+              borderRadius: 16,
+              padding: 20,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 2,
+              elevation: 1,
+            }}>
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginBottom: 12,
+              }}>
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: '#E8F5E8',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 12,
+                }}>
+                  <FontAwesome6 name="arrow-trend-up" size={16} color="#22C55E" solid />
+                </View>
+                <Text style={{
+                  fontSize: 16,
+                  fontWeight: '500',
+                  color: '#333',
+                }}>
+                  Income
+                </Text>
+              </View>
+              <Text style={{
+                fontSize: 24,
+                fontWeight: 'bold',
+                color: '#000',
+                marginBottom: 4,
+              }}>
+                {formatCurrencyCompact(monthlyIncome, userCurrency)}
+              </Text>
+              <Text style={{
+                fontSize: 14,
+                color: '#22C55E',
+                fontWeight: '500',
+              }}>
+                This month
               </Text>
             </View>
 
+            {/* Expenses Widget */}
+            <View style={{
+              flex: 1,
+              backgroundColor: 'white',
+              borderRadius: 16,
+              padding: 20,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 2,
+              elevation: 1,
+            }}>
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginBottom: 12,
+              }}>
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: '#FEE8E8',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 12,
+                }}>
+                  <FontAwesome6 name="arrow-trend-down" size={16} color="#EF4444" solid />
+                </View>
+                <Text style={{
+                  fontSize: 16,
+                  fontWeight: '500',
+                  color: '#333',
+                }}>
+                  Expenses
+                </Text>
+              </View>
+              <Text style={{
+                fontSize: 24,
+                fontWeight: 'bold',
+                color: '#000',
+                marginBottom: 4,
+              }}>
+                {formatCurrencyCompact(monthlyExpenses, userCurrency)}
+              </Text>
+              <Text style={{
+                fontSize: 14,
+                color: '#EF4444',
+                fontWeight: '500',
+              }}>
+                This month
+              </Text>
+            </View>
+          </View>
+
+          <View style={[homeScreenStyles.mainContent, { marginTop: 0, gap: 10 }]}>
+            {/* Add Transaction Button */}
+            <TouchableOpacity
+              style={{
+                borderRadius: 16,
+                marginBottom: 24,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.15,
+                shadowRadius: 8,
+                elevation: 5,
+              }}
+              onPress={() => setShowAddTransactionModal(true)}>
+              <LinearGradient
+                colors={['#D1CCFF', '#8CE6F3', '#7AF0C4', '#C7FB33']}
+                start={{ x: 0, y: 1 }}
+                end={{ x: 1, y: 0 }}
+                useAngle={true}
+                angle={30}
+                style={{
+                  borderRadius: 16,
+                  padding: 20,
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                }}>
+                <Text style={{
+                  fontSize: 24,
+                  fontWeight: 'bold',
+                  color: '#000',
+                  marginRight: 12,
+                }}>
+                  +
+                </Text>
+                <Text style={{
+                  fontSize: 18,
+                  fontWeight: '600',
+                  color: '#000',
+                }}>
+                  Add Transaction
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Accounts Section */}
+            <View style={{
+              marginBottom: 24,
+            }}>
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 16,
+              }}>
+                <Text style={{
+                  fontSize: 20,
+                  fontWeight: 'bold',
+                  color: '#000',
+                }}>
+                  Accounts
+                </Text>
+                <TouchableOpacity 
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 8,
+                    backgroundColor: 'transparent',
+                    borderWidth: 1,
+                    borderColor: '#E5E5EA',
+                  }}
+                  onPress={() => setShowAccountsManagementModal(true)}>
+                  <Text style={{
+                    fontSize: 14,
+                    fontWeight: '500',
+                    color: 'rgba(0, 0, 0, 0.7)', // Same color as "Total Net Worth" text
+                  }}>
+                    Manage
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {accountsLoading ? (
+                <View style={{
+                  backgroundColor: 'white',
+                  borderRadius: 16,
+                  padding: 20,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 2,
+                  elevation: 1,
+                }}>
+                  <Text style={{ fontSize: 16, color: '#666' }}>Loading accounts...</Text>
+                </View>
+              ) : accounts.length === 0 ? (
+                <View style={{
+                  backgroundColor: 'white',
+                  borderRadius: 16,
+                  padding: 20,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 2,
+                  elevation: 1,
+                }}>
+                  <Text style={{ fontSize: 16, color: '#666' }}>No accounts yet</Text>
+                  <Text style={{ fontSize: 14, color: '#999', marginTop: 4 }}>
+                    Add your first account to get started
+                  </Text>
+                </View>
+              ) : (
+                <View style={{
+                  backgroundColor: 'white',
+                  borderRadius: 16,
+                  padding: 16,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 2,
+                  elevation: 1,
+                }}>
+                  {accounts.map((account, index) => {
+                    const accountIcon = getAccountTypeIcon(account.account_type);
+                    return (
+                      <View key={account.id}>
+                        <TouchableOpacity 
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            paddingVertical: 12,
+                          }}
+                          onPress={() => navigation.navigate('AccountDetails', { account })}
+                        >
+                          <View style={{
+                            width: 40,
+                            height: 40,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            marginRight: 12,
+                          }}>
+                            <FontAwesome5 
+                              name={accountIcon.icon} 
+                              size={32} 
+                              color={accountIcon.color} 
+                            />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{
+                              fontSize: 16,
+                              fontWeight: '500',
+                              color: '#000',
+                              marginBottom: 2,
+                            }}>
+                              {account.account_name}
+                            </Text>
+                            <Text style={{
+                              fontSize: 12,
+                              color: accountIcon.color,
+                              fontWeight: '500',
+                            }}>
+                              {accountIcon.name}
+                            </Text>
+                          </View>
+                          <Text style={{
+                            fontSize: 16,
+                            fontWeight: '600',
+                            color: '#000',
+                          }}>
+                            {account.balance ? formatCurrencyAmount(parseFloat(account.balance), account.currency) : formatCurrencyAmount(0, account.currency)}
+                          </Text>
+                        </TouchableOpacity>
+                        {index < accounts.length - 1 && (
+                          <View style={{
+                            height: 1,
+                            backgroundColor: '#E5E5EA',
+                            marginLeft: 0, // Start from the same position as the icon
+                            marginRight: 0, // End at the same position as the balance text
+                          }} />
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+
+            {/* Recent Transactions Section */}
+            <View style={{
+              marginBottom: 24,
+            }}>
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 16,
+              }}>
+              <Text style={{
+                fontSize: 20,
+                fontWeight: 'bold',
+                color: '#000',
+              }}>
+                Recent Transactions
+              </Text>
+              <TouchableOpacity 
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 8,
+                  backgroundColor: 'transparent',
+                  borderWidth: 1,
+                  borderColor: '#E5E5EA',
+                }}
+                onPress={() => navigation.navigate('AllTransactions')}>
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: '500',
+                  color: 'rgba(0, 0, 0, 0.7)',
+                }}>
+                  View All
+                </Text>
+              </TouchableOpacity>
+            </View>
+
             {transactionsLoading ? (
-              <View style={profileScreenStyles.infoCard}>
-                <Text style={typographyStyles.body1}>
+              <View style={{
+                backgroundColor: 'white',
+                borderRadius: 16,
+                padding: 20,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 2,
+                elevation: 1,
+              }}>
+                <Text style={{ fontSize: 16, color: '#666' }}>
                   Loading transactions...
                 </Text>
               </View>
             ) : transactions.length === 0 ? (
-              <View style={profileScreenStyles.infoCard}>
-                <Text style={typographyStyles.body1}>No transactions yet</Text>
-                <Text style={typographyStyles.caption}>
+              <View style={{
+                backgroundColor: 'white',
+                borderRadius: 16,
+                padding: 20,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 2,
+                elevation: 1,
+              }}>
+                <Text style={{ fontSize: 16, color: '#666' }}>No transactions yet</Text>
+                <Text style={{ fontSize: 14, color: '#999', marginTop: 4 }}>
                   Transactions will appear here after creation
                 </Text>
               </View>
             ) : (
-              <View style={profileScreenStyles.infoCard}>
-                {transactions.slice(0, 10).map((transaction, index) => (
-                  <View key={transaction.id}>
-                    <View style={profileScreenStyles.transactionHeader}>
-                      <View style={profileScreenStyles.transactionInfo}>
-                        <Text style={profileScreenStyles.transactionCategory}>
-                          {getCategoryIcon(
-                            transaction.category?.category_name || '',
-                            transaction.category?.category_type || '',
-                          )}{' '}
-                          {transaction.category?.category_name || 'Category'}
-                        </Text>
-                        <Text style={profileScreenStyles.transactionAccount}>
-                          {transaction.account?.account_name || 'Account'}
-                        </Text>
-                        <Text style={profileScreenStyles.transactionDate}>
-                          {formatTransactionDate(transaction.transaction_date)}
-                        </Text>
-                      </View>
-                      <View style={profileScreenStyles.transactionAmount}>
-                        <Text
-                          style={[
-                            profileScreenStyles.transactionAmountText,
-                            {
-                              color:
-                                transaction.transaction_type === 'income'
-                                  ? '#28a745'
-                                  : '#dc3545',
-                            },
-                          ]}>
-                          {transaction.transaction_type === 'income'
-                            ? '+'
-                            : '-'}
-                          {transaction.amount}{' '}
-                          {transaction.account?.currency?.symbol || ''}
-                        </Text>
-                      </View>
-                    </View>
-                    {transaction.description && (
-                      <Text style={profileScreenStyles.transactionDescription}>
-                        {transaction.description}
-                      </Text>
-                    )}
-                    {index < transactions.slice(0, 10).length - 1 && (
-                      <View
+              <View style={{
+                backgroundColor: 'white',
+                borderRadius: 16,
+                padding: 16,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 2,
+                elevation: 1,
+              }}>
+                {transactions.slice(0, 10).map((transaction, index) => {
+                  const isTransfer = transaction.transaction_type === 'transfer';
+                  
+                  // Get icon and color based on transaction type
+                  const iconData = isTransfer 
+                    ? { icon: 'exchange-alt', color: '#6B7280' }
+                    : getCategoryIcon(
+                        transaction.category?.category_name || '',
+                        transaction.category?.category_type || '',
+                      );
+                  
+                  const accountIcon = getAccountTypeIcon(transaction.account?.account_type || '');
+                  
+                  // Функция для извлечения информации о конвертации
+                  const getTransferDisplayInfo = (transaction) => {
+                    if (transaction.transaction_type !== 'transfer') return null;
+                    
+                    if (transaction.description) {
+                      const convertMatch = transaction.description.match(/\[Converted: (.+) ([A-Z]{3}) = (.+) ([A-Z]{3})\]/);
+                      if (convertMatch) {
+                        return {
+                          fromAmount: parseFloat(convertMatch[1]),
+                          fromCurrency: convertMatch[2],
+                          toAmount: parseFloat(convertMatch[3]),
+                          toCurrency: convertMatch[4]
+                        };
+                      }
+                    }
+                    return null;
+                  };
+                  
+                  const transferInfo = getTransferDisplayInfo(transaction);
+                  
+                  // Check if account is deactivated
+                  const isAccountDeactivated = !transaction.account?.is_active;
+                  const opacity = isAccountDeactivated ? 0.5 : 1.0;
+                  
+                  return (
+                    <View key={transaction.id} style={{ opacity }}>
+                      <TouchableOpacity 
                         style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingVertical: 12,
+                        }}
+                        onPress={() => handleTransactionPress(transaction)}
+                        activeOpacity={0.7}>
+                        {/* Category/Transfer Icon */}
+                        <View style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 20,
+                          backgroundColor: `${iconData.color}15`,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginRight: 12,
+                        }}>
+                          <FontAwesome5 
+                            name={iconData.icon} 
+                            size={18} 
+                            color={iconData.color} 
+                          />
+                        </View>
+                        
+                        {/* Transaction Details */}
+                        <View style={{ flex: 1 }}>
+                          <Text style={{
+                            fontSize: 16,
+                            fontWeight: '500',
+                            color: '#000',
+                            marginBottom: 2,
+                          }}>
+                            {isTransfer ? 'Transfer' : (transaction.category?.category_name || 'Category')}
+                          </Text>
+                          <View style={{
+                            flexDirection: 'column',
+                            alignItems: 'flex-start',
+                          }}>
+                            {isTransfer ? (
+                              <View style={{
+                                flexDirection: 'column',
+                                alignItems: 'flex-start',
+                              }}>
+                                {/* First Row - From Account */}
+                                <View style={{
+                                  paddingHorizontal: 8,
+                                  paddingVertical: 3,
+                                  borderRadius: 12,
+                                  backgroundColor: `${getAccountTypeIcon(transaction.account?.account_type || '').color}20`,
+                                  marginBottom: 4,
+                                }}>
+                                  <Text style={{
+                                    fontSize: 11,
+                                    color: getAccountTypeIcon(transaction.account?.account_type || '').color,
+                                    fontWeight: '600',
+                                  }}>
+                                    {transaction.account?.account_name || 'Unknown'}
+                                  </Text>
+                                </View>
+                                
+                                {/* Second Row - Arrow + To Account */}
+                                <View style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                }}>
+                                  <FontAwesome5 
+                                    name="arrow-right" 
+                                    size={12} 
+                                    color="#6B7280" 
+                                    style={{ marginRight: 6 }}
+                                  />
+                                  
+                                  <View style={{
+                                    paddingHorizontal: 8,
+                                    paddingVertical: 3,
+                                    borderRadius: 12,
+                                    backgroundColor: `${getAccountTypeIcon(transaction.transfer_to_account?.account_type || '').color}20`,
+                                  }}>
+                                    <Text style={{
+                                      fontSize: 11,
+                                      color: getAccountTypeIcon(transaction.transfer_to_account?.account_type || '').color,
+                                      fontWeight: '600',
+                                    }}>
+                                      {transaction.transfer_to_account?.account_name || 'Unknown'}
+                                    </Text>
+                                  </View>
+                                </View>
+                              </View>
+                            ) : (
+                              <View style={{
+                                paddingHorizontal: 8,
+                                paddingVertical: 3,
+                                borderRadius: 12,
+                                backgroundColor: `${accountIcon.color}20`,
+                                maxWidth: 120,
+                              }}>
+                                <Text style={{
+                                  fontSize: 11,
+                                  color: accountIcon.color,
+                                  fontWeight: '600',
+                                }} 
+                                numberOfLines={1}
+                                ellipsizeMode="tail">
+                                  {transaction.account?.account_name || 'Account'}
+                                </Text>
+                              </View>
+                            )}
+                            {isAccountDeactivated && (
+                              <View style={{
+                                paddingHorizontal: 6,
+                                paddingVertical: 2,
+                                borderRadius: 8,
+                                backgroundColor: '#FBBF24',
+                                marginLeft: 6,
+                              }}>
+                                <Text style={{
+                                  fontSize: 9,
+                                  color: '#FFFFFF',
+                                  fontWeight: '600',
+                                }}>
+                                  DEACTIVATED
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                        
+                        {/* Amount and Date */}
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <Text style={{
+                            fontSize: 16,
+                            fontWeight: '600',
+                            color: isTransfer ? '#F59E0B' : (transaction.transaction_type === 'income' ? '#10B981' : '#EF4444'),
+                            marginBottom: 2,
+                          }}>
+                            {isTransfer ? (
+                              transferInfo ? 
+                                `${transferInfo.toAmount} ${transferInfo.toCurrency}` 
+                                : `${transaction.amount} ${transaction.transfer_to_account?.currency?.symbol || '$'}`
+                            ) : (
+                              `${transaction.transaction_type === 'income' ? '+' : '-'}${transaction.amount} ${transaction.account.currency?.symbol || '$'}`
+                            )}
+                          </Text>
+                          <Text style={{
+                            fontSize: 14,
+                            color: '#666',
+                          }}>
+                            {formatTransactionDate(transaction.transaction_date)}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                      
+                      {index < transactions.slice(0, 10).length - 1 && (
+                        <View style={{
                           height: 1,
                           backgroundColor: '#E5E5EA',
-                          marginTop: 12,
-                          marginBottom: 12,
-                        }}
-                      />
-                    )}
-                  </View>
-                ))}
+                          marginLeft: 0,
+                          marginRight: 0,
+                        }} />
+                      )}
+                    </View>
+                  );
+                })}
               </View>
             )}
-
-            {transactions.length > 10 && (
-              <View style={[profileScreenStyles.infoCard, { marginTop: 12 }]}>
-                <Text style={typographyStyles.caption}>
-                  Showing last 10 transactions
-                </Text>
-              </View>
-            )}
+            </View>
           </View>
         </View>
 
@@ -490,6 +1271,50 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
           )}
         </View>
       </ScrollView>
+      
+      <AddTransactionModal
+        visible={showAddTransactionModal}
+        onClose={() => setShowAddTransactionModal(false)}
+        onSuccess={() => {
+          loadTransactions();
+          loadNetWorth();
+          loadAccounts();
+        }}
+      />
+      
+      <EditTransactionModal
+        visible={showEditTransactionModal}
+        transaction={selectedTransaction}
+        onClose={() => {
+          setShowEditTransactionModal(false);
+          setSelectedTransaction(null);
+        }}
+        onSuccess={() => {
+          loadTransactions();
+          loadNetWorth();
+          loadAccounts();
+        }}
+      />
+      
+      <AccountsManagementModal
+        visible={showAccountsManagementModal}
+        onClose={() => setShowAccountsManagementModal(false)}
+        onAddAccount={() => {
+          setShowAccountsManagementModal(false);
+          setTimeout(() => setShowAddAccountModal(true), 100);
+        }}
+        navigation={navigation}
+      />
+      
+      <AddAccountModal
+        visible={showAddAccountModal}
+        onClose={() => setShowAddAccountModal(false)}
+        onAccountAdded={() => {
+          setShowAddAccountModal(false);
+          loadAccounts(); // Refresh accounts list
+          setTimeout(() => setShowAccountsManagementModal(true), 100); // Return to accounts management
+        }}
+      />
     </>
   );
 };

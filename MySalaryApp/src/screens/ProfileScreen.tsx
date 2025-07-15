@@ -7,12 +7,12 @@ import {
   Image,
   Alert,
   ScrollView,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import { profileScreenStyles, layoutStyles, typographyStyles } from '../styles';
-import { apiService } from '../services/api';
+import { apiService, type Currency } from '../services/api';
 import { biometricService } from '../services/biometric';
-import { AddAccountModal } from '../components/AddAccountModal';
 
 interface ProfileScreenProps {
   navigation: any;
@@ -21,77 +21,66 @@ interface ProfileScreenProps {
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [accounts, setAccounts] = useState<any[]>([]);
-  const [showAddAccountModal, setShowAddAccountModal] = useState(false);
-  const [accountsLoading, setAccountsLoading] = useState(false);
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const [currenciesLoading, setCurrenciesLoading] = useState(false);
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     loadUserProfile();
-    loadAccounts();
   }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadAccounts();
-    }, [])
-  );
 
   const loadUserProfile = async () => {
     try {
       setLoading(true);
       
-      const storedUser = await apiService.getStoredUser();
-      
-      if (storedUser) {
-        setUser(storedUser);
+      // Load user profile from API to get latest currency info
+      const currentUser = await apiService.getCurrentUser();
+      if (currentUser) {
+        setUser(currentUser.user);
+        // Update stored user with latest data
+        await apiService.updateStoredUser(currentUser.user);
       } else {
-        // Пока используем mock данные, позже можно подключить API
-        const mockUser = {
-          id: 1,
-          login: 'testuser',
-          email: 'test@example.com',
-          avatar: null,
-        };
-        setUser(mockUser);
+        // Fallback to stored user
+        const storedUser = await apiService.getStoredUser();
+        if (storedUser) {
+          setUser(storedUser);
+        }
       }
+
+      // Load currencies list
+      setCurrenciesLoading(true);
+      const currenciesResponse = await apiService.getCurrencies();
+      console.log('Loaded currencies:', currenciesResponse.currencies); // Debug log
+      setCurrencies(currenciesResponse.currencies);
+      setCurrenciesLoading(false);
     } catch (error) {
       console.error('Ошибка загрузки профиля:', error);
       Alert.alert('Ошибка', 'Не удалось загрузить профиль');
     } finally {
       setLoading(false);
+      setCurrenciesLoading(false);
     }
   };
 
-  const loadAccounts = async () => {
+  const handleCurrencyChange = async (currencyId: number) => {
     try {
-      setAccountsLoading(true);
-      const accountsData = await apiService.get<any[]>('/accounts');
-      setAccounts(accountsData || []);
+      setUpdating(true);
+      setShowCurrencyModal(false);
+      
+      const response = await apiService.updateUserProfile({ primary_currency_id: currencyId });
+      setUser(response.user);
+      
+      Alert.alert('Success', 'Currency updated successfully');
+      
+      // Optionally trigger a refresh of financial data or navigation
+      // navigation.navigate('Home'); // or other refresh logic
     } catch (error) {
-      console.error('Error loading accounts:', error);
-      setAccounts([]);
+      console.error('Error updating currency:', error);
+      Alert.alert('Error', 'Failed to update currency. Please try again.');
     } finally {
-      setAccountsLoading(false);
+      setUpdating(false);
     }
-  };
-
-  const handleAccountAdded = () => {
-    loadAccounts();
-  };
-
-  const formatAccountType = (type: string) => {
-    const types = {
-      cash: 'Наличные',
-      debit_card: 'Дебетовая карта',
-      credit_card: 'Кредитная карта',
-      bank_account: 'Банковский счет',
-      digital_wallet: 'Цифровой кошелек',
-    };
-    return types[type as keyof typeof types] || type;
-  };
-
-  const handleClose = () => {
-    navigation.goBack();
   };
 
   const handleLogout = async () => {
@@ -133,22 +122,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   return (
     <SafeAreaView style={profileScreenStyles.container}>
       <ScrollView style={profileScreenStyles.content}>
-        <View style={profileScreenStyles.header}>
-          <View style={{ width: 44 }} />
-          <View style={{ flex: 1, alignItems: 'center' }}>
-            <Text style={[typographyStyles.h2, profileScreenStyles.title]}>
-              Profile
-            </Text>
-          </View>
-          <TouchableOpacity 
-            onPress={handleClose} 
-            style={profileScreenStyles.closeButton}
-            activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text style={profileScreenStyles.closeButtonText}>✕</Text>
-          </TouchableOpacity>
-        </View>
 
         <View style={profileScreenStyles.avatarContainer}>
           <View style={profileScreenStyles.avatarWrapper}>
@@ -178,54 +151,29 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
               {user?.email || 'Not specified'}
             </Text>
           </View>
-        </View>
 
-        {/* Accounts section */}
-        <View style={profileScreenStyles.infoContainer}>
-          <View style={profileScreenStyles.sectionHeader}>
-            <Text style={[typographyStyles.h3, profileScreenStyles.sectionTitle]}>
-              Accounts
-            </Text>
-            <TouchableOpacity 
-              style={profileScreenStyles.addButton}
-              onPress={() => setShowAddAccountModal(true)}
-            >
-              <Text style={profileScreenStyles.addButtonText}>+ Add</Text>
-            </TouchableOpacity>
-          </View>
-
-          {accountsLoading ? (
-            <View style={profileScreenStyles.infoCard}>
-              <Text style={typographyStyles.body1}>Loading accounts...</Text>
-            </View>
-          ) : accounts.length === 0 ? (
-            <View style={profileScreenStyles.infoCard}>
-              <Text style={typographyStyles.body1}>You don't have any accounts yet</Text>
-              <Text style={typographyStyles.caption}>
-                Add your first account to track income and expenses
+          <TouchableOpacity 
+            style={profileScreenStyles.infoCard}
+            onPress={() => setShowCurrencyModal(true)}
+            disabled={updating || currenciesLoading}
+          >
+            <Text style={profileScreenStyles.infoLabel}>Primary Currency</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={profileScreenStyles.infoValue}>
+                {user?.primaryCurrency 
+                  ? `${user.primaryCurrency.name} (${user.primaryCurrency.code}) ${user.primaryCurrency.symbol}`
+                  : 'Not specified'
+                }
               </Text>
+              {updating ? (
+                <ActivityIndicator size="small" color="#007AFF" />
+              ) : (
+                <Text style={{ color: '#007AFF', fontSize: 14 }}>Change</Text>
+              )}
             </View>
-          ) : (
-            accounts.map((account) => (
-              <View key={account.id} style={profileScreenStyles.accountCard}>
-                <View style={profileScreenStyles.accountHeader}>
-                  <Text style={profileScreenStyles.accountName}>{account.account_name}</Text>
-                  <Text style={profileScreenStyles.accountBalance}>
-                    {account.balance} {account.currency?.symbol || ''}
-                  </Text>
-                </View>
-                <Text style={profileScreenStyles.accountType}>
-                  {formatAccountType(account.account_type)}
-                </Text>
-                {account.description && (
-                  <Text style={profileScreenStyles.accountDescription}>
-                    {account.description}
-                  </Text>
-                )}
-              </View>
-            ))
-          )}
+          </TouchableOpacity>
         </View>
+
 
         {/* Logout Button */}
         <View style={{
@@ -254,11 +202,97 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 
       </ScrollView>
 
-      <AddAccountModal
-        visible={showAddAccountModal}
-        onClose={() => setShowAddAccountModal(false)}
-        onAccountAdded={handleAccountAdded}
-      />
+      {/* Currency Selection Modal */}
+      <Modal
+        visible={showCurrencyModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCurrencyModal(false)}
+      >
+        <View style={{ 
+          flex: 1, 
+          backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+          justifyContent: 'center', 
+          alignItems: 'center' 
+        }}>
+          <View style={{
+            backgroundColor: 'white',
+            borderRadius: 16,
+            padding: 20,
+            margin: 20,
+            maxWidth: 350,
+            width: '90%',
+            maxHeight: '70%',
+          }}>
+            <Text style={{
+              fontSize: 20,
+              fontWeight: '600',
+              color: '#000',
+              marginBottom: 20,
+              textAlign: 'center',
+            }}>
+              Select Currency
+            </Text>
+            
+            <ScrollView style={{ maxHeight: 400 }}>
+              {currencies.map((currency) => (
+                <TouchableOpacity
+                  key={currency.id}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 15,
+                    paddingHorizontal: 10,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#E5E5EA',
+                  }}
+                  onPress={() => handleCurrencyChange(currency.id)}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={{
+                      fontSize: 16,
+                      fontWeight: '500',
+                      color: '#000',
+                      marginBottom: 2,
+                    }}>
+                      {currency.name}
+                    </Text>
+                    <Text style={{
+                      fontSize: 14,
+                      color: '#666',
+                    }}>
+                      {currency.code} • {currency.symbol}
+                    </Text>
+                  </View>
+                  {user?.primary_currency_id === currency.id && (
+                    <View style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: 10,
+                      backgroundColor: '#007AFF',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}>
+                      <Text style={{ color: 'white', fontSize: 12 }}>✓</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            
+            <TouchableOpacity
+              style={{
+                marginTop: 20,
+                paddingVertical: 12,
+                alignItems: 'center',
+              }}
+              onPress={() => setShowCurrencyModal(false)}
+            >
+              <Text style={{ color: '#666', fontSize: 16 }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }; 
