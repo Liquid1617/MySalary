@@ -27,12 +27,17 @@ import { AddTransactionModal } from '../components/AddTransactionModal';
 import { EditTransactionModal } from '../components/EditTransactionModal';
 import { AccountsManagementModal } from '../components/AccountsManagementModal';
 import { AddAccountModal } from '../components/AddAccountModal';
-import { formatCurrencyAmount, formatCurrencyAmountShort, formatCurrencyCompact } from '../utils/formatCurrency';
+import {
+  formatCurrencyAmount,
+  formatCurrencyAmountShort,
+  formatCurrencyCompact,
+} from '../utils/formatCurrency';
+import { getAccountTypeIcon } from '../utils/accountTypeIcon';
 
 // Helper functions for greeting and date
 const getTimeBasedGreeting = () => {
   const currentHour = new Date().getHours();
-  
+
   if (currentHour >= 5 && currentHour < 12) {
     return 'Good morning,';
   } else if (currentHour >= 12 && currentHour < 18) {
@@ -46,54 +51,68 @@ const getTimeBasedGreeting = () => {
 
 const getCurrentDate = () => {
   const today = new Date();
-  return today.toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric' 
+  return today.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
   });
 };
 
 // Function to convert amount from one currency to another
-const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string): number => {
+const convertCurrency = (
+  amount: number,
+  fromCurrency: string,
+  toCurrency: string,
+): number => {
   if (fromCurrency === toCurrency) return amount;
-  
+
   // Exchange rates (approximate, could be fetched from API)
   const exchangeRates: { [key: string]: number } = {
-    'USD': 1.0,
-    'RUB': 0.011,  // 1 RUB = 0.011 USD (approximately 90 RUB per USD)
-    'EUR': 1.09,   // 1 EUR = 1.09 USD
-    'GBP': 1.27,   // 1 GBP = 1.27 USD
-    'CNY': 0.14,   // 1 CNY = 0.14 USD
-    'KZT': 0.002,  // 1 KZT = 0.002 USD
-    'BYN': 0.30,   // 1 BYN = 0.30 USD
-    'UAH': 0.025,  // 1 UAH = 0.025 USD
+    USD: 1.0,
+    RUB: 0.011, // 1 RUB = 0.011 USD (approximately 90 RUB per USD)
+    EUR: 1.09, // 1 EUR = 1.09 USD
+    GBP: 1.27, // 1 GBP = 1.27 USD
+    CNY: 0.14, // 1 CNY = 0.14 USD
+    KZT: 0.002, // 1 KZT = 0.002 USD
+    BYN: 0.3, // 1 BYN = 0.30 USD
+    UAH: 0.025, // 1 UAH = 0.025 USD
   };
-  
+
   // Convert from source currency to USD, then from USD to target currency
   const fromRate = exchangeRates[fromCurrency?.toUpperCase()] || 1.0;
   const toRate = exchangeRates[toCurrency?.toUpperCase()] || 1.0;
-  
+
   const amountInUSD = amount * fromRate;
   return amountInUSD / toRate;
 };
 
 // Functions to calculate monthly totals from transactions in user's currency
-const calculateMonthlyTotals = (transactions: any[], userCurrency: Currency | null) => {
+const calculateMonthlyTotals = (
+  transactions: any[],
+  userCurrency: Currency | undefined,
+) => {
   const currentDate = new Date();
   const currentMonth = currentDate.getMonth();
   const currentYear = currentDate.getFullYear();
-  
+
   let monthlyIncome = 0;
   let monthlyExpenses = 0;
-  
+
   const targetCurrency = userCurrency?.code || 'USD';
-  
+
   transactions.forEach(transaction => {
     const transactionDate = new Date(transaction.transaction_date);
-    if (transactionDate.getMonth() === currentMonth && transactionDate.getFullYear() === currentYear) {
+    if (
+      transactionDate.getMonth() === currentMonth &&
+      transactionDate.getFullYear() === currentYear
+    ) {
       const amount = parseFloat(transaction.amount) || 0;
       const transactionCurrency = transaction.account?.currency?.code || 'USD';
-      const convertedAmount = convertCurrency(amount, transactionCurrency, targetCurrency);
-      
+      const convertedAmount = convertCurrency(
+        amount,
+        transactionCurrency,
+        targetCurrency,
+      );
+
       if (transaction.transaction_type === 'income') {
         monthlyIncome += convertedAmount;
       } else if (transaction.transaction_type === 'expense') {
@@ -101,28 +120,42 @@ const calculateMonthlyTotals = (transactions: any[], userCurrency: Currency | nu
       }
     }
   });
-  
+
   return { monthlyIncome, monthlyExpenses };
 };
 
 // Function to calculate previous month totals for comparison in user's currency
-const calculatePreviousMonthTotals = (transactions: any[], userCurrency: Currency | null) => {
+const calculatePreviousMonthTotals = (
+  transactions: any[],
+  userCurrency: Currency | undefined,
+) => {
   const currentDate = new Date();
-  const previousMonth = currentDate.getMonth() === 0 ? 11 : currentDate.getMonth() - 1;
-  const previousYear = currentDate.getMonth() === 0 ? currentDate.getFullYear() - 1 : currentDate.getFullYear();
-  
+  const previousMonth =
+    currentDate.getMonth() === 0 ? 11 : currentDate.getMonth() - 1;
+  const previousYear =
+    currentDate.getMonth() === 0
+      ? currentDate.getFullYear() - 1
+      : currentDate.getFullYear();
+
   let previousMonthIncome = 0;
   let previousMonthExpenses = 0;
-  
+
   const targetCurrency = userCurrency?.code || 'USD';
-  
+
   transactions.forEach(transaction => {
     const transactionDate = new Date(transaction.transaction_date);
-    if (transactionDate.getMonth() === previousMonth && transactionDate.getFullYear() === previousYear) {
+    if (
+      transactionDate.getMonth() === previousMonth &&
+      transactionDate.getFullYear() === previousYear
+    ) {
       const amount = parseFloat(transaction.amount) || 0;
       const transactionCurrency = transaction.account?.currency?.code || 'USD';
-      const convertedAmount = convertCurrency(amount, transactionCurrency, targetCurrency);
-      
+      const convertedAmount = convertCurrency(
+        amount,
+        transactionCurrency,
+        targetCurrency,
+      );
+
       if (transaction.transaction_type === 'income') {
         previousMonthIncome += convertedAmount;
       } else if (transaction.transaction_type === 'expense') {
@@ -130,48 +163,38 @@ const calculatePreviousMonthTotals = (transactions: any[], userCurrency: Currenc
       }
     }
   });
-  
+
   return { previousMonthIncome, previousMonthExpenses };
 };
 
 // Function to calculate net worth change percentage
-const calculateNetWorthChange = (transactions: any[], userCurrency: Currency | null) => {
-  const { monthlyIncome, monthlyExpenses } = calculateMonthlyTotals(transactions, userCurrency);
-  const { previousMonthIncome, previousMonthExpenses } = calculatePreviousMonthTotals(transactions, userCurrency);
-  
+const calculateNetWorthChange = (
+  transactions: any[],
+  userCurrency: Currency | undefined,
+) => {
+  const { monthlyIncome, monthlyExpenses } = calculateMonthlyTotals(
+    transactions,
+    userCurrency,
+  );
+  const { previousMonthIncome, previousMonthExpenses } =
+    calculatePreviousMonthTotals(transactions, userCurrency);
+
   const currentNetFlow = monthlyIncome - monthlyExpenses;
   const previousNetFlow = previousMonthIncome - previousMonthExpenses;
-  
+
   if (previousNetFlow === 0) {
-    return { 
-      change: currentNetFlow > 0 ? 100 : currentNetFlow < 0 ? 100 : 0, 
-      isPositive: currentNetFlow >= 0 
+    return {
+      change: currentNetFlow > 0 ? 100 : currentNetFlow < 0 ? 100 : 0,
+      isPositive: currentNetFlow >= 0,
     };
   }
-  
-  const percentChange = ((currentNetFlow - previousNetFlow) / Math.abs(previousNetFlow)) * 100;
-  return { 
-    change: percentChange, 
-    isPositive: percentChange >= 0 
-  };
-};
 
-// Function to get account type icon and color
-const getAccountTypeIcon = (accountType: string) => {
-  switch (accountType) {
-    case 'debit_card':
-      return { icon: 'credit-card', color: '#3B82F6', name: 'Debit Card' }; // Blue
-    case 'credit_card':
-      return { icon: 'credit-card', color: '#8B5CF6', name: 'Credit Card' }; // Purple
-    case 'bank_account':
-      return { icon: 'university', color: '#10B981', name: 'Bank Account' }; // Green
-    case 'cash':
-      return { icon: 'wallet', color: '#F59E0B', name: 'Cash' }; // Orange
-    case 'digital_wallet':
-      return { icon: 'mobile-alt', color: '#EF4444', name: 'Digital Wallet' }; // Red
-    default:
-      return { icon: 'piggy-bank', color: '#6B7280', name: 'Account' }; // Gray
-  }
+  const percentChange =
+    ((currentNetFlow - previousNetFlow) / Math.abs(previousNetFlow)) * 100;
+  return {
+    change: percentChange,
+    isPositive: percentChange >= 0,
+  };
 };
 
 // Минималистичная иконка изменения баланса
@@ -244,16 +267,24 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
   const [accounts, setAccounts] = useState<any[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(false);
   const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
-  const [showEditTransactionModal, setShowEditTransactionModal] = useState(false);
+  const [showEditTransactionModal, setShowEditTransactionModal] =
+    useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
-  const [showAccountsManagementModal, setShowAccountsManagementModal] = useState(false);
+  const [showAccountsManagementModal, setShowAccountsManagementModal] =
+    useState(false);
   const [showAddAccountModal, setShowAddAccountModal] = useState(false);
-  const [userCurrency, setUserCurrency] = useState<Currency | null>(null);
+  const [userCurrency, setUserCurrency] = useState<Currency | undefined>(
+    undefined,
+  );
   const [user, setUser] = useState<any>(null);
 
   // Calculate monthly totals and net worth change
-  const { monthlyIncome, monthlyExpenses } = calculateMonthlyTotals(transactions, userCurrency);
-  const { change: netWorthChangePercent, isPositive: isNetWorthPositive } = calculateNetWorthChange(transactions, userCurrency);
+  const { monthlyIncome, monthlyExpenses } = calculateMonthlyTotals(
+    transactions,
+    userCurrency,
+  );
+  const { change: netWorthChangePercent, isPositive: isNetWorthPositive } =
+    calculateNetWorthChange(transactions, userCurrency);
 
   useEffect(() => {
     initializeBiometric();
@@ -293,6 +324,12 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
         setUser(currentUser.user);
         if (currentUser.user.primaryCurrency) {
           setUserCurrency(currentUser.user.primaryCurrency);
+        }
+      } else if (currentUser) {
+        // If response doesn't have nested user object
+        setUser(currentUser);
+        if (currentUser.primaryCurrency) {
+          setUserCurrency(currentUser.primaryCurrency);
         }
       } else {
         // Fallback to stored user
@@ -336,15 +373,22 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
     }
   };
 
-
   const loadAccounts = async () => {
     try {
       setAccountsLoading(true);
       const accountsData = await apiService.get<any[]>('/accounts');
       // Sort accounts by balance in USD equivalent (highest to lowest)
       const sortedAccounts = (accountsData || []).sort((a, b) => {
-        const balanceAInUSD = convertCurrency(parseFloat(a.balance) || 0, a.currency?.code || 'USD', 'USD');
-        const balanceBInUSD = convertCurrency(parseFloat(b.balance) || 0, b.currency?.code || 'USD', 'USD');
+        const balanceAInUSD = convertCurrency(
+          parseFloat(a.balance) || 0,
+          a.currency?.code || 'USD',
+          'USD',
+        );
+        const balanceBInUSD = convertCurrency(
+          parseFloat(b.balance) || 0,
+          b.currency?.code || 'USD',
+          'USD',
+        );
         return balanceBInUSD - balanceAInUSD;
       });
       setAccounts(sortedAccounts);
@@ -363,12 +407,24 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    
+
     // Reset time to compare dates only
-    const transactionDateOnly = new Date(transactionDate.getFullYear(), transactionDate.getMonth(), transactionDate.getDate());
-    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const yesterdayOnly = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
-    
+    const transactionDateOnly = new Date(
+      transactionDate.getFullYear(),
+      transactionDate.getMonth(),
+      transactionDate.getDate(),
+    );
+    const todayOnly = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+    const yesterdayOnly = new Date(
+      yesterday.getFullYear(),
+      yesterday.getMonth(),
+      yesterday.getDate(),
+    );
+
     if (transactionDateOnly.getTime() === todayOnly.getTime()) {
       return 'Today';
     } else if (transactionDateOnly.getTime() === yesterdayOnly.getTime()) {
@@ -413,7 +469,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
           return { icon: 'arrow-up', color: '#6B7280' };
       }
     }
-    
+
     // Expense category icons
     switch (categoryName.toLowerCase()) {
       case 'food & groceries':
@@ -499,8 +555,8 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
         backgroundColor="transparent"
         translucent={true}
       />
-      
-      <ScrollView 
+
+      <ScrollView
         style={{ flex: 1, backgroundColor: '#F6F7F8' }}
         contentContainerStyle={{ flexGrow: 1 }}
         showsVerticalScrollIndicator={false}>
@@ -517,121 +573,138 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
             borderBottomLeftRadius: 30,
             borderBottomRightRadius: 30,
           }}>
-          
           {/* Header with greeting and date */}
-          <View style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            paddingHorizontal: 24,
-            paddingTop: 20,
-            marginBottom: 40,
-          }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              paddingHorizontal: 24,
+              paddingTop: 20,
+              marginBottom: 40,
+            }}>
             {/* Left side - Greeting */}
             <View>
-              <Text style={{
-                fontSize: 18,
-                color: 'rgba(0, 0, 0, 0.7)',
-                marginBottom: 4,
-              }}>
+              <Text
+                style={{
+                  fontSize: 18,
+                  color: 'rgba(0, 0, 0, 0.7)',
+                  marginBottom: 4,
+                }}>
                 {getTimeBasedGreeting()}
               </Text>
-              <Text style={{
-                fontSize: 32,
-                fontWeight: 'bold',
-                color: '#000',
-              }}>
+              <Text
+                style={{
+                  fontSize: 32,
+                  fontWeight: 'bold',
+                  color: '#000',
+                }}>
                 {user?.name || 'User'}!
               </Text>
             </View>
-            
+
             {/* Right side - Date */}
             <View style={{ alignItems: 'flex-end' }}>
-              <Text style={{
-                fontSize: 16,
-                color: 'rgba(0, 0, 0, 0.7)',
-                marginBottom: 4,
-              }}>
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: 'rgba(0, 0, 0, 0.7)',
+                  marginBottom: 4,
+                }}>
                 Today
               </Text>
-              <Text style={{
-                fontSize: 18,
-                fontWeight: '600',
-                color: '#000',
-              }}>
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: '600',
+                  color: '#000',
+                }}>
                 {getCurrentDate()}
               </Text>
             </View>
           </View>
 
           {/* Net Worth section */}
-          <View style={{
-            paddingHorizontal: 24,
-            marginBottom: 32,
-          }}>
-            <View style={{
-              flexDirection: 'row',
-              justifyContent: 'flex-start',
-              alignItems: 'center',
-              marginBottom: 12,
+          <View
+            style={{
+              paddingHorizontal: 24,
+              marginBottom: 32,
             }}>
-              <Text style={{
-                fontSize: 16,
-                color: 'rgba(0, 0, 0, 0.7)',
-                fontWeight: '500',
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+                marginBottom: 12,
               }}>
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: 'rgba(0, 0, 0, 0.7)',
+                  fontWeight: '500',
+                }}>
                 Total Net Worth
               </Text>
             </View>
 
             {netWorthLoading ? (
               <View>
-                <Text style={{
-                  fontSize: 36,
-                  fontWeight: 'bold',
-                  color: '#000',
-                }}>
+                <Text
+                  style={{
+                    fontSize: 36,
+                    fontWeight: 'bold',
+                    color: '#000',
+                  }}>
                   Loading...
                 </Text>
               </View>
             ) : netWorth ? (
               <View>
-                <Text style={{
-                  fontSize: 36,
-                  fontWeight: 'bold',
-                  color: '#000',
-                  marginBottom: 8,
-                }}>
+                <Text
+                  style={{
+                    fontSize: 36,
+                    fontWeight: 'bold',
+                    color: '#000',
+                    marginBottom: 8,
+                  }}>
                   {formatCurrencyAmountShort(netWorth.netWorth, userCurrency)}
                 </Text>
-                <View style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                }}>
-                  <FontAwesome6 
-                    name={netWorthChangePercent >= 0 ? "arrow-trend-up" : "arrow-trend-down"} 
-                    size={14} 
-                    color={netWorthChangePercent >= 0 ? "#22C55E" : "#EF4444"} 
-                    solid 
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }}>
+                  <FontAwesome6
+                    name={
+                      netWorthChangePercent >= 0
+                        ? 'arrow-trend-up'
+                        : 'arrow-trend-down'
+                    }
+                    size={14}
+                    color={netWorthChangePercent >= 0 ? '#22C55E' : '#EF4444'}
+                    solid
                     style={{ marginRight: 6 }}
                   />
-                  <Text style={{
-                    fontSize: 16,
-                    color: netWorthChangePercent >= 0 ? "#22C55E" : "#EF4444",
-                    fontWeight: '500',
-                  }}>
-                    {netWorthChangePercent >= 0 ? '+' : ''}{netWorthChangePercent.toFixed(1)}% this month
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      color: netWorthChangePercent >= 0 ? '#22C55E' : '#EF4444',
+                      fontWeight: '500',
+                    }}>
+                    {netWorthChangePercent >= 0 ? '+' : ''}
+                    {netWorthChangePercent.toFixed(1)}% this month
                   </Text>
                 </View>
               </View>
             ) : (
               <View>
-                <Text style={{
-                  fontSize: 24,
-                  fontWeight: 'bold',
-                  color: '#000',
-                  marginBottom: 8,
-                }}>
+                <Text
+                  style={{
+                    fontSize: 24,
+                    fontWeight: 'bold',
+                    color: '#000',
+                    marginBottom: 8,
+                  }}>
                   Failed to load
                 </Text>
                 <TouchableOpacity
@@ -651,124 +724,152 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
         </LinearGradient>
 
         {/* Income/Expenses widgets and Transaction History секция НА БЕЛОМ ФОНЕ */}
-        <View style={{ backgroundColor: '#F6F7F8', paddingBottom: 24, paddingHorizontal: 24 }}>
-          
-          {/* Income and Expenses widgets in a row */}
-          <View style={{ 
-            flexDirection: 'row', 
-            justifyContent: 'space-between', 
-            marginTop: 24, 
-            marginBottom: 16,
-            gap: 12 
+        <View
+          style={{
+            backgroundColor: '#F6F7F8',
+            paddingBottom: 24,
+            paddingHorizontal: 24,
           }}>
-            {/* Income Widget */}
-            <View style={{
-              flex: 1,
-              backgroundColor: 'white',
-              borderRadius: 16,
-              padding: 20,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.05,
-              shadowRadius: 2,
-              elevation: 1,
+          {/* Income and Expenses widgets in a row */}
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              marginTop: 24,
+              marginBottom: 16,
+              gap: 12,
             }}>
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                marginBottom: 12,
+            {/* Income Widget */}
+            <View
+              style={{
+                flex: 1,
+                backgroundColor: 'white',
+                borderRadius: 16,
+                padding: 20,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 2,
+                elevation: 1,
               }}>
-                <View style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: '#E8F5E8',
-                  justifyContent: 'center',
+              <View
+                style={{
+                  flexDirection: 'row',
                   alignItems: 'center',
-                  marginRight: 12,
+                  marginBottom: 12,
                 }}>
-                  <FontAwesome6 name="arrow-trend-up" size={16} color="#22C55E" solid />
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: '#E8F5E8',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginRight: 12,
+                  }}>
+                  <FontAwesome6
+                    name="arrow-trend-up"
+                    size={16}
+                    color="#22C55E"
+                    solid
+                  />
                 </View>
-                <Text style={{
-                  fontSize: 16,
-                  fontWeight: '500',
-                  color: '#333',
-                }}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '500',
+                    color: '#333',
+                  }}>
                   Income
                 </Text>
               </View>
-              <Text style={{
-                fontSize: 24,
-                fontWeight: 'bold',
-                color: '#000',
-                marginBottom: 4,
-              }}>
+              <Text
+                style={{
+                  fontSize: 24,
+                  fontWeight: 'bold',
+                  color: '#000',
+                  marginBottom: 4,
+                }}>
                 {formatCurrencyCompact(monthlyIncome, userCurrency)}
               </Text>
-              <Text style={{
-                fontSize: 14,
-                color: '#22C55E',
-                fontWeight: '500',
-              }}>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: '#22C55E',
+                  fontWeight: '500',
+                }}>
                 This month
               </Text>
             </View>
 
             {/* Expenses Widget */}
-            <View style={{
-              flex: 1,
-              backgroundColor: 'white',
-              borderRadius: 16,
-              padding: 20,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.05,
-              shadowRadius: 2,
-              elevation: 1,
-            }}>
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                marginBottom: 12,
+            <View
+              style={{
+                flex: 1,
+                backgroundColor: 'white',
+                borderRadius: 16,
+                padding: 20,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 2,
+                elevation: 1,
               }}>
-                <View style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: '#FEE8E8',
-                  justifyContent: 'center',
+              <View
+                style={{
+                  flexDirection: 'row',
                   alignItems: 'center',
-                  marginRight: 12,
+                  marginBottom: 12,
                 }}>
-                  <FontAwesome6 name="arrow-trend-down" size={16} color="#EF4444" solid />
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: '#FEE8E8',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginRight: 12,
+                  }}>
+                  <FontAwesome6
+                    name="arrow-trend-down"
+                    size={16}
+                    color="#EF4444"
+                    solid
+                  />
                 </View>
-                <Text style={{
-                  fontSize: 16,
-                  fontWeight: '500',
-                  color: '#333',
-                }}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '500',
+                    color: '#333',
+                  }}>
                   Expenses
                 </Text>
               </View>
-              <Text style={{
-                fontSize: 24,
-                fontWeight: 'bold',
-                color: '#000',
-                marginBottom: 4,
-              }}>
+              <Text
+                style={{
+                  fontSize: 24,
+                  fontWeight: 'bold',
+                  color: '#000',
+                  marginBottom: 4,
+                }}>
                 {formatCurrencyCompact(monthlyExpenses, userCurrency)}
               </Text>
-              <Text style={{
-                fontSize: 14,
-                color: '#EF4444',
-                fontWeight: '500',
-              }}>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: '#EF4444',
+                  fontWeight: '500',
+                }}>
                 This month
               </Text>
             </View>
           </View>
 
-          <View style={[homeScreenStyles.mainContent, { marginTop: 0, gap: 10 }]}>
+          <View
+            style={[homeScreenStyles.mainContent, { marginTop: 0, gap: 10 }]}>
             {/* Add Transaction Button */}
             <TouchableOpacity
               style={{
@@ -794,42 +895,47 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                   flexDirection: 'row',
                   justifyContent: 'center',
                 }}>
-                <Text style={{
-                  fontSize: 24,
-                  fontWeight: 'bold',
-                  color: '#000',
-                  marginRight: 12,
-                }}>
+                <Text
+                  style={{
+                    fontSize: 24,
+                    fontWeight: 'bold',
+                    color: '#000',
+                    marginRight: 12,
+                  }}>
                   +
                 </Text>
-                <Text style={{
-                  fontSize: 18,
-                  fontWeight: '600',
-                  color: '#000',
-                }}>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: '600',
+                    color: '#000',
+                  }}>
                   Add Transaction
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
 
             {/* Accounts Section */}
-            <View style={{
-              marginBottom: 24,
-            }}>
-              <View style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 16,
+            <View
+              style={{
+                marginBottom: 24,
               }}>
-                <Text style={{
-                  fontSize: 20,
-                  fontWeight: 'bold',
-                  color: '#000',
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 16,
                 }}>
+                <Text
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 'bold',
+                    color: '#000',
+                  }}>
                   Accounts
                 </Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={{
                     paddingHorizontal: 12,
                     paddingVertical: 6,
@@ -839,113 +945,135 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                     borderColor: '#E5E5EA',
                   }}
                   onPress={() => setShowAccountsManagementModal(true)}>
-                  <Text style={{
-                    fontSize: 14,
-                    fontWeight: '500',
-                    color: 'rgba(0, 0, 0, 0.7)', // Same color as "Total Net Worth" text
-                  }}>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: '500',
+                      color: 'rgba(0, 0, 0, 0.7)', // Same color as "Total Net Worth" text
+                    }}>
                     Manage
                   </Text>
                 </TouchableOpacity>
               </View>
 
               {accountsLoading ? (
-                <View style={{
-                  backgroundColor: 'white',
-                  borderRadius: 16,
-                  padding: 20,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.05,
-                  shadowRadius: 2,
-                  elevation: 1,
-                }}>
-                  <Text style={{ fontSize: 16, color: '#666' }}>Loading accounts...</Text>
+                <View
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: 16,
+                    padding: 20,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 2,
+                    elevation: 1,
+                  }}>
+                  <Text style={{ fontSize: 16, color: '#666' }}>
+                    Loading accounts...
+                  </Text>
                 </View>
               ) : accounts.length === 0 ? (
-                <View style={{
-                  backgroundColor: 'white',
-                  borderRadius: 16,
-                  padding: 20,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.05,
-                  shadowRadius: 2,
-                  elevation: 1,
-                }}>
-                  <Text style={{ fontSize: 16, color: '#666' }}>No accounts yet</Text>
+                <View
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: 16,
+                    padding: 20,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 2,
+                    elevation: 1,
+                  }}>
+                  <Text style={{ fontSize: 16, color: '#666' }}>
+                    No accounts yet
+                  </Text>
                   <Text style={{ fontSize: 14, color: '#999', marginTop: 4 }}>
                     Add your first account to get started
                   </Text>
                 </View>
               ) : (
-                <View style={{
-                  backgroundColor: 'white',
-                  borderRadius: 16,
-                  padding: 16,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.05,
-                  shadowRadius: 2,
-                  elevation: 1,
-                }}>
+                <View
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: 16,
+                    padding: 16,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 2,
+                    elevation: 1,
+                  }}>
                   {accounts.map((account, index) => {
-                    const accountIcon = getAccountTypeIcon(account.account_type);
+                    const accountIcon = getAccountTypeIcon(
+                      account.account_type,
+                    );
                     return (
                       <View key={account.id}>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                           style={{
                             flexDirection: 'row',
                             alignItems: 'center',
                             paddingVertical: 12,
                           }}
-                          onPress={() => navigation.navigate('AccountDetails', { account })}
-                        >
-                          <View style={{
-                            width: 40,
-                            height: 40,
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            marginRight: 12,
-                          }}>
-                            <FontAwesome5 
-                              name={accountIcon.icon} 
-                              size={32} 
-                              color={accountIcon.color} 
+                          onPress={() =>
+                            navigation.navigate('AccountDetails', { account })
+                          }>
+                          <View
+                            style={{
+                              width: 40,
+                              height: 40,
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              marginRight: 12,
+                            }}>
+                            <FontAwesome5
+                              name={accountIcon.icon}
+                              size={32}
+                              color={accountIcon.color}
                             />
                           </View>
                           <View style={{ flex: 1 }}>
-                            <Text style={{
-                              fontSize: 16,
-                              fontWeight: '500',
-                              color: '#000',
-                              marginBottom: 2,
-                            }}>
+                            <Text
+                              style={{
+                                fontSize: 16,
+                                fontWeight: '500',
+                                color: '#000',
+                                marginBottom: 2,
+                              }}>
                               {account.account_name}
                             </Text>
-                            <Text style={{
-                              fontSize: 12,
-                              color: accountIcon.color,
-                              fontWeight: '500',
-                            }}>
+                            <Text
+                              style={{
+                                fontSize: 12,
+                                color: accountIcon.color,
+                                fontWeight: '500',
+                              }}>
                               {accountIcon.name}
                             </Text>
                           </View>
-                          <Text style={{
-                            fontSize: 16,
-                            fontWeight: '600',
-                            color: '#000',
-                          }}>
-                            {account.balance ? formatCurrencyAmount(parseFloat(account.balance), account.currency) : formatCurrencyAmount(0, account.currency)}
+                          <Text
+                            style={{
+                              fontSize: 16,
+                              fontWeight: '600',
+                              color: '#000',
+                            }}>
+                            {account.balance
+                              ? formatCurrencyAmount(
+                                  parseFloat(account.balance),
+                                  account.currency,
+                                )
+                              : formatCurrencyAmount(0, account.currency)}
                           </Text>
                         </TouchableOpacity>
                         {index < accounts.length - 1 && (
-                          <View style={{
-                            height: 1,
-                            backgroundColor: '#E5E5EA',
-                            marginLeft: 0, // Start from the same position as the icon
-                            marginRight: 0, // End at the same position as the balance text
-                          }} />
+                          <View
+                            style={{
+                              height: 1,
+                              backgroundColor: '#E5E5EA',
+                              marginLeft: 0, // Start from the same position as the icon
+                              marginRight: 0, // End at the same position as the balance text
+                            }}
+                          />
                         )}
                       </View>
                     );
@@ -955,289 +1083,357 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
             </View>
 
             {/* Recent Transactions Section */}
-            <View style={{
-              marginBottom: 24,
-            }}>
-              <View style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 16,
+            <View
+              style={{
+                marginBottom: 24,
               }}>
-              <Text style={{
-                fontSize: 20,
-                fontWeight: 'bold',
-                color: '#000',
-              }}>
-                Recent Transactions
-              </Text>
-              <TouchableOpacity 
+              <View
                 style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 8,
-                  backgroundColor: 'transparent',
-                  borderWidth: 1,
-                  borderColor: '#E5E5EA',
-                }}
-                onPress={() => navigation.navigate('AllTransactions')}>
-                <Text style={{
-                  fontSize: 14,
-                  fontWeight: '500',
-                  color: 'rgba(0, 0, 0, 0.7)',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 16,
                 }}>
-                  View All
+                <Text
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 'bold',
+                    color: '#000',
+                  }}>
+                  Recent Transactions
                 </Text>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 8,
+                    backgroundColor: 'transparent',
+                    borderWidth: 1,
+                    borderColor: '#E5E5EA',
+                  }}
+                  onPress={() => navigation.navigate('AllTransactions')}>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: '500',
+                      color: 'rgba(0, 0, 0, 0.7)',
+                    }}>
+                    View All
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
-            {transactionsLoading ? (
-              <View style={{
-                backgroundColor: 'white',
-                borderRadius: 16,
-                padding: 20,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.05,
-                shadowRadius: 2,
-                elevation: 1,
-              }}>
-                <Text style={{ fontSize: 16, color: '#666' }}>
-                  Loading transactions...
-                </Text>
-              </View>
-            ) : transactions.length === 0 ? (
-              <View style={{
-                backgroundColor: 'white',
-                borderRadius: 16,
-                padding: 20,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.05,
-                shadowRadius: 2,
-                elevation: 1,
-              }}>
-                <Text style={{ fontSize: 16, color: '#666' }}>No transactions yet</Text>
-                <Text style={{ fontSize: 14, color: '#999', marginTop: 4 }}>
-                  Transactions will appear here after creation
-                </Text>
-              </View>
-            ) : (
-              <View style={{
-                backgroundColor: 'white',
-                borderRadius: 16,
-                padding: 16,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.05,
-                shadowRadius: 2,
-                elevation: 1,
-              }}>
-                {transactions.slice(0, 10).map((transaction, index) => {
-                  const isTransfer = transaction.transaction_type === 'transfer';
-                  
-                  // Get icon and color based on transaction type
-                  const iconData = isTransfer 
-                    ? { icon: 'exchange-alt', color: '#6B7280' }
-                    : getCategoryIcon(
-                        transaction.category?.category_name || '',
-                        transaction.category?.category_type || '',
-                      );
-                  
-                  const accountIcon = getAccountTypeIcon(transaction.account?.account_type || '');
-                  
-                  // Функция для извлечения информации о конвертации
-                  const getTransferDisplayInfo = (transaction) => {
-                    if (transaction.transaction_type !== 'transfer') return null;
-                    
-                    if (transaction.description) {
-                      const convertMatch = transaction.description.match(/\[Converted: (.+) ([A-Z]{3}) = (.+) ([A-Z]{3})\]/);
-                      if (convertMatch) {
-                        return {
-                          fromAmount: parseFloat(convertMatch[1]),
-                          fromCurrency: convertMatch[2],
-                          toAmount: parseFloat(convertMatch[3]),
-                          toCurrency: convertMatch[4]
-                        };
+              {transactionsLoading ? (
+                <View
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: 16,
+                    padding: 20,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 2,
+                    elevation: 1,
+                  }}>
+                  <Text style={{ fontSize: 16, color: '#666' }}>
+                    Loading transactions...
+                  </Text>
+                </View>
+              ) : transactions.length === 0 ? (
+                <View
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: 16,
+                    padding: 20,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 2,
+                    elevation: 1,
+                  }}>
+                  <Text style={{ fontSize: 16, color: '#666' }}>
+                    No transactions yet
+                  </Text>
+                  <Text style={{ fontSize: 14, color: '#999', marginTop: 4 }}>
+                    Transactions will appear here after creation
+                  </Text>
+                </View>
+              ) : (
+                <View
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: 16,
+                    padding: 16,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 2,
+                    elevation: 1,
+                  }}>
+                  {transactions.slice(0, 10).map((transaction, index) => {
+                    const isTransfer =
+                      transaction.transaction_type === 'transfer';
+
+                    // Get icon and color based on transaction type
+                    const iconData = isTransfer
+                      ? { icon: 'exchange-alt', color: '#6B7280' }
+                      : getCategoryIcon(
+                          transaction.category?.category_name || '',
+                          transaction.category?.category_type || '',
+                        );
+
+                    const accountIcon = getAccountTypeIcon(
+                      transaction.account?.account_type || '',
+                    );
+
+                    // Функция для извлечения информации о конвертации
+                    const getTransferDisplayInfo = (transaction: any) => {
+                      if (transaction.transaction_type !== 'transfer')
+                        return null;
+
+                      if (transaction.description) {
+                        const convertMatch = transaction.description.match(
+                          /\[Converted: (.+) ([A-Z]{3}) = (.+) ([A-Z]{3})\]/,
+                        );
+                        if (convertMatch) {
+                          return {
+                            fromAmount: parseFloat(convertMatch[1]),
+                            fromCurrency: convertMatch[2],
+                            toAmount: parseFloat(convertMatch[3]),
+                            toCurrency: convertMatch[4],
+                          };
+                        }
                       }
-                    }
-                    return null;
-                  };
-                  
-                  const transferInfo = getTransferDisplayInfo(transaction);
-                  
-                  // Check if account is deactivated
-                  const isAccountDeactivated = !transaction.account?.is_active;
-                  const opacity = isAccountDeactivated ? 0.5 : 1.0;
-                  
-                  return (
-                    <View key={transaction.id} style={{ opacity }}>
-                      <TouchableOpacity 
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          paddingVertical: 12,
-                        }}
-                        onPress={() => handleTransactionPress(transaction)}
-                        activeOpacity={0.7}>
-                        {/* Category/Transfer Icon */}
-                        <View style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 20,
-                          backgroundColor: `${iconData.color}15`,
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          marginRight: 12,
-                        }}>
-                          <FontAwesome5 
-                            name={iconData.icon} 
-                            size={18} 
-                            color={iconData.color} 
-                          />
-                        </View>
-                        
-                        {/* Transaction Details */}
-                        <View style={{ flex: 1 }}>
-                          <Text style={{
-                            fontSize: 16,
-                            fontWeight: '500',
-                            color: '#000',
-                            marginBottom: 2,
-                          }}>
-                            {isTransfer ? 'Transfer' : (transaction.category?.category_name || 'Category')}
-                          </Text>
-                          <View style={{
-                            flexDirection: 'column',
-                            alignItems: 'flex-start',
-                          }}>
-                            {isTransfer ? (
-                              <View style={{
+                      return null;
+                    };
+
+                    const transferInfo = getTransferDisplayInfo(transaction);
+
+                    // Check if account is deactivated
+                    const isAccountDeactivated =
+                      !transaction.account?.is_active;
+                    const opacity = isAccountDeactivated ? 0.5 : 1.0;
+
+                    return (
+                      <View key={transaction.id} style={{ opacity }}>
+                        <TouchableOpacity
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            paddingVertical: 12,
+                          }}
+                          onPress={() => handleTransactionPress(transaction)}
+                          activeOpacity={0.7}>
+                          {/* Category/Transfer Icon */}
+                          <View
+                            style={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: 20,
+                              backgroundColor: `${iconData.color}15`,
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              marginRight: 12,
+                            }}>
+                            <FontAwesome5
+                              name={iconData.icon}
+                              size={18}
+                              color={iconData.color}
+                            />
+                          </View>
+
+                          {/* Transaction Details */}
+                          <View style={{ flex: 1 }}>
+                            <Text
+                              style={{
+                                fontSize: 16,
+                                fontWeight: '500',
+                                color: '#000',
+                                marginBottom: 2,
+                              }}>
+                              {isTransfer
+                                ? 'Transfer'
+                                : transaction.category?.category_name ||
+                                  'Category'}
+                            </Text>
+                            <View
+                              style={{
                                 flexDirection: 'column',
                                 alignItems: 'flex-start',
                               }}>
-                                {/* First Row - From Account */}
-                                <View style={{
-                                  paddingHorizontal: 8,
-                                  paddingVertical: 3,
-                                  borderRadius: 12,
-                                  backgroundColor: `${getAccountTypeIcon(transaction.account?.account_type || '').color}20`,
-                                  marginBottom: 4,
-                                }}>
-                                  <Text style={{
-                                    fontSize: 11,
-                                    color: getAccountTypeIcon(transaction.account?.account_type || '').color,
-                                    fontWeight: '600',
+                              {isTransfer ? (
+                                <View
+                                  style={{
+                                    flexDirection: 'column',
+                                    alignItems: 'flex-start',
                                   }}>
-                                    {transaction.account?.account_name || 'Unknown'}
-                                  </Text>
+                                  {/* First Row - From Account */}
+                                  <View
+                                    style={{
+                                      paddingHorizontal: 8,
+                                      paddingVertical: 3,
+                                      borderRadius: 12,
+                                      backgroundColor: `${
+                                        getAccountTypeIcon(
+                                          transaction.account?.account_type ||
+                                            '',
+                                        ).color
+                                      }20`,
+                                      marginBottom: 4,
+                                    }}>
+                                    <Text
+                                      style={{
+                                        fontSize: 11,
+                                        color: getAccountTypeIcon(
+                                          transaction.account?.account_type ||
+                                            '',
+                                        ).color,
+                                        fontWeight: '600',
+                                      }}>
+                                      {transaction.account?.account_name ||
+                                        'Unknown'}
+                                    </Text>
+                                  </View>
+
+                                  {/* Second Row - Arrow + To Account */}
+                                  <View
+                                    style={{
+                                      flexDirection: 'row',
+                                      alignItems: 'center',
+                                    }}>
+                                    <FontAwesome5
+                                      name="arrow-right"
+                                      size={12}
+                                      color="#6B7280"
+                                      style={{ marginRight: 6 }}
+                                    />
+
+                                    <View
+                                      style={{
+                                        paddingHorizontal: 8,
+                                        paddingVertical: 3,
+                                        borderRadius: 12,
+                                        backgroundColor: `${
+                                          getAccountTypeIcon(
+                                            transaction.targetAccount
+                                              ?.account_type || '',
+                                          ).color
+                                        }20`,
+                                      }}>
+                                      <Text
+                                        style={{
+                                          fontSize: 11,
+                                          color: getAccountTypeIcon(
+                                            transaction.targetAccount
+                                              ?.account_type || '',
+                                          ).color,
+                                          fontWeight: '600',
+                                        }}>
+                                        {transaction.targetAccount
+                                          ?.account_name || 'Unknown'}
+                                      </Text>
+                                    </View>
+                                  </View>
                                 </View>
-                                
-                                {/* Second Row - Arrow + To Account */}
-                                <View style={{
-                                  flexDirection: 'row',
-                                  alignItems: 'center',
-                                }}>
-                                  <FontAwesome5 
-                                    name="arrow-right" 
-                                    size={12} 
-                                    color="#6B7280" 
-                                    style={{ marginRight: 6 }}
-                                  />
-                                  
-                                  <View style={{
+                              ) : (
+                                <View
+                                  style={{
                                     paddingHorizontal: 8,
                                     paddingVertical: 3,
                                     borderRadius: 12,
-                                    backgroundColor: `${getAccountTypeIcon(transaction.transfer_to_account?.account_type || '').color}20`,
+                                    backgroundColor: `${accountIcon.color}20`,
+                                    maxWidth: 120,
                                   }}>
-                                    <Text style={{
+                                  <Text
+                                    style={{
                                       fontSize: 11,
-                                      color: getAccountTypeIcon(transaction.transfer_to_account?.account_type || '').color,
+                                      color: accountIcon.color,
+                                      fontWeight: '600',
+                                    }}
+                                    numberOfLines={1}
+                                    ellipsizeMode="tail">
+                                    {transaction.account?.account_name ||
+                                      'Account'}
+                                  </Text>
+                                </View>
+                              )}
+                              {isAccountDeactivated && (
+                                <View
+                                  style={{
+                                    paddingHorizontal: 6,
+                                    paddingVertical: 2,
+                                    borderRadius: 8,
+                                    backgroundColor: '#FBBF24',
+                                    marginLeft: 6,
+                                  }}>
+                                  <Text
+                                    style={{
+                                      fontSize: 9,
+                                      color: '#FFFFFF',
                                       fontWeight: '600',
                                     }}>
-                                      {transaction.transfer_to_account?.account_name || 'Unknown'}
-                                    </Text>
-                                  </View>
+                                    DEACTIVATED
+                                  </Text>
                                 </View>
-                              </View>
-                            ) : (
-                              <View style={{
-                                paddingHorizontal: 8,
-                                paddingVertical: 3,
-                                borderRadius: 12,
-                                backgroundColor: `${accountIcon.color}20`,
-                                maxWidth: 120,
-                              }}>
-                                <Text style={{
-                                  fontSize: 11,
-                                  color: accountIcon.color,
-                                  fontWeight: '600',
-                                }} 
-                                numberOfLines={1}
-                                ellipsizeMode="tail">
-                                  {transaction.account?.account_name || 'Account'}
-                                </Text>
-                              </View>
-                            )}
-                            {isAccountDeactivated && (
-                              <View style={{
-                                paddingHorizontal: 6,
-                                paddingVertical: 2,
-                                borderRadius: 8,
-                                backgroundColor: '#FBBF24',
-                                marginLeft: 6,
-                              }}>
-                                <Text style={{
-                                  fontSize: 9,
-                                  color: '#FFFFFF',
-                                  fontWeight: '600',
-                                }}>
-                                  DEACTIVATED
-                                </Text>
-                              </View>
-                            )}
+                              )}
+                            </View>
                           </View>
-                        </View>
-                        
-                        {/* Amount and Date */}
-                        <View style={{ alignItems: 'flex-end' }}>
-                          <Text style={{
-                            fontSize: 16,
-                            fontWeight: '600',
-                            color: isTransfer ? '#F59E0B' : (transaction.transaction_type === 'income' ? '#10B981' : '#EF4444'),
-                            marginBottom: 2,
-                          }}>
-                            {isTransfer ? (
-                              transferInfo ? 
-                                `${transferInfo.toAmount} ${transferInfo.toCurrency}` 
-                                : `${transaction.amount} ${transaction.transfer_to_account?.currency?.symbol || '$'}`
-                            ) : (
-                              `${transaction.transaction_type === 'income' ? '+' : '-'}${transaction.amount} ${transaction.account.currency?.symbol || '$'}`
-                            )}
-                          </Text>
-                          <Text style={{
-                            fontSize: 14,
-                            color: '#666',
-                          }}>
-                            {formatTransactionDate(transaction.transaction_date)}
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                      
-                      {index < transactions.slice(0, 10).length - 1 && (
-                        <View style={{
-                          height: 1,
-                          backgroundColor: '#E5E5EA',
-                          marginLeft: 0,
-                          marginRight: 0,
-                        }} />
-                      )}
-                    </View>
-                  );
-                })}
-              </View>
-            )}
+
+                          {/* Amount and Date */}
+                          <View style={{ alignItems: 'flex-end' }}>
+                            <Text
+                              style={{
+                                fontSize: 16,
+                                fontWeight: '600',
+                                color: isTransfer
+                                  ? '#F59E0B'
+                                  : transaction.transaction_type === 'income'
+                                  ? '#10B981'
+                                  : '#EF4444',
+                                marginBottom: 2,
+                              }}>
+                              {isTransfer
+                                ? transferInfo
+                                  ? `${transferInfo.toAmount} ${transferInfo.toCurrency}`
+                                  : `${transaction.amount} ${
+                                      transaction.targetAccount?.currency
+                                        ?.symbol || '$'
+                                    }`
+                                : `${
+                                    transaction.transaction_type === 'income'
+                                      ? '+'
+                                      : '-'
+                                  }${transaction.amount} ${
+                                    transaction.account.currency?.symbol || '$'
+                                  }`}
+                            </Text>
+                            <Text
+                              style={{
+                                fontSize: 14,
+                                color: '#666',
+                              }}>
+                              {formatTransactionDate(
+                                transaction.transaction_date,
+                              )}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+
+                        {index < transactions.slice(0, 10).length - 1 && (
+                          <View
+                            style={{
+                              height: 1,
+                              backgroundColor: '#E5E5EA',
+                              marginLeft: 0,
+                              marginRight: 0,
+                            }}
+                          />
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -1271,7 +1467,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
           )}
         </View>
       </ScrollView>
-      
+
       <AddTransactionModal
         visible={showAddTransactionModal}
         onClose={() => setShowAddTransactionModal(false)}
@@ -1281,7 +1477,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
           loadAccounts();
         }}
       />
-      
+
       <EditTransactionModal
         visible={showEditTransactionModal}
         transaction={selectedTransaction}
@@ -1295,7 +1491,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
           loadAccounts();
         }}
       />
-      
+
       <AccountsManagementModal
         visible={showAccountsManagementModal}
         onClose={() => setShowAccountsManagementModal(false)}
@@ -1305,7 +1501,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
         }}
         navigation={navigation}
       />
-      
+
       <AddAccountModal
         visible={showAddAccountModal}
         onClose={() => setShowAddAccountModal(false)}

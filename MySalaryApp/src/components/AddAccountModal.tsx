@@ -123,12 +123,15 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
 
   const loadCurrencies = async () => {
     try {
-      const response = await apiService.get<{ currencies: any[] }>('/currencies');
+      const response = await apiService.get<{ currencies: any[] }>(
+        '/currencies',
+      );
       const currenciesData = response.currencies || [];
       setCurrencies(currenciesData);
       // Выбираем первую валюту по умолчанию (RUB)
       if (currenciesData.length > 0) {
-        const defaultCurrency = currenciesData.find(c => c.code === 'RUB') || currenciesData[0];
+        const defaultCurrency =
+          currenciesData.find(c => c.code === 'RUB') || currenciesData[0];
         setSelectedCurrency(defaultCurrency);
       }
     } catch (error) {
@@ -157,7 +160,7 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
 
     try {
       setLoading(true);
-      
+
       const accountData = {
         account_type: accountType,
         account_name: accountName.trim(),
@@ -165,7 +168,7 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
         balance: parseFloat(balance) || 0,
         description: description.trim(),
       };
-      
+
       await apiService.post('/accounts', accountData);
 
       Alert.alert('Успех', 'Счет успешно создан');
@@ -186,7 +189,8 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
     setBalance('0');
     setDescription('');
     // Сбрасываем на рубли или первую валюту
-    const defaultCurrency = currencies.find(c => c.code === 'RUB') || currencies[0] || null;
+    const defaultCurrency =
+      currencies.find(c => c.code === 'RUB') || currencies[0] || null;
     setSelectedCurrency(defaultCurrency);
   };
 
@@ -195,12 +199,10 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <KeyboardAvoidingView 
+      onRequestClose={onClose}>
+      <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView style={styles.scrollView}>
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -215,10 +217,10 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
               <Text style={styles.label}>Тип счета</Text>
               <TouchableOpacity
                 style={styles.input}
-                onPress={() => setShowTypeModal(true)}
-              >
+                onPress={() => setShowTypeModal(true)}>
                 <Text style={{ color: '#000' }}>
-                  {accountTypes.find(t => t.value === accountType)?.label || 'Выберите тип'}
+                  {accountTypes.find(t => t.value === accountType)?.label ||
+                    'Выберите тип'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -238,10 +240,11 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
               <Text style={styles.label}>Валюта</Text>
               <TouchableOpacity
                 style={styles.input}
-                onPress={() => setShowCurrencyModal(true)}
-              >
+                onPress={() => setShowCurrencyModal(true)}>
                 <Text style={{ color: '#000' }}>
-                  {selectedCurrency ? `${selectedCurrency.code} - ${selectedCurrency.name}` : 'Выберите валюту'}
+                  {selectedCurrency
+                    ? `${selectedCurrency.code} - ${selectedCurrency.name}`
+                    : 'Выберите валюту'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -287,31 +290,54 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
         visible={showTypeModal}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setShowTypeModal(false)}
-      >
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <View style={{ backgroundColor: 'white', borderRadius: 10, padding: 20, width: '80%' }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 15 }}>Выберите тип счета</Text>
+        onRequestClose={() => setShowTypeModal(false)}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+          }}>
+          <View
+            style={{
+              backgroundColor: 'white',
+              borderRadius: 10,
+              padding: 20,
+              width: '80%',
+            }}>
+            <Text
+              style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 15 }}>
+              Выберите тип счета
+            </Text>
             <FlatList
               data={accountTypes}
-              keyExtractor={(item) => item.value}
+              keyExtractor={item => item.value}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={{ padding: 15, borderBottomWidth: 1, borderBottomColor: '#eee' }}
+                  style={{
+                    padding: 15,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#eee',
+                  }}
                   onPress={() => {
                     setAccountType(item.value);
                     setShowTypeModal(false);
-                  }}
-                >
+                  }}>
                   <Text style={{ fontSize: 16 }}>{item.label}</Text>
                 </TouchableOpacity>
               )}
             />
             <TouchableOpacity
-              style={{ marginTop: 15, padding: 10, backgroundColor: '#007AFF', borderRadius: 5 }}
-              onPress={() => setShowTypeModal(false)}
-            >
-              <Text style={{ color: 'white', textAlign: 'center' }}>Отмена</Text>
+              style={{
+                marginTop: 15,
+                padding: 10,
+                backgroundColor: '#007AFF',
+                borderRadius: 5,
+              }}
+              onPress={() => setShowTypeModal(false)}>
+              <Text style={{ color: 'white', textAlign: 'center' }}>
+                Отмена
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -322,35 +348,60 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
         visible={showCurrencyModal}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setShowCurrencyModal(false)}
-      >
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <View style={{ backgroundColor: 'white', borderRadius: 10, padding: 20, width: '80%' }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 15 }}>Выберите валюту</Text>
+        onRequestClose={() => setShowCurrencyModal(false)}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+          }}>
+          <View
+            style={{
+              backgroundColor: 'white',
+              borderRadius: 10,
+              padding: 20,
+              width: '80%',
+            }}>
+            <Text
+              style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 15 }}>
+              Выберите валюту
+            </Text>
             <FlatList
               data={currencies}
-              keyExtractor={(item) => item.id.toString()}
+              keyExtractor={item => item.id.toString()}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={{ padding: 15, borderBottomWidth: 1, borderBottomColor: '#eee' }}
+                  style={{
+                    padding: 15,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#eee',
+                  }}
                   onPress={() => {
                     setSelectedCurrency(item);
                     setShowCurrencyModal(false);
-                  }}
-                >
-                  <Text style={{ fontSize: 16 }}>{item.code} - {item.name}</Text>
+                  }}>
+                  <Text style={{ fontSize: 16 }}>
+                    {item.code} - {item.name}
+                  </Text>
                 </TouchableOpacity>
               )}
             />
             <TouchableOpacity
-              style={{ marginTop: 15, padding: 10, backgroundColor: '#007AFF', borderRadius: 5 }}
-              onPress={() => setShowCurrencyModal(false)}
-            >
-              <Text style={{ color: 'white', textAlign: 'center' }}>Отмена</Text>
+              style={{
+                marginTop: 15,
+                padding: 10,
+                backgroundColor: '#007AFF',
+                borderRadius: 5,
+              }}
+              onPress={() => setShowCurrencyModal(false)}>
+              <Text style={{ color: 'white', textAlign: 'center' }}>
+                Отмена
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
     </Modal>
   );
-}; 
+};

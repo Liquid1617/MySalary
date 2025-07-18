@@ -44,21 +44,27 @@ interface TransactionData {
   description: string;
 }
 
-export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({
+  navigation,
+}) => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(
+    null,
+  );
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [transactionType, setTransactionType] = useState<'income' | 'expense'>('income');
+  const [transactionType, setTransactionType] = useState<'income' | 'expense'>(
+    'income',
+  );
   const [loading, setLoading] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [balanceError, setBalanceError] = useState<string | null>(null);
   const [checkingBalance, setCheckingBalance] = useState(false);
-  
+
   // Debounce для проверки баланса
   const debouncedAmount = useDebounce(amount, 800);
 
@@ -88,7 +94,9 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
       console.log('Categories response:', categoriesResponse);
 
       setAccounts(Array.isArray(accountsResponse) ? accountsResponse : []);
-      setCategories(Array.isArray(categoriesResponse) ? categoriesResponse : []);
+      setCategories(
+        Array.isArray(categoriesResponse) ? categoriesResponse : [],
+      );
     } catch (error) {
       console.error('Ошибка загрузки данных:', error);
       Alert.alert('Error', 'Failed to load data');
@@ -113,10 +121,12 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
       setCheckingBalance(true);
       const response = await apiService.getAccountBalance(selectedAccount.id);
       const currentBalance = parseFloat(response.balance.toString());
-      
+
       if (numericAmount > currentBalance) {
         setBalanceError(
-          `Insufficient funds. Available: ${currentBalance.toFixed(2)} ${response.currency.symbol}`
+          `Insufficient funds. Available: ${currentBalance.toFixed(2)} ${
+            response.currency.symbol
+          }`,
         );
       } else {
         setBalanceError(null);
@@ -152,7 +162,7 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
       };
 
       await apiService.post('/transactions', transactionData);
-      
+
       Alert.alert('Success', 'Transaction added successfully', [
         {
           text: 'OK',
@@ -178,13 +188,20 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
     return types[type] || type;
   };
 
-  const filteredCategories = categories ? categories.filter(category => category.type === transactionType) : [];
+  const filteredCategories = categories
+    ? categories.filter(category => category.type === transactionType)
+    : [];
 
   if (isLoading) {
     return (
-      <SafeAreaView style={[layoutStyles.container, { justifyContent: 'center' }]}>
+      <SafeAreaView
+        style={[layoutStyles.container, { justifyContent: 'center' }]}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={[typographyStyles.body1, { textAlign: 'center', marginTop: 16 }]}>
+        <Text
+          style={[
+            typographyStyles.body1,
+            { textAlign: 'center', marginTop: 16 },
+          ]}>
           Loading...
         </Text>
       </SafeAreaView>
@@ -200,12 +217,20 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
             <Text style={[typographyStyles.h3, { marginBottom: 8 }]}>
               Transaction Type
             </Text>
-            <View style={{ flexDirection: 'row', borderRadius: 8, overflow: 'hidden' }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                borderRadius: 8,
+                overflow: 'hidden',
+              }}>
               <TouchableOpacity
                 style={{
                   flex: 1,
                   paddingVertical: 12,
-                  backgroundColor: transactionType === 'income' ? Colors.primary : Colors.secondary,
+                  backgroundColor:
+                    transactionType === 'income'
+                      ? Colors.primary
+                      : Colors.secondary,
                   alignItems: 'center',
                 }}
                 onPress={() => {
@@ -213,10 +238,12 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
                   setSelectedCategory(null);
                   setBalanceError(null);
                 }}>
-                <Text style={{
-                  color: transactionType === 'income' ? Colors.white : Colors.text,
-                  fontWeight: '600',
-                }}>
+                <Text
+                  style={{
+                    color:
+                      transactionType === 'income' ? Colors.white : Colors.text,
+                    fontWeight: '600',
+                  }}>
                   Income
                 </Text>
               </TouchableOpacity>
@@ -224,7 +251,10 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
                 style={{
                   flex: 1,
                   paddingVertical: 12,
-                  backgroundColor: transactionType === 'expense' ? Colors.primary : Colors.secondary,
+                  backgroundColor:
+                    transactionType === 'expense'
+                      ? Colors.primary
+                      : Colors.secondary,
                   alignItems: 'center',
                 }}
                 onPress={() => {
@@ -232,10 +262,14 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
                   setSelectedCategory(null);
                   setBalanceError(null);
                 }}>
-                <Text style={{
-                  color: transactionType === 'expense' ? Colors.white : Colors.text,
-                  fontWeight: '600',
-                }}>
+                <Text
+                  style={{
+                    color:
+                      transactionType === 'expense'
+                        ? Colors.white
+                        : Colors.text,
+                    fontWeight: '600',
+                  }}>
                   Expense
                 </Text>
               </TouchableOpacity>
@@ -256,14 +290,16 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
                 backgroundColor: Colors.background,
               }}
               onPress={() => setShowAccountModal(true)}>
-              <Text style={{
-                color: selectedAccount ? Colors.text : Colors.textSecondary,
-                fontSize: 16,
-              }}>
-                {selectedAccount 
-                  ? `${selectedAccount.account_name} (${getAccountTypeLabel(selectedAccount.account_type)})`
-                  : 'Select Account'
-                }
+              <Text
+                style={{
+                  color: selectedAccount ? Colors.text : Colors.textSecondary,
+                  fontSize: 16,
+                }}>
+                {selectedAccount
+                  ? `${selectedAccount.account_name} (${getAccountTypeLabel(
+                      selectedAccount.account_type,
+                    )})`
+                  : 'Select Account'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -282,10 +318,11 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
                 backgroundColor: Colors.background,
               }}
               onPress={() => setShowCategoryModal(true)}>
-              <Text style={{
-                color: selectedCategory ? Colors.text : Colors.textSecondary,
-                fontSize: 16,
-              }}>
+              <Text
+                style={{
+                  color: selectedCategory ? Colors.text : Colors.textSecondary,
+                  fontSize: 16,
+                }}>
                 {selectedCategory ? selectedCategory.name : 'Select Category'}
               </Text>
             </TouchableOpacity>
@@ -326,11 +363,12 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
               )}
             </View>
             {balanceError && (
-              <Text style={{
-                color: Colors.error,
-                fontSize: 14,
-                marginTop: 4,
-              }}>
+              <Text
+                style={{
+                  color: Colors.error,
+                  fontSize: 14,
+                  marginTop: 4,
+                }}>
                 {balanceError}
               </Text>
             )}
@@ -363,7 +401,8 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
           {/* Кнопка сохранения */}
           <TouchableOpacity
             style={{
-              backgroundColor: (loading || balanceError) ? Colors.disabled : Colors.primary,
+              backgroundColor:
+                loading || balanceError ? Colors.disabled : Colors.primary,
               paddingVertical: 16,
               borderRadius: 8,
               alignItems: 'center',
@@ -374,11 +413,12 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
             {loading ? (
               <ActivityIndicator size="small" color={Colors.white} />
             ) : (
-              <Text style={{
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: '600',
-              }}>
+              <Text
+                style={{
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: '600',
+                }}>
                 Save
               </Text>
             )}
@@ -393,37 +433,53 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
         presentationStyle="pageSheet">
         <SafeAreaView style={{ flex: 1 }}>
           <View style={{ padding: 16 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 20,
+              }}>
               <Text style={[typographyStyles.h1]}>Select Account</Text>
               <TouchableOpacity onPress={() => setShowAccountModal(false)}>
-                <Text style={{ color: Colors.primary, fontSize: 16 }}>Close</Text>
+                <Text style={{ color: Colors.primary, fontSize: 16 }}>
+                  Close
+                </Text>
               </TouchableOpacity>
             </View>
             <ScrollView>
-              {accounts && accounts.length > 0 ? accounts.map((account) => (
-                <TouchableOpacity
-                  key={account.id}
-                  style={{
-                    padding: 16,
-                    borderBottomWidth: 1,
-                    borderBottomColor: Colors.border,
-                  }}
-                  onPress={() => {
-                    setSelectedAccount(account);
-                    setShowAccountModal(false);
-                    setBalanceError(null);
-                  }}>
-                  <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
-                    {account.account_name}
-                  </Text>
-                  <Text style={{ color: Colors.textSecondary, marginBottom: 4 }}>
-                    {getAccountTypeLabel(account.account_type)}
-                  </Text>
-                  <Text style={{ color: Colors.primary }}>
-                    {account.balance} {account.currency.symbol}
-                  </Text>
-                </TouchableOpacity>
-              )) : (
+              {accounts && accounts.length > 0 ? (
+                accounts.map(account => (
+                  <TouchableOpacity
+                    key={account.id}
+                    style={{
+                      padding: 16,
+                      borderBottomWidth: 1,
+                      borderBottomColor: Colors.border,
+                    }}
+                    onPress={() => {
+                      setSelectedAccount(account);
+                      setShowAccountModal(false);
+                      setBalanceError(null);
+                    }}>
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        fontWeight: '600',
+                        marginBottom: 4,
+                      }}>
+                      {account.account_name}
+                    </Text>
+                    <Text
+                      style={{ color: Colors.textSecondary, marginBottom: 4 }}>
+                      {getAccountTypeLabel(account.account_type)}
+                    </Text>
+                    <Text style={{ color: Colors.primary }}>
+                      {account.balance} {account.currency.symbol}
+                    </Text>
+                  </TouchableOpacity>
+                ))
+              ) : (
                 <View style={{ padding: 16, alignItems: 'center' }}>
                   <Text style={{ color: Colors.textSecondary }}>
                     No accounts available
@@ -442,30 +498,40 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
         presentationStyle="pageSheet">
         <SafeAreaView style={{ flex: 1 }}>
           <View style={{ padding: 16 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 20,
+              }}>
               <Text style={[typographyStyles.h1]}>Select Category</Text>
               <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
-                <Text style={{ color: Colors.primary, fontSize: 16 }}>Close</Text>
+                <Text style={{ color: Colors.primary, fontSize: 16 }}>
+                  Close
+                </Text>
               </TouchableOpacity>
             </View>
             <ScrollView>
-              {filteredCategories.length > 0 ? filteredCategories.map((category) => (
-                <TouchableOpacity
-                  key={category.id}
-                  style={{
-                    padding: 16,
-                    borderBottomWidth: 1,
-                    borderBottomColor: Colors.border,
-                  }}
-                  onPress={() => {
-                    setSelectedCategory(category);
-                    setShowCategoryModal(false);
-                  }}>
-                  <Text style={{ fontSize: 16, fontWeight: '600' }}>
-                    {category.icon} {category.name}
-                  </Text>
-                </TouchableOpacity>
-              )) : (
+              {filteredCategories.length > 0 ? (
+                filteredCategories.map(category => (
+                  <TouchableOpacity
+                    key={category.id}
+                    style={{
+                      padding: 16,
+                      borderBottomWidth: 1,
+                      borderBottomColor: Colors.border,
+                    }}
+                    onPress={() => {
+                      setSelectedCategory(category);
+                      setShowCategoryModal(false);
+                    }}>
+                    <Text style={{ fontSize: 16, fontWeight: '600' }}>
+                      {category.icon} {category.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))
+              ) : (
                 <View style={{ padding: 16, alignItems: 'center' }}>
                   <Text style={{ color: Colors.textSecondary }}>
                     No categories available for selected transaction type
@@ -478,4 +544,4 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({ navigation 
       </Modal>
     </SafeAreaView>
   );
-}; 
+};

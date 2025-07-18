@@ -164,7 +164,7 @@ Error: ${capability.error || 'None'}`;
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
       <BackgroundCurve />
-      
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -172,37 +172,39 @@ Error: ${capability.error || 'None'}`;
           contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
-          
           <View style={{ paddingHorizontal: 32, paddingVertical: 40 }}>
             {/* Logo */}
             <View style={{ alignItems: 'center', marginBottom: 60 }}>
-              <Text style={{
-                fontSize: 24,
-                fontWeight: 'bold',
-                fontFamily: 'Commissioner-Bold',
-                color: '#252234',
-                marginBottom: 32,
-              }}>
+              <Text
+                style={{
+                  fontSize: 24,
+                  fontWeight: 'bold',
+                  fontFamily: 'Commissioner-Bold',
+                  color: '#252234',
+                  marginBottom: 32,
+                }}>
                 tempo
               </Text>
-              
-              <Text style={{
-                fontSize: 28,
-                fontWeight: 'bold',
-                fontFamily: 'Commissioner-Bold',
-                color: '#333333',
-                marginBottom: 8,
-                textAlign: 'center',
-              }}>
+
+              <Text
+                style={{
+                  fontSize: 28,
+                  fontWeight: 'bold',
+                  fontFamily: 'Commissioner-Bold',
+                  color: '#333333',
+                  marginBottom: 8,
+                  textAlign: 'center',
+                }}>
                 Sign in to your account
               </Text>
-              
-              <Text style={{
-                fontSize: 16,
-                fontFamily: 'Commissioner-Regular',
-                color: '#666666',
-                textAlign: 'center',
-              }}>
+
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontFamily: 'Commissioner-Regular',
+                  color: '#666666',
+                  textAlign: 'center',
+                }}>
                 Achieve financial wellness with AI
               </Text>
             </View>
@@ -238,13 +240,14 @@ Error: ${capability.error || 'None'}`;
                   textContentType="emailAddress"
                 />
                 {emailError ? (
-                  <Text style={{
-                    color: '#EF4444',
-                    fontSize: 14,
-                    fontFamily: 'Commissioner-Regular',
-                    marginTop: 8,
-                    marginLeft: 4,
-                  }}>
+                  <Text
+                    style={{
+                      color: '#EF4444',
+                      fontSize: 14,
+                      fontFamily: 'Commissioner-Regular',
+                      marginTop: 8,
+                      marginLeft: 4,
+                    }}>
                     {emailError}
                   </Text>
                 ) : null}
@@ -279,13 +282,14 @@ Error: ${capability.error || 'None'}`;
                   textContentType="password"
                 />
                 {passwordError ? (
-                  <Text style={{
-                    color: '#EF4444',
-                    fontSize: 14,
-                    fontFamily: 'Commissioner-Regular',
-                    marginTop: 8,
-                    marginLeft: 4,
-                  }}>
+                  <Text
+                    style={{
+                      color: '#EF4444',
+                      fontSize: 14,
+                      fontFamily: 'Commissioner-Regular',
+                      marginTop: 8,
+                      marginLeft: 4,
+                    }}>
                     {passwordError}
                   </Text>
                 ) : null}
@@ -303,12 +307,13 @@ Error: ${capability.error || 'None'}`;
                 }}
                 onPress={handleLogin}
                 disabled={loading}>
-                <Text style={{
-                  color: '#FFFFFF',
-                  fontSize: 18,
-                  fontWeight: '600',
-                  fontFamily: 'Commissioner-SemiBold',
-                }}>
+                <Text
+                  style={{
+                    color: '#FFFFFF',
+                    fontSize: 18,
+                    fontWeight: '600',
+                    fontFamily: 'Commissioner-SemiBold',
+                  }}>
                   {loading ? 'Signing In...' : 'Sign In'}
                 </Text>
               </TouchableOpacity>
@@ -317,20 +322,22 @@ Error: ${capability.error || 'None'}`;
             {/* Footer */}
             <View style={{ alignItems: 'center' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={{
-                  fontSize: 16,
-                  color: '#666666',
-                  marginRight: 8,
-                }}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    color: '#666666',
+                    marginRight: 8,
+                  }}>
                   Don't have an account?
                 </Text>
                 <TouchableOpacity onPress={navigateToRegister}>
-                  <Text style={{
-                    fontSize: 16,
-                    color: '#252234',
-                    fontWeight: '600',
-                    fontFamily: 'Commissioner-SemiBold',
-                  }}>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      color: '#252234',
+                      fontWeight: '600',
+                      fontFamily: 'Commissioner-SemiBold',
+                    }}>
                     Sign up
                   </Text>
                 </TouchableOpacity>

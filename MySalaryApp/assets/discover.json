@@ -1,0 +1,413 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-01-18T10:00:00Z",
+  "sections": [
+    {
+      "id": "hero-focus-card",
+      "type": "HeroFocusCard",
+      "key": "HeroFocusCard",
+      "order": 1,
+      "sticky": false,
+      "data": {
+        "id": "daily-focus-spending",
+        "title": "Your Financial Focus Today",
+        "description": "You're spending 23% more on dining out this month. Set a limit to stay on track with your budget goals.",
+        "ctaText": "Set Limit",
+        "ctaAction": "navigation",
+        "ctaTarget": "LimitCreation",
+        "ctaParams": {
+          "categoryId": "dining-out"
+        },
+        "iconName": "bullseye",
+        "categoryId": "dining-out"
+      }
+    },
+    {
+      "id": "quick-actions-row",
+      "type": "QuickActionsRow",
+      "key": "QuickActionsRow",
+      "order": 2,
+      "sticky": false,
+      "data": {
+        "id": "quick-actions",
+        "title": "Quick Actions",
+        "actions": [
+          {
+            "id": "add-expense",
+            "title": "Add Expense",
+            "iconName": "plus",
+            "iconType": "fontawesome",
+            "action": "modal",
+            "target": "ExpenseForm",
+            "usageCount": 42
+          },
+          {
+            "id": "add-income",
+            "title": "Add Income",
+            "iconName": "dollar-sign",
+            "iconType": "fontawesome",
+            "action": "modal",
+            "target": "IncomeForm",
+            "usageCount": 18
+          },
+          {
+            "id": "view-budget",
+            "title": "Budget",
+            "iconName": "pie-chart",
+            "iconType": "fontawesome",
+            "action": "navigation",
+            "target": "BudgetScreen",
+            "usageCount": 35
+          },
+          {
+            "id": "send-money",
+            "title": "Send Money",
+            "iconName": "paper-plane",
+            "iconType": "fontawesome",
+            "action": "navigation",
+            "target": "SendMoneyScreen",
+            "usageCount": 8
+          },
+          {
+            "id": "pay-bills",
+            "title": "Pay Bills",
+            "iconName": "file-invoice",
+            "iconType": "fontawesome",
+            "action": "navigation",
+            "target": "BillsScreen",
+            "usageCount": 28
+          },
+          {
+            "id": "investments",
+            "title": "Invest",
+            "iconName": "chart-line",
+            "iconType": "fontawesome",
+            "action": "navigation",
+            "target": "InvestmentScreen",
+            "usageCount": 15
+          }
+        ]
+      }
+    },
+    {
+      "id": "learn-and-do-carousel",
+      "type": "LearnAndDoCarousel",
+      "key": "LearnAndDoCarousel",
+      "order": 3,
+      "sticky": false,
+      "data": {
+        "id": "learn-and-do",
+        "title": "Learn & Do",
+        "autoplay": true,
+        "autoplayInterval": 4000,
+        "cards": [
+          {
+            "id": "emergency-fund-guide",
+            "title": "Build Your Emergency Fund",
+            "description": "Learn how to create a financial safety net in 6 simple steps",
+            "imageUrl": "https://images.unsplash.com/photo-1579621970795-87facc2f976d?w=280&h=200&fit=crop",
+            "tag": "Popular",
+            "action": "navigation",
+            "target": "DynamicRoute",
+            "params": {
+              "id": "emergency-fund-guide"
+            }
+          },
+          {
+            "id": "debt-payoff-strategy",
+            "title": "Debt Payoff Strategies",
+            "description": "Compare avalanche vs snowball methods and find what works for you",
+            "imageUrl": "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=280&h=200&fit=crop",
+            "tag": "Trending",
+            "action": "navigation",
+            "target": "DynamicRoute",
+            "params": {
+              "id": "debt-payoff-strategy"
+            }
+          },
+          {
+            "id": "investment-basics",
+            "title": "Investment Basics",
+            "description": "Start your investment journey with these fundamental concepts",
+            "imageUrl": "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=280&h=200&fit=crop",
+            "tag": "Beginner",
+            "action": "navigation",
+            "target": "DynamicRoute",
+            "params": {
+              "id": "investment-basics"
+            }
+          },
+          {
+            "id": "budget-mastery",
+            "title": "Budget Like a Pro",
+            "description": "Master the 50/30/20 rule and other budgeting techniques",
+            "imageUrl": "https://images.unsplash.com/photo-1554224154-26032ffc0d07?w=280&h=200&fit=crop",
+            "action": "navigation",
+            "target": "DynamicRoute",
+            "params": {
+              "id": "budget-mastery"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "personal-reco-list",
+      "type": "PersonalRecoList",
+      "key": "PersonalRecoList",
+      "order": 4,
+      "sticky": false,
+      "data": {
+        "id": "personal-recommendations",
+        "title": "Personal Recommendations",
+        "mlReady": false,
+        "placeholderCount": 3,
+        "recommendations": [
+          {
+            "id": "high-yield-savings",
+            "title": "High-Yield Savings Account",
+            "description": "Earn 4.5% APY on your emergency fund",
+            "imageUrl": "https://images.unsplash.com/photo-1579621970795-87facc2f976d?w=60&h=60&fit=crop",
+            "url": "https://example.com/high-yield-savings",
+            "category": "banking",
+            "priority": 1
+          },
+          {
+            "id": "cashback-credit-card",
+            "title": "2% Cashback Credit Card",
+            "description": "No annual fee, 2% back on all purchases",
+            "imageUrl": "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=60&h=60&fit=crop",
+            "url": "https://example.com/cashback-card",
+            "category": "credit",
+            "priority": 2
+          },
+          {
+            "id": "investment-app",
+            "title": "Robo-Advisor Platform",
+            "description": "Automated investing with low fees",
+            "imageUrl": "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=60&h=60&fit=crop",
+            "url": "https://example.com/robo-advisor",
+            "category": "investing",
+            "priority": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "tools-grid",
+      "type": "ToolsGrid",
+      "key": "ToolsGrid",
+      "order": 5,
+      "sticky": false,
+      "data": {
+        "id": "financial-tools",
+        "title": "Financial Tools",
+        "numColumns": 3,
+        "tools": [
+          {
+            "id": "budget-calculator",
+            "title": "Budget Calculator",
+            "iconName": "calculator",
+            "iconType": "fontawesome",
+            "description": "Create a personalized budget plan",
+            "action": "navigation",
+            "target": "ToolRoot",
+            "params": {
+              "toolId": "budget-calculator"
+            }
+          },
+          {
+            "id": "debt-tracker",
+            "title": "Debt Tracker",
+            "iconName": "credit-card",
+            "iconType": "fontawesome",
+            "description": "Track and manage all your debts",
+            "action": "navigation",
+            "target": "ToolRoot",
+            "params": {
+              "toolId": "debt-tracker"
+            }
+          },
+          {
+            "id": "savings-goal",
+            "title": "Savings Goal",
+            "iconName": "bullseye",
+            "iconType": "fontawesome",
+            "description": "Set and track savings goals",
+            "action": "navigation",
+            "target": "ToolRoot",
+            "params": {
+              "toolId": "savings-goal"
+            }
+          },
+          {
+            "id": "net-worth",
+            "title": "Net Worth",
+            "iconName": "chart-line",
+            "iconType": "fontawesome",
+            "description": "Calculate your net worth",
+            "action": "navigation",
+            "target": "ToolRoot",
+            "params": {
+              "toolId": "net-worth"
+            }
+          },
+          {
+            "id": "expense-analyzer",
+            "title": "Expense Analyzer",
+            "iconName": "chart-pie",
+            "iconType": "fontawesome",
+            "description": "Analyze spending patterns",
+            "action": "navigation",
+            "target": "ToolRoot",
+            "params": {
+              "toolId": "expense-analyzer"
+            }
+          },
+          {
+            "id": "investment-calc",
+            "title": "Investment Calculator",
+            "iconName": "coins",
+            "iconType": "fontawesome",
+            "description": "Calculate investment returns",
+            "action": "navigation",
+            "target": "ToolRoot",
+            "params": {
+              "toolId": "investment-calc"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "topic-hubs",
+      "type": "TopicHubs",
+      "key": "TopicHubs",
+      "order": 6,
+      "sticky": false,
+      "data": {
+        "id": "topic-hubs",
+        "title": "Topic Hubs",
+        "hubs": [
+          {
+            "id": "investing-hub",
+            "title": "Investing Hub",
+            "description": "Everything you need to know about investing",
+            "imageUrl": "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&h=160&fit=crop",
+            "action": "navigation",
+            "target": "TopicHub",
+            "params": {
+              "hubId": "investing"
+            }
+          },
+          {
+            "id": "budgeting-hub",
+            "title": "Budgeting Hub",
+            "description": "Master your money management skills",
+            "imageUrl": "https://images.unsplash.com/photo-1554224154-26032ffc0d07?w=400&h=160&fit=crop",
+            "action": "navigation",
+            "target": "TopicHub",
+            "params": {
+              "hubId": "budgeting"
+            }
+          },
+          {
+            "id": "credit-hub",
+            "title": "Credit Hub",
+            "description": "Build and maintain excellent credit",
+            "imageUrl": "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400&h=160&fit=crop",
+            "action": "navigation",
+            "target": "TopicHub",
+            "params": {
+              "hubId": "credit"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "community-stories",
+      "type": "CommunityStories",
+      "key": "CommunityStories",
+      "order": 7,
+      "sticky": false,
+      "data": {
+        "id": "community-stories",
+        "title": "Community Stories",
+        "stories": [
+          {
+            "id": "sarah-debt-free",
+            "title": "Sarah's Debt-Free Journey",
+            "thumbnailUrl": "https://images.unsplash.com/photo-1494790108755-2616b612b169?w=104&h=104&fit=crop&crop=face",
+            "storyUrl": "https://example.com/story/sarah-debt-free",
+            "duration": 45,
+            "author": "Sarah M.",
+            "category": "debt-payoff"
+          },
+          {
+            "id": "mike-first-home",
+            "title": "Mike's First Home Purchase",
+            "thumbnailUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=104&h=104&fit=crop&crop=face",
+            "storyUrl": "https://example.com/story/mike-first-home",
+            "duration": 60,
+            "author": "Mike R.",
+            "category": "real-estate"
+          },
+          {
+            "id": "anna-emergency-fund",
+            "title": "Anna's Emergency Fund Success",
+            "thumbnailUrl": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=104&h=104&fit=crop&crop=face",
+            "storyUrl": "https://example.com/story/anna-emergency-fund",
+            "duration": 30,
+            "author": "Anna K.",
+            "category": "savings"
+          },
+          {
+            "id": "james-investment",
+            "title": "James' Investment Strategy",
+            "thumbnailUrl": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=104&h=104&fit=crop&crop=face",
+            "storyUrl": "https://example.com/story/james-investment",
+            "duration": 90,
+            "author": "James L.",
+            "category": "investing"
+          },
+          {
+            "id": "lisa-budget-mastery",
+            "title": "Lisa's Budget Transformation",
+            "thumbnailUrl": "https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=104&h=104&fit=crop&crop=face",
+            "storyUrl": "https://example.com/story/lisa-budget-mastery",
+            "duration": 75,
+            "author": "Lisa T.",
+            "category": "budgeting"
+          }
+        ]
+      }
+    },
+    {
+      "id": "featured-promo",
+      "type": "FeaturedPromo",
+      "key": "FeaturedPromo",
+      "order": 8,
+      "sticky": false,
+      "data": {
+        "id": "premium-upgrade",
+        "title": "Unlock Premium Features",
+        "description": "Get advanced analytics, unlimited budgets, and personalized advice",
+        "ctaText": "Upgrade Now",
+        "action": "navigation",
+        "target": "PaywallPro",
+        "gradientColors": ["#FFECCB", "#FFD9A9"]
+      }
+    },
+    {
+      "id": "bottom-safe-pad",
+      "type": "BottomSafePad",
+      "key": "BottomSafePad",
+      "order": 9,
+      "sticky": false,
+      "data": {
+        "height": 16
+      }
+    }
+  ]
+}

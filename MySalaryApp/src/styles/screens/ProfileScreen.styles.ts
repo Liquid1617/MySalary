@@ -217,4 +217,4 @@ export const profileScreenStyles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F2F2F7',
   },
-}); 
+});

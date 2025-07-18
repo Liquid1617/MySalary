@@ -20,4 +20,3 @@ export * from './screens/HomeScreen.styles';
 export * from './screens/LoginScreen.styles';
 export * from './screens/ProfileScreen.styles';
 export * from './screens/RegisterScreen.styles';
-export * from './screens/ChatScreen.styles';

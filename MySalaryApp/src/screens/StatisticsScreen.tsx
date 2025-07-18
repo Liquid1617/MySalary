@@ -1,12 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StatusBar, Dimensions, ActivityIndicator, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  StatusBar,
+  Dimensions,
+  ActivityIndicator,
+  TouchableOpacity,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiService } from '../services/api';
 // Импорты стилей можно добавить при необходимости
-import { SkiaChart } from '../components/SkiaChart';
+// import { SkiaChart } from '../components/SkiaChart';
 
 interface ChartData {
   labels: string[];
@@ -58,19 +66,19 @@ export const StatisticsScreen: React.FC = () => {
   const [chartData, setChartData] = useState<ChartData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Net Worth состояние
   const [netWorth, setNetWorth] = useState<NetWorthData | null>(null);
   const [netWorthLoading, setNetWorthLoading] = useState(false);
-  
+
   // Top Categories состояние
   const [topCategories, setTopCategories] = useState<CategorySpending[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
-  
+
   const screenWidth = Dimensions.get('window').width;
   const padding = 16;
   const gap = 12;
-  
+
   // Размеры виджетов - увеличиваем высоту и делаем 2 блока по ширине
   const widgetHeight = 180; // Увеличили высоту
   const squareWidgetWidth = (screenWidth - padding * 2 - gap) / 2; // 2 блока по ширине
@@ -101,17 +109,20 @@ export const StatisticsScreen: React.FC = () => {
       fetchChartData();
       loadNetWorth();
       loadTopCategories();
-    }, [])
+    }, []),
   );
 
   const fetchChartData = async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const token = await AsyncStorage.getItem('token');
-      console.log('Retrieved token:', token ? 'Token exists' : 'No token found');
-      
+      console.log(
+        'Retrieved token:',
+        token ? 'Token exists' : 'No token found',
+      );
+
       if (!token) {
         console.log('No auth token found, using fallback data');
         setChartData(fallbackChartData);
@@ -149,13 +160,20 @@ export const StatisticsScreen: React.FC = () => {
       const dailyData = last7Days.map(date => {
         const dayTransactions = transactions.filter(t => {
           // Используем transaction_date или createdAt от Sequelize
-          const transactionDate = new Date(t.transaction_date || t.createdAt || '');
-          const matches = transactionDate.toDateString() === date.toDateString();
+          const transactionDate = new Date(
+            t.transaction_date || t.createdAt || '',
+          );
+          const matches =
+            transactionDate.toDateString() === date.toDateString();
           return matches;
         });
 
-        console.log(`Date ${date.toDateString()}: found ${dayTransactions.length} transactions`);
-        
+        console.log(
+          `Date ${date.toDateString()}: found ${
+            dayTransactions.length
+          } transactions`,
+        );
+
         const income = dayTransactions
           .filter(t => t.transaction_type === 'income')
           .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
@@ -164,7 +182,9 @@ export const StatisticsScreen: React.FC = () => {
           .filter(t => t.transaction_type === 'expense')
           .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
 
-        console.log(`Date ${date.toDateString()}: income=${income}, expense=${expense}`);
+        console.log(
+          `Date ${date.toDateString()}: income=${income}, expense=${expense}`,
+        );
 
         return {
           label: date.toLocaleDateString('en-US', { weekday: 'short' }),
@@ -188,8 +208,14 @@ export const StatisticsScreen: React.FC = () => {
       };
 
       console.log('Chart data processed:', chartData);
-      console.log('Income data:', dailyData.map(d => d.income));
-      console.log('Expense data:', dailyData.map(d => d.expense));
+      console.log(
+        'Income data:',
+        dailyData.map(d => d.income),
+      );
+      console.log(
+        'Expense data:',
+        dailyData.map(d => d.expense),
+      );
       setChartData(chartData);
     } catch (err) {
       console.error('Error fetching chart data:', err);
@@ -217,22 +243,26 @@ export const StatisticsScreen: React.FC = () => {
     try {
       setCategoriesLoading(true);
       const transactions = await apiService.get<Transaction[]>('/transactions');
-      
+
       if (!transactions || transactions.length === 0) {
         setTopCategories([]);
         return;
       }
 
       // Фильтруем только расходы
-      const expenseTransactions = transactions.filter(t => t.transaction_type === 'expense');
-      
+      const expenseTransactions = transactions.filter(
+        t => t.transaction_type === 'expense',
+      );
+
       // Группируем по категориям
-      const categoryTotals: { [key: number]: { name: string; total: number; icon: string } } = {};
-      
+      const categoryTotals: {
+        [key: number]: { name: string; total: number; icon: string };
+      } = {};
+
       expenseTransactions.forEach(transaction => {
         const categoryId = transaction.category.id;
         const amount = parseFloat(transaction.amount.toString()) || 0;
-        
+
         if (!categoryTotals[categoryId]) {
           categoryTotals[categoryId] = {
             name: transaction.category.category_name,
@@ -240,7 +270,7 @@ export const StatisticsScreen: React.FC = () => {
             icon: getCategoryIcon(transaction.category.category_name),
           };
         }
-        
+
         categoryTotals[categoryId].total += amount;
       });
 
@@ -257,11 +287,12 @@ export const StatisticsScreen: React.FC = () => {
 
       // Вычисляем проценты
       const maxAmount = sortedCategories[0]?.totalAmount || 1;
-      const topCategoriesWithPercentage: CategorySpending[] = sortedCategories.map((category, index) => ({
-        ...category,
-        percentage: (category.totalAmount / maxAmount) * 100,
-        color: getCategoryColor(index),
-      }));
+      const topCategoriesWithPercentage: CategorySpending[] =
+        sortedCategories.map((category, index) => ({
+          ...category,
+          percentage: (category.totalAmount / maxAmount) * 100,
+          color: getCategoryColor(index),
+        }));
 
       setTopCategories(topCategoriesWithPercentage);
     } catch (error) {
@@ -274,17 +305,18 @@ export const StatisticsScreen: React.FC = () => {
 
   const getCategoryIcon = (categoryName: string): string => {
     if (!categoryName) return '💰';
-    
+
     const name = categoryName.toLowerCase();
     let icon = '💰';
-    
+
     if (name.includes('зарплата')) icon = '💰';
     else if (name.includes('продукты') || name.includes('питание')) icon = '🛒';
     else if (name.includes('транспорт')) icon = '🚗';
     else if (name.includes('коммунальные')) icon = '🏠';
     else if (name.includes('развлечения')) icon = '🎬';
     else if (name.includes('одежда')) icon = '👕';
-    else if (name.includes('медицина') || name.includes('здоровье')) icon = '⚕️';
+    else if (name.includes('медицина') || name.includes('здоровье'))
+      icon = '⚕️';
     else if (name.includes('образование')) icon = '📚';
     else if (name.includes('дом') || name.includes('быт')) icon = '🏠';
     else if (name.includes('кредит') || name.includes('займ')) icon = '💳';
@@ -295,7 +327,7 @@ export const StatisticsScreen: React.FC = () => {
     else if (name.includes('красота') || name.includes('уход')) icon = '💄';
     else if (name.includes('подарки')) icon = '🎁';
     else if (name.includes('прочие')) icon = '💸';
-    
+
     return icon;
   };
 
@@ -314,15 +346,15 @@ export const StatisticsScreen: React.FC = () => {
   const formatNetWorthShort = (amount: number): string => {
     const absValue = Math.abs(amount);
     const rounded = Math.round(amount);
-    
+
     // Подсчитываем количество знаков в числе (включая знак минуса если есть)
     const digitCount = Math.abs(rounded).toString().length;
-    
+
     // Если число помещается в 6 знаков, показываем полностью с разделителями
     if (digitCount <= 6) {
       return `$${rounded.toLocaleString('en-US')}`;
     }
-    
+
     // Если больше 6 знаков, используем сокращения
     if (absValue >= 1000000000) {
       const formatted = (amount / 1000000000).toFixed(2);
@@ -340,37 +372,40 @@ export const StatisticsScreen: React.FC = () => {
 
   // Виджет с графиком - БЕЛЫЙ фон
   const ChartWidget = () => (
-    <View style={{
-      width: screenWidth - 32,
-      height: widgetHeight,
-      backgroundColor: '#FFFFFF',
-      borderRadius: 16,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 8,
-      elevation: 4,
-      padding: 16,
-    }}>
-      <Text style={{
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#000000',
-        marginBottom: 16,
-        textAlign: 'left',
+    <View
+      style={{
+        width: screenWidth - 32,
+        height: widgetHeight,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 4,
+        padding: 16,
       }}>
+      <Text
+        style={{
+          fontSize: 16,
+          fontWeight: '600',
+          color: '#000000',
+          marginBottom: 16,
+          textAlign: 'left',
+        }}>
         Expenses by Date
       </Text>
-      
+
       <View style={{ flex: 1 }}>
         {loading ? (
           <ActivityIndicator size="small" color="#FFAF7B" />
         ) : chartData ? (
-          <SkiaChart 
-            data={chartData}
-            width={screenWidth - padding * 2 - 32}
-            height={widgetHeight - 30}
-          />
+          <View
+            style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+            <Text style={{ color: '#666666', fontSize: 14 }}>
+              Chart component temporarily disabled
+            </Text>
+          </View>
         ) : (
           <Text style={{ color: '#666666', fontSize: 12 }}>
             Failed to load chart data
@@ -382,65 +417,71 @@ export const StatisticsScreen: React.FC = () => {
 
   // Виджет Net Worth - левый квадрат
   const NetWorthWidget = () => (
-    <View style={{
-      width: squareWidgetWidth,
-      height: widgetHeight,
-      backgroundColor: '#FFFFFF',
-      borderRadius: 16,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 8,
-      elevation: 4,
-      padding: 16,
-    }}>
-      <Text style={{
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#000000',
-        marginBottom: 16,
-        textAlign: 'left',
+    <View
+      style={{
+        width: squareWidgetWidth,
+        height: widgetHeight,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 4,
+        padding: 16,
       }}>
+      <Text
+        style={{
+          fontSize: 16,
+          fontWeight: '600',
+          color: '#000000',
+          marginBottom: 16,
+          textAlign: 'left',
+        }}>
         Net Worth
       </Text>
-      
+
       {netWorthLoading ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <View
+          style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="small" color="#FFAF7B" />
         </View>
       ) : netWorth ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{
-            fontSize: 28,
-            fontWeight: '700',
-            color: '#000000',
-          }}>
+        <View
+          style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text
+            style={{
+              fontSize: 28,
+              fontWeight: '700',
+              color: '#000000',
+            }}>
             {formatNetWorthShort(netWorth.netWorth)}
           </Text>
         </View>
       ) : (
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={loadNetWorth}
           style={{
             flex: 1,
             justifyContent: 'center',
             alignItems: 'center',
             padding: 8,
-          }}
-        >
-          <Text style={{
-            fontSize: 12,
-            color: '#666666',
-            marginBottom: 4,
-            textAlign: 'center',
           }}>
+          <Text
+            style={{
+              fontSize: 12,
+              color: '#666666',
+              marginBottom: 4,
+              textAlign: 'center',
+            }}>
             Failed to load data
           </Text>
-          <Text style={{
-            fontSize: 10,
-            color: '#FFAF7B',
-            textAlign: 'center',
-          }}>
+          <Text
+            style={{
+              fontSize: 10,
+              color: '#FFAF7B',
+              textAlign: 'center',
+            }}>
             Tap to retry
           </Text>
         </TouchableOpacity>
@@ -450,30 +491,33 @@ export const StatisticsScreen: React.FC = () => {
 
   // Виджет топ-3 категорий - правый квадрат
   const TopCategoriesWidget = () => (
-    <View style={{
-      width: squareWidgetWidth,
-      height: widgetHeight,
-      backgroundColor: '#FFFFFF',
-      borderRadius: 16,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 8,
-      elevation: 4,
-      padding: 16,
-    }}>
-      <Text style={{
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#000000',
-        marginBottom: 16,
-        textAlign: 'left',
+    <View
+      style={{
+        width: squareWidgetWidth,
+        height: widgetHeight,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 4,
+        padding: 16,
       }}>
+      <Text
+        style={{
+          fontSize: 16,
+          fontWeight: '600',
+          color: '#000000',
+          marginBottom: 16,
+          textAlign: 'left',
+        }}>
         Top-3 Categories
       </Text>
-      
+
       {categoriesLoading ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <View
+          style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="small" color="#FFAF7B" />
         </View>
       ) : topCategories.length > 0 ? (
@@ -484,20 +528,24 @@ export const StatisticsScreen: React.FC = () => {
             if (!category) {
               // Пустая полоска для недостающих категорий
               return (
-                <View key={`empty-${index}`} style={{ marginBottom: index < 2 ? 8 : 0 }}>
-                  <View style={{
-                    height: 24,
-                    backgroundColor: '#F0F0F0',
-                    borderRadius: 6,
-                    justifyContent: 'center',
-                    paddingHorizontal: 8,
-                    opacity: 0.3,
-                  }}>
-                    <Text style={{
-                      fontSize: 10,
-                      color: '#999999',
-                      textAlign: 'left',
+                <View
+                  key={`empty-${index}`}
+                  style={{ marginBottom: index < 2 ? 8 : 0 }}>
+                  <View
+                    style={{
+                      height: 24,
+                      backgroundColor: '#F0F0F0',
+                      borderRadius: 6,
+                      justifyContent: 'center',
+                      paddingHorizontal: 8,
+                      opacity: 0.3,
                     }}>
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        color: '#999999',
+                        textAlign: 'left',
+                      }}>
                       📊 No data
                     </Text>
                   </View>
@@ -506,31 +554,36 @@ export const StatisticsScreen: React.FC = () => {
             }
 
             return (
-              <View key={category.id} style={{ marginBottom: index < 2 ? 12 : 0 }}>
+              <View
+                key={category.id}
+                style={{ marginBottom: index < 2 ? 12 : 0 }}>
                 {/* Цветная полоска с иконкой и названием */}
-                <View style={{
-                  height: 28,
-                  backgroundColor: category.color,
-                  borderRadius: 6,
-                  width: `${category.percentage}%`,
-                  position: 'relative',
-                  overflow: 'visible',
-                  flexWrap: 'nowrap',
-                }}>
-                  <Text style={{
-                    fontSize: 12,
-                    color: '#000000',
-                    fontWeight: '600',
-                    textAlign: 'left',
-                    position: 'absolute',
-                    left: 8,
-                    top: 0,
-                    bottom: 0,
-                    lineHeight: 28,
-                    flexShrink: 0,
-                    minWidth: 200,
-                    maxWidth: 200,
-                  }} allowFontScaling={false}>
+                <View
+                  style={{
+                    height: 28,
+                    backgroundColor: category.color,
+                    borderRadius: 6,
+                    width: `${category.percentage}%`,
+                    position: 'relative',
+                    overflow: 'visible',
+                    flexWrap: 'nowrap',
+                  }}>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: '#000000',
+                      fontWeight: '600',
+                      textAlign: 'left',
+                      position: 'absolute',
+                      left: 8,
+                      top: 0,
+                      bottom: 0,
+                      lineHeight: 28,
+                      flexShrink: 0,
+                      minWidth: 200,
+                      maxWidth: 200,
+                    }}
+                    allowFontScaling={false}>
                     {category.icon} {category.name}
                   </Text>
                 </View>
@@ -539,28 +592,29 @@ export const StatisticsScreen: React.FC = () => {
           })}
         </View>
       ) : (
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={loadTopCategories}
           style={{
             flex: 1,
             justifyContent: 'center',
             alignItems: 'center',
             padding: 8,
-          }}
-        >
-          <Text style={{
-            fontSize: 12,
-            color: '#666666',
-            marginBottom: 4,
-            textAlign: 'center',
           }}>
+          <Text
+            style={{
+              fontSize: 12,
+              color: '#666666',
+              marginBottom: 4,
+              textAlign: 'center',
+            }}>
             No expense data
           </Text>
-          <Text style={{
-            fontSize: 10,
-            color: '#FFAF7B',
-            textAlign: 'center',
-          }}>
+          <Text
+            style={{
+              fontSize: 10,
+              color: '#FFAF7B',
+              textAlign: 'center',
+            }}>
             Tap to retry
           </Text>
         </TouchableOpacity>
@@ -570,34 +624,37 @@ export const StatisticsScreen: React.FC = () => {
 
   // Виджет недавних транзакций - широкий внизу
   const RecentTransactionsWidget = () => (
-    <View style={{
-      width: screenWidth - 32,
-      height: widgetHeight,
-      backgroundColor: '#FFFFFF',
-      borderRadius: 16,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 8,
-      elevation: 4,
-      padding: 16,
-    }}>
-      <Text style={{
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#000000',
-        marginBottom: 16,
-        textAlign: 'left',
+    <View
+      style={{
+        width: screenWidth - 32,
+        height: widgetHeight,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 4,
+        padding: 16,
       }}>
+      <Text
+        style={{
+          fontSize: 16,
+          fontWeight: '600',
+          color: '#000000',
+          marginBottom: 16,
+          textAlign: 'left',
+        }}>
         Recent Transactions
       </Text>
-      
+
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{
-          fontSize: 14,
-          color: '#666666',
-          textAlign: 'center',
-        }}>
+        <Text
+          style={{
+            fontSize: 14,
+            color: '#666666',
+            textAlign: 'center',
+          }}>
           Coming Soon
         </Text>
       </View>
@@ -606,17 +663,16 @@ export const StatisticsScreen: React.FC = () => {
 
   return (
     <>
-      <StatusBar 
-        barStyle="light-content" 
-        backgroundColor="transparent" 
-        translucent={true} 
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent={true}
       />
-      
-      <ScrollView 
+
+      <ScrollView
         style={{ flex: 1, backgroundColor: '#F6F7F8' }}
         contentContainerStyle={{ flexGrow: 1 }}
-        showsVerticalScrollIndicator={false}
-      >
+        showsVerticalScrollIndicator={false}>
         {/* Градиентная шапка */}
         <LinearGradient
           colors={['#FFAF7B', '#D76D77']}
@@ -626,38 +682,37 @@ export const StatisticsScreen: React.FC = () => {
             paddingTop: insets.top + 14,
             paddingBottom: 16,
             paddingHorizontal: padding,
-          }}
-        >
+          }}>
           <View style={{ height: 28 }} />
         </LinearGradient>
 
         {/* Контент на сером фоне */}
-        <View style={{
-          backgroundColor: '#F6F7F8',
-          paddingHorizontal: padding,
-          paddingTop: 20,
-          paddingBottom: 20,
-          flex: 1,
-        }}>
-          
+        <View
+          style={{
+            backgroundColor: '#F6F7F8',
+            paddingHorizontal: padding,
+            paddingTop: 20,
+            paddingBottom: 20,
+            flex: 1,
+          }}>
           {/* График виджет */}
           <View style={{ marginBottom: gap }}>
             <ChartWidget />
           </View>
-          
+
           {/* Два квадратных виджета в ряд */}
-          <View style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            marginBottom: gap,
-          }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              marginBottom: gap,
+            }}>
             <NetWorthWidget />
             <TopCategoriesWidget />
           </View>
-          
+
           {/* Широкий виджет */}
           <RecentTransactionsWidget />
-          
         </View>
       </ScrollView>
     </>

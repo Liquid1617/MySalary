@@ -42,6 +42,17 @@ interface CountriesResponse {
   countries: Country[];
 }
 
+export interface Currency {
+  id: number;
+  code: string;
+  name: string;
+  symbol: string;
+}
+
+export interface CurrenciesResponse {
+  currencies: Currency[];
+}
+
 interface CheckResponse {
   message: string;
   available: boolean;
@@ -151,6 +162,10 @@ class ApiService {
     return userString ? JSON.parse(userString) : null;
   }
 
+  async updateStoredUser(user: any): Promise<void> {
+    await AsyncStorage.setItem('user', JSON.stringify(user));
+  }
+
   async checkAuthStatus(): Promise<boolean> {
     try {
       const token = await this.getStoredToken();
@@ -188,6 +203,24 @@ class ApiService {
 
   async delete<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: 'DELETE' });
+  }
+
+  async getCurrencies(): Promise<CurrenciesResponse> {
+    return this.request<CurrenciesResponse>('/currencies');
+  }
+
+  async updateUserProfile(data: {
+    primary_currency_id?: number;
+    name?: string;
+    login?: string;
+    email?: string;
+    current_password?: string;
+    new_password?: string;
+  }): Promise<AuthResponse> {
+    return this.request<AuthResponse>('/auth/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
   }
 
   async getAccountBalance(accountId: number): Promise<{

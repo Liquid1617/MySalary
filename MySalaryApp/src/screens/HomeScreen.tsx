@@ -104,7 +104,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={[homeScreenStyles.container, { backgroundColor: '#F6F7F8' }]}>
+    <SafeAreaView
+      style={[homeScreenStyles.container, { backgroundColor: '#F6F7F8' }]}>
       <View style={[homeScreenStyles.content, { backgroundColor: '#F6F7F8' }]}>
         <View style={homeScreenStyles.header}>
           <Text style={[typographyStyles.h1, homeScreenStyles.welcomeTitle]}>
@@ -118,9 +119,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         <View style={homeScreenStyles.mainContent}>
           <View style={homeScreenStyles.featureCard}>
             <Text style={homeScreenStyles.featureEmoji}>💰</Text>
-            <Text style={homeScreenStyles.featureTitle}>
-              Income Management
-            </Text>
+            <Text style={homeScreenStyles.featureTitle}>Income Management</Text>
             <Text style={homeScreenStyles.featureDescription}>
               Track all your income sources
             </Text>
@@ -128,9 +127,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
           <View style={homeScreenStyles.featureCard}>
             <Text style={homeScreenStyles.featureEmoji}>📊</Text>
-            <Text style={homeScreenStyles.featureTitle}>
-              Expense Analytics
-            </Text>
+            <Text style={homeScreenStyles.featureTitle}>Expense Analytics</Text>
             <Text style={homeScreenStyles.featureDescription}>
               Analyze spending by categories
             </Text>
@@ -138,9 +135,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
           <View style={homeScreenStyles.featureCard}>
             <Text style={homeScreenStyles.featureEmoji}>🎯</Text>
-            <Text style={homeScreenStyles.featureTitle}>
-              Budget Planning
-            </Text>
+            <Text style={homeScreenStyles.featureTitle}>Budget Planning</Text>
             <Text style={homeScreenStyles.featureDescription}>
               Set goals and achieve them
             </Text>
@@ -151,10 +146,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           <CustomButton
             title="Start Managing Finances 💰"
             variant="primary"
-            onPress={() => navigation.navigate('MainTabs', { screen: 'Finances' })}
+            onPress={() =>
+              navigation.navigate('MainTabs', { screen: 'Finances' })
+            }
             style={{ marginBottom: 12 }}
           />
-          
+
           <CustomButton
             title="AI Financial Assistant 🤖"
             variant="secondary"
