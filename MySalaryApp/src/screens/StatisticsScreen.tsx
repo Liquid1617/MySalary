@@ -13,6 +13,11 @@ import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiService } from '../services/api';
+import { useBudgets } from '../hooks/useBudgets';
+import { BudgetResponse } from '../types/budget';
+import { TotalBudgetDonut } from '../components/TotalBudgetDonut';
+import { useUserCurrency } from '../hooks/useUserCurrency';
+import { formatBudgetCurrency as formatBudgetCurrencyUtil } from '../utils/currencyUtils';
 // Импорты стилей можно добавить при необходимости
 // import { SkiaChart } from '../components/SkiaChart';
 
@@ -61,11 +66,27 @@ interface Transaction {
   };
 }
 
-export const StatisticsScreen: React.FC = () => {
+interface StatisticsScreenProps {
+  route?: { params?: { segment?: 'analytics' | 'budgets' } };
+}
+
+export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({ route }) => {
   const insets = useSafeAreaInsets();
   const [chartData, setChartData] = useState<ChartData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Segment selection state
+  const [selectedSegment, setSelectedSegment] = useState<'analytics' | 'budgets'>(
+    route?.params?.segment || 'analytics'
+  );
+
+  // Budget data
+  const { data: budgets, isLoading: budgetsLoading } = useBudgets();
+  const { formatCurrency } = useUserCurrency();
+  
+  // Budget sorting
+  const [sortBy, setSortBy] = useState<'percent' | 'name' | 'spent'>('percent');
 
   // Net Worth состояние
   const [netWorth, setNetWorth] = useState<NetWorthData | null>(null);
@@ -103,6 +124,13 @@ export const StatisticsScreen: React.FC = () => {
     loadNetWorth();
     loadTopCategories();
   }, []);
+
+  // Update segment when route params change
+  useEffect(() => {
+    if (route?.params?.segment) {
+      setSelectedSegment(route.params.segment);
+    }
+  }, [route?.params?.segment]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -346,27 +374,28 @@ export const StatisticsScreen: React.FC = () => {
   const formatNetWorthShort = (amount: number): string => {
     const absValue = Math.abs(amount);
     const rounded = Math.round(amount);
+    const symbol = netWorth?.primaryCurrency?.symbol || '$';
 
     // Подсчитываем количество знаков в числе (включая знак минуса если есть)
     const digitCount = Math.abs(rounded).toString().length;
 
     // Если число помещается в 6 знаков, показываем полностью с разделителями
     if (digitCount <= 6) {
-      return `$${rounded.toLocaleString('en-US')}`;
+      return `${rounded.toLocaleString('en-US')} ${symbol}`;
     }
 
     // Если больше 6 знаков, используем сокращения
     if (absValue >= 1000000000) {
-      const formatted = (amount / 1000000000).toFixed(2);
-      return `$${formatted}B`.replace('.00B', 'B');
+      const formatted = (amount / 1000000000).toFixed(1);
+      return `${formatted}B ${symbol}`.replace('.0B', 'B');
     } else if (absValue >= 1000000) {
-      const formatted = (amount / 1000000).toFixed(2);
-      return `$${formatted}M`.replace('.00M', 'M');
+      const formatted = (amount / 1000000).toFixed(1);
+      return `${formatted}M ${symbol}`.replace('.0M', 'M');
     } else if (absValue >= 1000) {
-      const formatted = (amount / 1000).toFixed(2);
-      return `$${formatted}K`.replace('.00K', 'K');
+      const formatted = (amount / 1000).toFixed(1);
+      return `${formatted}K ${symbol}`.replace('.0K', 'K');
     } else {
-      return `$${rounded.toLocaleString('en-US')}`;
+      return `${rounded.toLocaleString('en-US')} ${symbol}`;
     }
   };
 
@@ -661,6 +690,448 @@ export const StatisticsScreen: React.FC = () => {
     </View>
   );
 
+  // Segmented Control
+  const SegmentedControl = () => (
+    <View
+      style={{
+        flexDirection: 'row',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        padding: 4,
+        marginBottom: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 4,
+      }}>
+      <TouchableOpacity
+        style={{
+          flex: 1,
+          paddingVertical: 12,
+          borderRadius: 8,
+          backgroundColor: selectedSegment === 'analytics' ? '#9DEAFB' : 'transparent',
+        }}
+        onPress={() => setSelectedSegment('analytics')}>
+        <Text
+          style={{
+            textAlign: 'center',
+            fontSize: 16,
+            fontWeight: '600',
+            color: selectedSegment === 'analytics' ? '#000' : '#666',
+          }}>
+          Analytics
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={{
+          flex: 1,
+          paddingVertical: 12,
+          borderRadius: 8,
+          backgroundColor: selectedSegment === 'budgets' ? '#9DEAFB' : 'transparent',
+        }}
+        onPress={() => setSelectedSegment('budgets')}>
+        <Text
+          style={{
+            textAlign: 'center',
+            fontSize: 16,
+            fontWeight: '600',
+            color: selectedSegment === 'budgets' ? '#000' : '#666',
+          }}>
+          Budgets
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // Budget Overview Widget
+  const BudgetOverviewWidget = () => (
+    <View
+      style={{
+        width: screenWidth - 32,
+        height: widgetHeight,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 4,
+        padding: 16,
+      }}>
+      <Text
+        style={{
+          fontSize: 16,
+          fontWeight: '600',
+          color: '#000000',
+          marginBottom: 16,
+          textAlign: 'left',
+        }}>
+        Budget Overview
+      </Text>
+
+      {budgetsLoading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="small" color="#9DEAFB" />
+        </View>
+      ) : budgets && budgets.length > 0 ? (
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {budgets.slice(0, 3).map((budget: BudgetResponse) => {
+            const progress = (budget.spent_amount / budget.limit_amount) * 100;
+            const progressColor = progress > 100 ? '#EF4444' : progress > 80 ? '#F59E0B' : '#10B981';
+            
+            return (
+              <View key={budget.id} style={{ marginBottom: 12 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#000' }}>
+                    {budget.name}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: '#666' }}>
+                    {Math.round(progress)}%
+                  </Text>
+                </View>
+                <View style={{ 
+                  height: 6, 
+                  backgroundColor: '#F3F4F6', 
+                  borderRadius: 3,
+                  overflow: 'hidden'
+                }}>
+                  <View style={{
+                    height: '100%',
+                    width: `${Math.min(progress, 100)}%`,
+                    backgroundColor: progressColor,
+                    borderRadius: 3,
+                  }} />
+                </View>
+                <Text style={{ fontSize: 12, color: '#666', marginTop: 2 }}>
+                  {formatBudgetCurrencyUtil(budget.spent_amount, budget.currency, formatCurrency)} / {formatBudgetCurrencyUtil(budget.limit_amount, budget.currency, formatCurrency)}
+                </Text>
+              </View>
+            );
+          })}
+        </ScrollView>
+      ) : (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ fontSize: 14, color: '#666', textAlign: 'center' }}>
+            No budgets created yet
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+
+  // Budget Performance Widget - левый квадрат
+  const BudgetPerformanceWidget = () => {
+    const totalBudgets = budgets?.length || 0;
+    const overBudgetCount = budgets?.filter(b => (b.spent_amount / b.limit_amount) > 1).length || 0;
+    
+    return (
+      <View
+        style={{
+          width: squareWidgetWidth,
+          height: widgetHeight,
+          backgroundColor: '#FFFFFF',
+          borderRadius: 16,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 8,
+          elevation: 4,
+          padding: 16,
+        }}>
+        <Text
+          style={{
+            fontSize: 16,
+            fontWeight: '600',
+            color: '#000000',
+            marginBottom: 16,
+            textAlign: 'left',
+          }}>
+          Performance
+        </Text>
+
+        {budgetsLoading ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="small" color="#9DEAFB" />
+          </View>
+        ) : totalBudgets > 0 ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={{ fontSize: 28, fontWeight: '700', color: overBudgetCount > 0 ? '#EF4444' : '#10B981' }}>
+              {totalBudgets - overBudgetCount}/{totalBudgets}
+            </Text>
+            <Text style={{ fontSize: 12, color: '#666', textAlign: 'center', marginTop: 4 }}>
+              On Track
+            </Text>
+          </View>
+        ) : (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={{ fontSize: 14, color: '#666', textAlign: 'center' }}>
+              No data
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  // Budget Spending Widget - правый квадрат  
+  const BudgetSpendingWidget = () => {
+    const totalSpent = budgets?.reduce((sum, budget) => sum + budget.spent_amount, 0) || 0;
+    const totalLimit = budgets?.reduce((sum, budget) => sum + budget.limit_amount, 0) || 0;
+    const averageProgress = totalLimit > 0 ? (totalSpent / totalLimit) * 100 : 0;
+    
+    return (
+      <View
+        style={{
+          width: squareWidgetWidth,
+          height: widgetHeight,
+          backgroundColor: '#FFFFFF',
+          borderRadius: 16,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 8,
+          elevation: 4,
+          padding: 16,
+        }}>
+        <Text
+          style={{
+            fontSize: 16,
+            fontWeight: '600',
+            color: '#000000',
+            marginBottom: 16,
+            textAlign: 'left',
+          }}>
+          Total Spent
+        </Text>
+
+        {budgetsLoading ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="small" color="#9DEAFB" />
+          </View>
+        ) : totalLimit > 0 ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={{ fontSize: 28, fontWeight: '700', color: '#000' }}>
+              {Math.round(averageProgress)}%
+            </Text>
+            <Text style={{ fontSize: 12, color: '#666', textAlign: 'center', marginTop: 4 }}>
+              of total budget
+            </Text>
+          </View>
+        ) : (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={{ fontSize: 14, color: '#666', textAlign: 'center' }}>
+              No data
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  // Sort budgets based on selected criteria
+  const getSortedBudgets = () => {
+    if (!budgets) return [];
+    
+    const budgetsWithCalcFields = budgets.map(budget => ({
+      ...budget,
+      percent: (budget.spent || 0) / budget.limit_amount * 100,
+      spent_amount: budget.spent || 0,
+    }));
+
+    switch (sortBy) {
+      case 'percent':
+        return budgetsWithCalcFields.sort((a, b) => b.percent - a.percent);
+      case 'name':
+        return budgetsWithCalcFields.sort((a, b) => a.name.localeCompare(b.name));
+      case 'spent':
+        return budgetsWithCalcFields.sort((a, b) => b.spent_amount - a.spent_amount);
+      default:
+        return budgetsWithCalcFields;
+    }
+  };
+
+  // Budget Progress Bars Component
+  const BudgetProgressBars = () => {
+    const sortedBudgets = getSortedBudgets();
+    
+    return (
+      <View style={{
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 4,
+      }}>
+        <Text style={{
+          fontSize: 18,
+          fontWeight: '600',
+          color: '#000',
+          marginBottom: 16,
+        }}>
+          Budget Progress
+        </Text>
+        
+        {budgetsLoading ? (
+          <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+            <ActivityIndicator size="small" color="#9DEAFB" />
+          </View>
+        ) : sortedBudgets.length > 0 ? (
+          sortedBudgets.map((budget, index) => {
+            const progress = budget.percent;
+            const progressColor = progress > 100 ? '#E74C3C' : progress >= 80 ? '#F1C40F' : '#2ECC71';
+            
+            return (
+              <View key={budget.id} style={{ marginBottom: index < sortedBudgets.length - 1 ? 16 : 0 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: '#000', flex: 1 }}>
+                    {budget.name}
+                  </Text>
+                  <Text style={{ fontSize: 14, color: '#666', marginLeft: 8 }}>
+                    {Math.round(progress)}%
+                  </Text>
+                </View>
+                <View style={{ 
+                  height: 6, 
+                  backgroundColor: '#E5E5EA', 
+                  borderRadius: 3,
+                  overflow: 'hidden',
+                  marginBottom: 4,
+                }}>
+                  <View style={{
+                    height: '100%',
+                    width: `${Math.min(progress, 100)}%`,
+                    backgroundColor: progressColor,
+                    borderRadius: 3,
+                  }} />
+                </View>
+                <Text style={{ fontSize: 12, color: '#666' }}>
+                  {formatBudgetCurrencyUtil(budget.spent_amount, budget.currency, formatCurrency)} / {formatBudgetCurrencyUtil(budget.limit_amount, budget.currency, formatCurrency)}
+                </Text>
+              </View>
+            );
+          })
+        ) : (
+          <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+            <Text style={{ fontSize: 14, color: '#666', textAlign: 'center' }}>
+              No budgets created yet
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  // Budget KPI Cards
+  const BudgetKPICards = () => {
+    const totalSpent = budgets?.reduce((sum, budget) => sum + (budget.spent || 0), 0) || 0;
+    const totalBudgets = budgets?.length || 0;
+    const budgetsOnTrack = budgets?.filter(b => ((b.spent || 0) / b.limit_amount) <= 1).length || 0;
+    
+    return (
+      <View style={{
+        flexDirection: 'row',
+        gap: 12,
+        marginBottom: 24,
+      }}>
+        <View style={{
+          flex: 1,
+          backgroundColor: '#FFFFFF',
+          borderRadius: 12,
+          padding: 12,
+          alignItems: 'center',
+          height: 72,
+          justifyContent: 'center',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 2,
+          elevation: 1,
+        }}>
+          <Text style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>
+            Total Spent
+          </Text>
+          <Text style={{ fontSize: 20, fontWeight: '600', color: '#000' }}>
+            {formatCurrency(totalSpent)}
+          </Text>
+        </View>
+        
+        <View style={{
+          flex: 1,
+          backgroundColor: '#FFFFFF',
+          borderRadius: 12,
+          padding: 12,
+          alignItems: 'center',
+          height: 72,
+          justifyContent: 'center',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 2,
+          elevation: 1,
+        }}>
+          <Text style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>
+            Budgets on Track
+          </Text>
+          <Text style={{ fontSize: 20, fontWeight: '600', color: '#000' }}>
+            {budgetsOnTrack}/{totalBudgets}
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
+  // Budget Sorting Control
+  const BudgetSortingControl = () => {
+    const sortOptions = [
+      { key: 'percent', label: '%' },
+      { key: 'name', label: 'Name' },
+      { key: 'spent', label: 'Spent' },
+    ];
+    
+    return (
+      <View style={{
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        padding: 4,
+        flexDirection: 'row',
+        marginBottom: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
+      }}>
+        {sortOptions.map((option) => (
+          <TouchableOpacity
+            key={option.key}
+            style={{
+              flex: 1,
+              paddingVertical: 8,
+              paddingHorizontal: 12,
+              borderRadius: 8,
+              backgroundColor: sortBy === option.key ? '#9DEAFB' : 'transparent',
+              alignItems: 'center',
+            }}
+            onPress={() => setSortBy(option.key as 'percent' | 'name' | 'spent')}
+          >
+            <Text style={{
+              fontSize: 14,
+              fontWeight: '500',
+              color: sortBy === option.key ? '#000' : '#666',
+            }}>
+              {option.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
+
   return (
     <>
       <StatusBar
@@ -695,24 +1166,45 @@ export const StatisticsScreen: React.FC = () => {
             paddingBottom: 20,
             flex: 1,
           }}>
-          {/* График виджет */}
-          <View style={{ marginBottom: gap }}>
-            <ChartWidget />
-          </View>
+          {/* Segmented Control */}
+          <SegmentedControl />
 
-          {/* Два квадратных виджета в ряд */}
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              marginBottom: gap,
-            }}>
-            <NetWorthWidget />
-            <TopCategoriesWidget />
-          </View>
+          {selectedSegment === 'analytics' ? (
+            <>
+              {/* График виджет */}
+              <View style={{ marginBottom: gap }}>
+                <ChartWidget />
+              </View>
 
-          {/* Широкий виджет */}
-          <RecentTransactionsWidget />
+              {/* Два квадратных виджета в ряд */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  marginBottom: gap,
+                }}>
+                <NetWorthWidget />
+                <TopCategoriesWidget />
+              </View>
+
+              {/* Широкий виджет */}
+              <RecentTransactionsWidget />
+            </>
+          ) : (
+            <>
+              {/* Total Budget Donut */}
+              <TotalBudgetDonut budgets={budgets || []} />
+
+              {/* Budget Progress Bars */}
+              <BudgetProgressBars />
+
+              {/* Budget KPI Cards */}
+              <BudgetKPICards />
+
+              {/* Budget Sorting Control */}
+              <BudgetSortingControl />
+            </>
+          )}
         </View>
       </ScrollView>
     </>
