@@ -23,8 +23,20 @@ router.get('/', auth, async (req, res) => {
           ]
         },
         {
+          model: Account,
+          as: 'targetAccount',
+          required: false, // LEFT JOIN для transfer транзакций
+          include: [
+            {
+              model: Currency,
+              as: 'currency',
+            }
+          ]
+        },
+        {
           model: Category,
           as: 'category',
+          required: false, // LEFT JOIN так как transfer не имеют категории
         }
       ],
       order: [['createdAt', 'DESC']], // Сортировка по времени создания
@@ -39,7 +51,7 @@ router.get('/', auth, async (req, res) => {
 // Создать новую транзакцию
 router.post('/', auth, async (req, res) => {
   try {
-    const { account_id, category_id, amount, transaction_type, description } = req.body;
+    const { account_id, category_id, amount, transaction_type, description, transfer_to } = req.body;
     
     console.log('Создание транзакции:', {
       user_id: req.user.id,
@@ -47,72 +59,164 @@ router.post('/', auth, async (req, res) => {
       category_id,
       amount,
       transaction_type,
-      description
+      description,
+      transfer_to
     });
 
-    if (!account_id || !category_id || !amount || !transaction_type) {
-      return res.status(400).json({ message: 'Все обязательные поля должны быть заполнены' });
+    // Базовая валидация
+    if (!account_id || !amount || !transaction_type) {
+      return res.status(400).json({ message: 'Обязательные поля: account_id, amount, transaction_type' });
     }
 
-    if (!['income', 'expense'].includes(transaction_type)) {
-      return res.status(400).json({ message: 'Тип транзакции должен быть income или expense' });
+    if (!['income', 'expense', 'transfer'].includes(transaction_type)) {
+      return res.status(400).json({ message: 'Тип транзакции должен быть income, expense или transfer' });
     }
 
-    // Проверяем, что счет принадлежит пользователю
+    // Валидация для разных типов транзакций
+    if (transaction_type === 'transfer') {
+      if (!transfer_to) {
+        return res.status(400).json({ message: 'Для transfer необходимо указать transfer_to' });
+      }
+      if (account_id === transfer_to) {
+        return res.status(400).json({ message: 'Нельзя перевести средства на тот же счёт' });
+      }
+    } else {
+      if (!category_id) {
+        return res.status(400).json({ message: 'Для income/expense необходимо указать category_id' });
+      }
+    }
+
+    // Проверяем, что исходный счет принадлежит пользователю
     const account = await Account.findOne({
-      where: { id: account_id, user_id: req.user.id }
+      where: { id: account_id, user_id: req.user.id },
+      include: [{ model: Currency, as: 'currency' }]
     });
 
     if (!account) {
-      return res.status(404).json({ message: 'Счет не найден' });
+      return res.status(404).json({ message: 'Исходный счет не найден' });
     }
 
-    // Проверяем, что категория существует
-    const category = await Category.findByPk(category_id);
+    let targetAccount = null;
+    if (transaction_type === 'transfer') {
+      // Проверяем, что целевой счет принадлежит пользователю
+      targetAccount = await Account.findOne({
+        where: { id: transfer_to, user_id: req.user.id },
+        include: [{ model: Currency, as: 'currency' }]
+      });
 
-    if (!category) {
-      return res.status(404).json({ message: 'Категория не найдена' });
+      if (!targetAccount) {
+        return res.status(404).json({ message: 'Целевой счет не найден' });
+      }
+    } else {
+      // Проверяем, что категория существует для обычных транзакций
+      const category = await Category.findByPk(category_id);
+
+      if (!category) {
+        return res.status(404).json({ message: 'Категория не найдена' });
+      }
     }
 
-    // Создаем транзакцию
-    const transaction = await Transaction.create({
+    // Подготавливаем данные для создания транзакции
+    const transactionData = {
       user_id: req.user.id,
       account_id,
-      category_id,
       amount: parseFloat(amount),
       transaction_type,
       description: description || '',
       transaction_date: new Date().toISOString().slice(0, 10), // YYYY-MM-DD формат
-    });
+    };
+
+    // Добавляем специфичные поля для разных типов
+    if (transaction_type === 'transfer') {
+      transactionData.transfer_to = transfer_to;
+      transactionData.category_id = null;
+    } else {
+      transactionData.category_id = category_id;
+    }
+
+    // Создаем транзакцию
+    const transaction = await Transaction.create(transactionData);
 
     console.log('Транзакция создана:', transaction.id);
 
-    // Обновляем баланс счета
-    const balanceChange = transaction_type === 'income' ? amount : -amount;
-    await account.update({
-      balance: parseFloat(account.balance) + parseFloat(balanceChange)
-    });
+    // Обновляем балансы
+    if (transaction_type === 'transfer') {
+      // Для transfer обновляем оба счёта
+      const transferAmount = parseFloat(amount);
+      
+      // Списываем с исходного счёта
+      await account.update({
+        balance: parseFloat(account.balance) - transferAmount
+      });
 
-    console.log('Баланс счета обновлен:', account.balance, '->', parseFloat(account.balance) + parseFloat(balanceChange));
+      // Конвертируем валюту если нужно
+      let targetAmount = transferAmount;
+      if (account.currency.code !== targetAccount.currency.code) {
+        const exchangeRateService = require('../services/exchangeRate');
+        try {
+          targetAmount = await exchangeRateService.convertCurrency(
+            transferAmount, 
+            account.currency.code, 
+            targetAccount.currency.code
+          );
+          console.log(`Конвертация: ${transferAmount} ${account.currency.code} = ${targetAmount} ${targetAccount.currency.code}`);
+        } catch (error) {
+          console.error('Ошибка конвертации валюты при transfer:', error);
+          // В случае ошибки используем 1:1
+          targetAmount = transferAmount;
+        }
+      }
+
+      // Зачисляем на целевой счёт
+      await targetAccount.update({
+        balance: parseFloat(targetAccount.balance) + targetAmount
+      });
+
+      console.log(`Transfer completed: ${account.account_name} (-${transferAmount} ${account.currency.code}) -> ${targetAccount.account_name} (+${targetAmount} ${targetAccount.currency.code})`);
+    } else {
+      // Для обычных транзакций обновляем один счёт
+      const balanceChange = transaction_type === 'income' ? amount : -amount;
+      await account.update({
+        balance: parseFloat(account.balance) + parseFloat(balanceChange)
+      });
+
+      console.log('Баланс счета обновлен:', account.balance, '->', parseFloat(account.balance) + parseFloat(balanceChange));
+    }
 
     // Получаем созданную транзакцию с включенными данными
+    const includeOptions = [
+      {
+        model: Account,
+        as: 'account',
+        include: [
+          {
+            model: Currency,
+            as: 'currency',
+          }
+        ]
+      },
+      {
+        model: Category,
+        as: 'category',
+      }
+    ];
+
+    // Для transfer добавляем целевой аккаунт
+    if (transaction_type === 'transfer') {
+      includeOptions.push({
+        model: Account,
+        as: 'targetAccount',
+        include: [
+          {
+            model: Currency,
+            as: 'currency',
+          }
+        ]
+      });
+    }
+
     const createdTransaction = await Transaction.findByPk(transaction.id, {
-      include: [
-        {
-          model: Account,
-          as: 'account',
-          include: [
-            {
-              model: Currency,
-              as: 'currency',
-            }
-          ]
-        },
-        {
-          model: Category,
-          as: 'category',
-        }
-      ]
+      include: includeOptions
     });
 
     res.status(201).json(createdTransaction);

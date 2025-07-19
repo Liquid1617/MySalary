@@ -14,6 +14,7 @@ import { apiService } from '../services/api';
 import { layoutStyles, typographyStyles } from '../styles';
 import { Colors } from '../styles/colors';
 import { useDebounce } from '../utils/useDebounce';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface Account {
   id: number;
@@ -47,6 +48,7 @@ interface TransactionData {
 export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({
   navigation,
 }) => {
+  const queryClient = useQueryClient();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
@@ -162,6 +164,9 @@ export const BalanceChangeScreen: React.FC<{ navigation: any }> = ({
       };
 
       await apiService.post('/transactions', transactionData);
+
+      // Инвалидируем кэш бюджетов при создании транзакции
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
 
       Alert.alert('Success', 'Transaction added successfully', [
         {

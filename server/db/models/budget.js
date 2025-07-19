@@ -16,10 +16,10 @@ module.exports = (sequelize, DataTypes) => {
         as: 'user'
       });
       
-      // Связь с моделью Category
-      Budget.belongsTo(models.Category, {
-        foreignKey: 'category_id',
-        as: 'category'
+      // Many-to-many relationship with Category through BudgetCategory
+      Budget.hasMany(models.BudgetCategory, {
+        foreignKey: 'budget_id',
+        as: 'categories'
       });
     }
   }
@@ -34,17 +34,14 @@ module.exports = (sequelize, DataTypes) => {
       onUpdate: 'CASCADE',
       onDelete: 'CASCADE'
     },
-    category_id: {
-      type: DataTypes.INTEGER,
+    name: {
+      type: DataTypes.STRING,
       allowNull: false,
-      references: {
-        model: 'Categories',
-        key: 'id'
-      },
-      onUpdate: 'CASCADE',
-      onDelete: 'CASCADE'
+      validate: {
+        notEmpty: true
+      }
     },
-    planned_amount: {
+    limit_amount: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
       validate: {
@@ -52,31 +49,52 @@ module.exports = (sequelize, DataTypes) => {
         min: 0
       }
     },
+    currency: {
+      type: DataTypes.STRING(3),
+      allowNull: false,
+      defaultValue: 'USD'
+    },
     period_type: {
-      type: DataTypes.ENUM('monthly', 'quarterly', 'yearly'),
+      type: DataTypes.ENUM('month', 'week', 'custom'),
       allowNull: false,
+      defaultValue: 'month',
       validate: {
-        isIn: [['monthly', 'quarterly', 'yearly']]
+        isIn: [['month', 'week', 'custom']]
       }
     },
-    start_date: {
+    custom_start_date: {
       type: DataTypes.DATEONLY,
-      allowNull: false,
-      validate: {
-        isDate: true
-      }
-    },
-    end_date: {
-      type: DataTypes.DATEONLY,
-      allowNull: false,
+      allowNull: true,
       validate: {
         isDate: true,
+        isRequiredForCustomPeriod(value) {
+          if (this.period_type === 'custom' && !value) {
+            throw new Error('Start date is required for custom period');
+          }
+        }
+      }
+    },
+    custom_end_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+      validate: {
+        isDate: true,
+        isRequiredForCustomPeriod(value) {
+          if (this.period_type === 'custom' && !value) {
+            throw new Error('End date is required for custom period');
+          }
+        },
         isAfterStartDate(value) {
-          if (value <= this.start_date) {
+          if (this.period_type === 'custom' && value && this.custom_start_date && value <= this.custom_start_date) {
             throw new Error('End date must be after start date');
           }
         }
       }
+    },
+    rollover: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
     },
     is_active: {
       type: DataTypes.BOOLEAN,
@@ -88,12 +106,9 @@ module.exports = (sequelize, DataTypes) => {
     modelName: 'Budget',
     tableName: 'Budgets',
     timestamps: true,
-    indexes: [
-      {
-        unique: true,
-        fields: ['user_id', 'category_id', 'start_date', 'end_date']
-      }
-    ]
+    underscored: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
   });
   return Budget;
 };

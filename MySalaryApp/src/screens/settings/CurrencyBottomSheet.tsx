@@ -30,7 +30,8 @@ export const CurrencyBottomSheet: React.FC<CurrencyBottomSheetProps> = ({ naviga
   const [loading, setLoading] = useState(true);
   const searchInputRef = useRef<TextInput>(null);
 
-  const onCurrencySelect = route.params?.onCurrencySelect;
+  // Remove non-serializable function from route params
+  // const onCurrencySelect = route.params?.onCurrencySelect;
 
   useEffect(() => {
     loadCurrencies();
@@ -139,8 +140,9 @@ export const CurrencyBottomSheet: React.FC<CurrencyBottomSheetProps> = ({ naviga
 
   const handleCurrencySelect = (currency: CurrencyItem) => {
     Keyboard.dismiss();
-    onCurrencySelect?.(currency);
-    navigation.goBack();
+    // Instead of calling the function directly, we'll use navigation state or global state
+    // For now, just navigate back with the currency data
+    navigation.navigate('Settings/Preferences', { selectedCurrency: currency });
   };
 
   const renderCurrencyItem = ({ item }: { item: CurrencyItem }) => (

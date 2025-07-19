@@ -18,6 +18,8 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 import { BalanceChangeScreen } from '../screens/BalanceChangeScreen';
 import { AccountDetailsScreen } from '../screens/AccountDetailsScreen';
 import { AllTransactionsScreen } from '../screens/AllTransactionsScreen';
+import { BudgetDetailScreen } from '../screens/BudgetDetailScreen';
+import { BudgetEditScreen } from '../screens/BudgetEditScreen';
 import { ProfileScreen as SettingsProfileScreen } from '../screens/settings/ProfileScreen';
 import { PreferencesScreen } from '../screens/settings/PreferencesScreen';
 import { SecurityScreen } from '../screens/settings/SecurityScreen';
@@ -36,16 +38,18 @@ export type RootStackParamList = {
   BalanceChange: undefined;
   AccountDetails: { account: any };
   AllTransactions: undefined;
+  BudgetDetail: { budgetId: string };
+  BudgetEdit: { budget: any };
   'Settings/Profile': undefined;
-  'Settings/Preferences': undefined;
+  'Settings/Preferences': { selectedCurrency?: any } | undefined;
   'Settings/Security': undefined;
   'Settings/Notifications': undefined;
-  'CurrencyPicker': { onCurrencySelect: (currency: any) => void };
+  'CurrencyPicker': undefined;
 };
 
 export type TabParamList = {
   Home: undefined;
-  Analytics: undefined;
+  Analytics: { segment?: 'analytics' | 'budgets' } | undefined;
   ChatButton: undefined;
   Discover: undefined;
   Settings: undefined;
@@ -320,6 +324,22 @@ export const AppNavigator: React.FC = () => {
         <Stack.Screen
           name="AllTransactions"
           component={AllTransactionsScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+
+        <Stack.Screen
+          name="BudgetDetail"
+          component={BudgetDetailScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+
+        <Stack.Screen
+          name="BudgetEdit"
+          component={BudgetEditScreen}
           options={{
             headerShown: false,
           }}

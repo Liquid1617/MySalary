@@ -16,10 +16,16 @@ module.exports = (sequelize, DataTypes) => {
         as: 'user'
       });
       
-      // Связь с моделью Account
+      // Связь с моделью Account (исходный счёт)
       Transaction.belongsTo(models.Account, {
         foreignKey: 'account_id',
         as: 'account'
+      });
+      
+      // Связь с моделью Account (целевой счёт для transfer)
+      Transaction.belongsTo(models.Account, {
+        foreignKey: 'transfer_to',
+        as: 'targetAccount'
       });
       
       // Связь с моделью Category
@@ -58,9 +64,9 @@ module.exports = (sequelize, DataTypes) => {
       onUpdate: 'CASCADE',
       onDelete: 'RESTRICT'
     },
-    category_id: {
+          category_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true, // NULL для transfer транзакций
       references: {
         model: 'Categories',
         key: 'id'
@@ -77,12 +83,22 @@ module.exports = (sequelize, DataTypes) => {
       }
     },
     transaction_type: {
-      type: DataTypes.ENUM('income', 'expense'),
+      type: DataTypes.ENUM('income', 'expense', 'transfer'),
       allowNull: false,
       validate: {
-        isIn: [['income', 'expense']],
+        isIn: [['income', 'expense', 'transfer']],
         // Проверка согласованности с category_type будет добавлена через хук
       }
+    },
+    transfer_to: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'Accounts',
+        key: 'id'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'RESTRICT'
     },
     description: {
       type: DataTypes.STRING,
@@ -105,6 +121,19 @@ module.exports = (sequelize, DataTypes) => {
     hooks: {
       // Хук для проверки согласованности category_type и transaction_type
       async beforeCreate(transaction, options) {
+        // Для transfer транзакций category не требуется
+        if (transaction.transaction_type === 'transfer') {
+          if (!transaction.transfer_to) {
+            throw new Error('Transfer transactions must have transfer_to account specified');
+          }
+          return;
+        }
+        
+        // Для обычных транзакций проверяем категорию
+        if (!transaction.category_id) {
+          throw new Error('Non-transfer transactions must have a category');
+        }
+        
         const Category = sequelize.models.Category;
         const category = await Category.findByPk(transaction.category_id);
         
@@ -114,7 +143,20 @@ module.exports = (sequelize, DataTypes) => {
       },
       
       async beforeUpdate(transaction, options) {
+        // Для transfer транзакций category не требуется
+        if (transaction.transaction_type === 'transfer') {
+          if (!transaction.transfer_to) {
+            throw new Error('Transfer transactions must have transfer_to account specified');
+          }
+          return;
+        }
+        
         if (transaction.changed('category_id') || transaction.changed('transaction_type')) {
+          // Для обычных транзакций проверяем категорию
+          if (!transaction.category_id) {
+            throw new Error('Non-transfer transactions must have a category');
+          }
+          
           const Category = sequelize.models.Category;
           const category = await Category.findByPk(transaction.category_id);
           

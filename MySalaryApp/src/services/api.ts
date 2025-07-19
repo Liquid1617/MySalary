@@ -188,6 +188,9 @@ class ApiService {
   }
 
   async post<T>(endpoint: string, data?: any): Promise<T> {
+    console.log(`=== API POST ${endpoint} ===`);
+    console.log('Request data:', JSON.stringify(data, null, 2));
+    
     return this.request<T>(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
@@ -195,6 +198,9 @@ class ApiService {
   }
 
   async put<T>(endpoint: string, data?: any): Promise<T> {
+    console.log(`=== API PUT ${endpoint} ===`);
+    console.log('Request data:', JSON.stringify(data, null, 2));
+    
     return this.request<T>(endpoint, {
       method: 'PUT',
       body: data ? JSON.stringify(data) : undefined,
@@ -202,7 +208,62 @@ class ApiService {
   }
 
   async delete<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: 'DELETE' });
+    console.log(`=== API DELETE ${endpoint} ===`);
+    
+    const token = await AsyncStorage.getItem('token');
+    const url = `${API_BASE_URL}${endpoint}`;
+
+    const config: RequestInit = {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    };
+
+    try {
+      console.log('DELETE request URL:', url);
+      console.log('DELETE request config:', JSON.stringify(config, null, 2));
+      
+      const response = await fetch(url, config);
+      
+      console.log('DELETE response status:', response.status);
+      console.log('DELETE response headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
+
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: `HTTP ${response.status} ${response.statusText}` };
+        }
+        console.log('DELETE error data:', errorData);
+        throw new Error(errorData.error || 'Ошибка сервера');
+      }
+
+      // For DELETE requests, if status is 204 (No Content), return empty object
+      if (response.status === 204) {
+        console.log('DELETE successful (204 No Content)');
+        return {} as T;
+      }
+
+      // Try to parse JSON response
+      try {
+        const data = await response.json();
+        console.log('DELETE response data:', data);
+        return data as T;
+      } catch {
+        // If no JSON response, return empty object
+        console.log('DELETE successful (no JSON response)');
+        return {} as T;
+      }
+    } catch (error) {
+      console.error('DELETE request failed:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Ошибка сети');
+    }
   }
 
   async getCurrencies(): Promise<CurrenciesResponse> {

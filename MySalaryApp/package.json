@@ -22,6 +22,7 @@
     "@react-navigation/native": "6.1.18",
     "@react-navigation/native-stack": "6.11.0",
     "@shopify/react-native-skia": "^2.1.1",
+    "@tanstack/react-query": "^5.83.0",
     "react": "18.2.0",
     "react-native": "0.74.7",
     "react-native-biometrics": "^3.0.1",

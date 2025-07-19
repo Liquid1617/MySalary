@@ -665,9 +665,20 @@ export const AccountDetailsScreen: React.FC<{
               backgroundColor: 'rgba(255, 255, 255, 0.8)',
               justifyContent: 'center',
               alignItems: 'center',
+              marginRight: 16,
             }}>
             <FontAwesome5 name="arrow-left" size={18} color="#333" />
           </TouchableOpacity>
+          <Text
+            style={{
+              fontSize: 18,
+              fontWeight: '600',
+              color: '#333',
+              flex: 1,
+            }}
+            numberOfLines={1}>
+            {account.account_name}
+          </Text>
         </View>
 
         {/* Account info section */}

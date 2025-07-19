@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  SafeAreaView,
   Switch,
   TouchableOpacity,
   ScrollView,
@@ -11,7 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import {
   homeScreenStyles,
@@ -27,6 +26,11 @@ import { AddTransactionModal } from '../components/AddTransactionModal';
 import { EditTransactionModal } from '../components/EditTransactionModal';
 import { AccountsManagementModal } from '../components/AccountsManagementModal';
 import { AddAccountModal } from '../components/AddAccountModal';
+import { BudgetChip } from '../components/BudgetChip';
+import { AddBudgetChip } from '../components/AddBudgetChip';
+import { BudgetResponse } from '../types/budget';
+import { useBudgets, useBudgetActions } from '../hooks/useBudgets';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   formatCurrencyAmount,
   formatCurrencyAmountShort,
@@ -273,6 +277,11 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
   const [showAccountsManagementModal, setShowAccountsManagementModal] =
     useState(false);
   const [showAddAccountModal, setShowAddAccountModal] = useState(false);
+  
+  // Budget data
+  const { data: budgets = [], isLoading: budgetsLoading } = useBudgets();
+  const { deleteBudget } = useBudgetActions();
+  const queryClient = useQueryClient();
   const [userCurrency, setUserCurrency] = useState<Currency | undefined>(
     undefined,
   );
@@ -545,6 +554,39 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
   const handleTransactionPress = (transaction: any) => {
     setSelectedTransaction(transaction);
     setShowEditTransactionModal(true);
+  };
+
+  const handleBudgetPress = (budget: BudgetResponse) => {
+    // Navigate to BudgetDetailScreen
+    navigation.navigate('BudgetDetail', { budgetId: budget.id });
+  };
+
+  const handleCreateBudget = () => {
+    navigation.navigate('BudgetEdit', {});
+  };
+
+  const handleEditBudget = (budget: BudgetResponse) => {
+    navigation.navigate('BudgetEdit', { budget });
+  };
+
+  const handleDeleteBudget = async (budget: BudgetResponse) => {
+    try {
+      await deleteBudget.mutateAsync(budget.id);
+      console.log('Budget deleted successfully');
+    } catch (error) {
+      console.error('Error deleting budget:', error);
+      Alert.alert('Error', 'Failed to delete budget');
+    }
+  };
+
+  const handleBudgetAnalytics = (event: string, properties: any) => {
+    // Track analytics event
+    console.log('Budget analytics:', event, properties);
+    
+    // Navigate to Analytics screen when chart icon is clicked
+    if (event === 'budget_analytics_click') {
+      navigation.navigate('Analytics', { segment: 'budgets' });
+    }
   };
 
   return (
@@ -866,6 +908,61 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                 This month
               </Text>
             </View>
+          </View>
+
+          {/* Budget Chips Section */}
+          <View style={{ marginBottom: 24 }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 16,
+                paddingHorizontal: 0,
+              }}>
+              <Text
+                style={{
+                  fontSize: 20,
+                  fontWeight: 'bold',
+                  color: '#000',
+                }}>
+                Budgets
+              </Text>
+            </View>
+            
+            {budgetsLoading ? (
+              <View style={{
+                height: 96,
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: 'white',
+                borderRadius: 16,
+                marginHorizontal: 16,
+              }}>
+                <Text style={{ fontSize: 16, color: '#666' }}>Loading budgets...</Text>
+              </View>
+            ) : (
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{
+                  paddingHorizontal: 16,
+                  gap: 12,
+                }}
+                style={{ marginHorizontal: -16 }} // Offset container padding
+              >
+                {budgets.map((budget) => (
+                  <BudgetChip
+                    key={budget.id}
+                    budget={budget}
+                    onPress={handleBudgetPress}
+                    onEdit={handleEditBudget}
+                    onDelete={handleDeleteBudget}
+                  />
+                ))}
+                <AddBudgetChip onPress={handleCreateBudget} />
+              </ScrollView>
+            )}
           </View>
 
           <View
@@ -1475,6 +1572,8 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
           loadTransactions();
           loadNetWorth();
           loadAccounts();
+          // Инвалидируем кэш бюджетов при создании транзакции
+          queryClient.invalidateQueries({ queryKey: ['budgets'] });
         }}
       />
 
@@ -1489,6 +1588,8 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
           loadTransactions();
           loadNetWorth();
           loadAccounts();
+          // Инвалидируем кэш бюджетов при редактировании транзакции
+          queryClient.invalidateQueries({ queryKey: ['budgets'] });
         }}
       />
 
@@ -1511,6 +1612,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
           setTimeout(() => setShowAccountsManagementModal(true), 100); // Return to accounts management
         }}
       />
+
     </>
   );
 };

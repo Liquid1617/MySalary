@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { tokens } from '../../styles/tokens';
 import { ListSection } from '../../components/settings/ListSection';
@@ -15,9 +16,10 @@ import { apiService } from '../../services/api';
 
 interface PreferencesScreenProps {
   navigation: any;
+  route: any;
 }
 
-export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({ navigation }) => {
+export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({ navigation, route }) => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
@@ -25,6 +27,15 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({ navigation
   useEffect(() => {
     loadUserData();
   }, []);
+
+  // Handle currency selection from CurrencyPicker
+  useEffect(() => {
+    if (route.params?.selectedCurrency) {
+      handleCurrencyChange(route.params.selectedCurrency);
+      // Clear the param to prevent re-triggering
+      navigation.setParams({ selectedCurrency: undefined });
+    }
+  }, [route.params?.selectedCurrency]);
 
   const loadUserData = async () => {
     try {
@@ -49,11 +60,7 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({ navigation
   };
 
   const handleCurrencyPress = () => {
-    navigation.navigate('CurrencyPicker', {
-      onCurrencySelect: (currency: any) => {
-        handleCurrencyChange(currency);
-      },
-    });
+    navigation.navigate('CurrencyPicker');
   };
 
   const handleCurrencyChange = async (currency: any) => {

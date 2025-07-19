@@ -16,10 +16,10 @@ module.exports = (sequelize, DataTypes) => {
         as: 'transactions'
       });
       
-      // Связь с моделью Budget
-      Category.hasMany(models.Budget, {
+      // Many-to-many relationship with Budget through BudgetCategory
+      Category.hasMany(models.BudgetCategory, {
         foreignKey: 'category_id',
-        as: 'budgets'
+        as: 'budgetCategories'
       });
     }
   }

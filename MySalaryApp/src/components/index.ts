@@ -16,3 +16,11 @@ export { EditTransactionModal } from './EditTransactionModal';
 export { AccountsManagementModal } from './AccountsManagementModal';
 export { default as AccountCard } from './AccountCard';
 export { default as TransactionTypeTabs } from './TransactionTypeTabs';
+
+// Budget components
+export { BudgetChip } from './BudgetChip';
+export { AddBudgetChip } from './AddBudgetChip';
+export { TotalBudgetDonut } from './TotalBudgetDonut';
+
+// Hooks
+export { useUserCurrency } from '../hooks/useUserCurrency';
