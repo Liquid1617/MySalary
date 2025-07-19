@@ -112,6 +112,15 @@ module.exports = (sequelize, DataTypes) => {
       validate: {
         isDate: true
       }
+    },
+    status: {
+      type: DataTypes.ENUM('scheduled', 'posted'),
+      allowNull: false,
+      defaultValue: 'posted'
+    },
+    confirmed_at: {
+      type: DataTypes.DATE,
+      allowNull: true
     }
   }, {
     sequelize,

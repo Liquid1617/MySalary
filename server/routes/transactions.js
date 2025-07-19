@@ -7,10 +7,28 @@ const auth = require('../middleware/auth');
 router.get('/', auth, async (req, res) => {
   try {
     console.log('🔍 Fetching transactions with ORDER BY createdAt DESC');
+    
+    // Добавляем опциональную фильтрацию по дате
+    const { excludeFuture, maxDate } = req.query;
+    const whereConditions = { 
+      '$account.user_id$': req.user.id 
+    };
+    
+    // Если запрошено исключение будущих транзакций или указана максимальная дата
+    if (excludeFuture === 'true' || maxDate) {
+      const { Op } = require('sequelize');
+      const today = new Date().toISOString().slice(0, 10);
+      const filterDate = maxDate || today;
+      
+      whereConditions.transaction_date = {
+        [Op.lte]: filterDate
+      };
+      
+      console.log(`📅 Filtering transactions up to: ${filterDate}`);
+    }
+    
     const transactions = await Transaction.findAll({
-      where: { 
-        '$account.user_id$': req.user.id 
-      },
+      where: whereConditions,
       include: [
         {
           model: Account,
@@ -39,7 +57,7 @@ router.get('/', auth, async (req, res) => {
           required: false, // LEFT JOIN так как transfer не имеют категории
         }
       ],
-      order: [['createdAt', 'DESC']], // Сортировка по времени создания
+      order: [['transaction_date', 'DESC'], ['createdAt', 'DESC']], // Сортировка по дате транзакции, затем по времени создания
     });
     res.json(transactions);
   } catch (error) {
@@ -51,7 +69,7 @@ router.get('/', auth, async (req, res) => {
 // Создать новую транзакцию
 router.post('/', auth, async (req, res) => {
   try {
-    const { account_id, category_id, amount, transaction_type, description, transfer_to } = req.body;
+    const { account_id, category_id, amount, transaction_type, description, transfer_to, transaction_date } = req.body;
     
     console.log('Создание транзакции:', {
       user_id: req.user.id,
@@ -60,7 +78,8 @@ router.post('/', auth, async (req, res) => {
       amount,
       transaction_type,
       description,
-      transfer_to
+      transfer_to,
+      transaction_date
     });
 
     // Базовая валидация
@@ -116,6 +135,25 @@ router.post('/', auth, async (req, res) => {
       }
     }
 
+    // Валидация даты транзакции
+    let transactionDate = transaction_date;
+    if (transactionDate) {
+      // Проверяем формат даты
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(transactionDate)) {
+        return res.status(400).json({ message: 'Неверный формат даты. Используйте YYYY-MM-DD' });
+      }
+      
+      // Разрешаем будущие даты для запланированных платежей
+    } else {
+      // Если дата не указана, используем сегодня
+      transactionDate = new Date().toISOString().slice(0, 10);
+    }
+
+    // Определяем статус транзакции в зависимости от даты
+    const today = new Date().toISOString().slice(0, 10);
+    const isScheduled = transactionDate > today;
+    
     // Подготавливаем данные для создания транзакции
     const transactionData = {
       user_id: req.user.id,
@@ -123,7 +161,9 @@ router.post('/', auth, async (req, res) => {
       amount: parseFloat(amount),
       transaction_type,
       description: description || '',
-      transaction_date: new Date().toISOString().slice(0, 10), // YYYY-MM-DD формат
+      transaction_date: transactionDate, // Используем валидированную дату
+      status: isScheduled ? 'scheduled' : 'posted',
+      confirmed_at: isScheduled ? null : new Date()
     };
 
     // Добавляем специфичные поля для разных типов
@@ -139,8 +179,10 @@ router.post('/', auth, async (req, res) => {
 
     console.log('Транзакция создана:', transaction.id);
 
-    // Обновляем балансы
-    if (transaction_type === 'transfer') {
+    // Обновляем балансы только для posted транзакций (не scheduled)
+    const shouldUpdateBalance = transaction.status === 'posted';
+    
+    if (shouldUpdateBalance && transaction_type === 'transfer') {
       // Для transfer обновляем оба счёта
       const transferAmount = parseFloat(amount);
       
@@ -173,7 +215,7 @@ router.post('/', auth, async (req, res) => {
       });
 
       console.log(`Transfer completed: ${account.account_name} (-${transferAmount} ${account.currency.code}) -> ${targetAccount.account_name} (+${targetAmount} ${targetAccount.currency.code})`);
-    } else {
+    } else if (shouldUpdateBalance) {
       // Для обычных транзакций обновляем один счёт
       const balanceChange = transaction_type === 'income' ? amount : -amount;
       await account.update({
@@ -181,6 +223,8 @@ router.post('/', auth, async (req, res) => {
       });
 
       console.log('Баланс счета обновлен:', account.balance, '->', parseFloat(account.balance) + parseFloat(balanceChange));
+    } else {
+      console.log('Запланированная транзакция создана, баланс не изменен (будущая дата)');
     }
 
     // Получаем созданную транзакцию с включенными данными
@@ -230,7 +274,7 @@ router.post('/', auth, async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { account_id, category_id, amount, transaction_type, description } = req.body;
+    const { account_id, category_id, amount, transaction_type, description, transaction_date } = req.body;
 
     const transaction = await Transaction.findOne({
       where: { id },
@@ -252,29 +296,59 @@ router.put('/:id', auth, async (req, res) => {
     const oldTransactionType = transaction.transaction_type;
     const oldAccount = transaction.account;
 
-    // Обновляем транзакцию
-    await transaction.update({
+    // Валидация даты транзакции если предоставлена
+    if (transaction_date) {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(transaction_date)) {
+        return res.status(400).json({ message: 'Неверный формат даты. Используйте YYYY-MM-DD' });
+      }
+      
+      // Разрешаем будущие даты для запланированных платежей
+    }
+
+    // Определяем новый статус в зависимости от даты
+    const today = new Date().toISOString().slice(0, 10);
+    const newDate = transaction_date || transaction.transaction_date;
+    const isScheduled = newDate > today;
+    
+    // Подготавливаем данные для обновления
+    const updateData = {
       account_id: account_id || transaction.account_id,
       category_id: category_id || transaction.category_id,
       amount: amount ? parseFloat(amount) : transaction.amount,
       transaction_type: transaction_type || transaction.transaction_type,
       description: description !== undefined ? description : transaction.description,
-    });
+      transaction_date: newDate,
+      status: isScheduled ? 'scheduled' : 'posted',
+      confirmed_at: isScheduled ? null : (transaction.confirmed_at || new Date())
+    };
 
-    // Пересчитываем баланс
-    if (amount !== undefined || transaction_type !== undefined) {
-      // Откатываем старую транзакцию
-      const oldBalanceChange = oldTransactionType === 'income' ? -oldAmount : oldAmount;
-      await oldAccount.update({
-        balance: parseFloat(oldAccount.balance) + parseFloat(oldBalanceChange)
-      });
+    // Обновляем транзакцию
+    await transaction.update(updateData);
 
-      // Применяем новую транзакцию
-      const newAccount = await Account.findByPk(account_id || transaction.account_id);
-      const newBalanceChange = transaction.transaction_type === 'income' ? transaction.amount : -transaction.amount;
-      await newAccount.update({
-        balance: parseFloat(newAccount.balance) + parseFloat(newBalanceChange)
-      });
+    // Пересчитываем баланс только для транзакций до сегодняшнего дня
+    const oldWasActive = transaction.transaction_date <= today;
+    const newWillBeActive = newDate <= today;
+    
+    if (amount !== undefined || transaction_type !== undefined || transaction_date !== undefined) {
+      // Откатываем старую транзакцию если она была активной
+      if (oldWasActive) {
+        const oldBalanceChange = oldTransactionType === 'income' ? -oldAmount : oldAmount;
+        await oldAccount.update({
+          balance: parseFloat(oldAccount.balance) + parseFloat(oldBalanceChange)
+        });
+      }
+
+      // Применяем новую транзакцию если она активна
+      if (newWillBeActive) {
+        const newAccount = await Account.findByPk(account_id || transaction.account_id);
+        const newBalanceChange = transaction.transaction_type === 'income' ? transaction.amount : -transaction.amount;
+        await newAccount.update({
+          balance: parseFloat(newAccount.balance) + parseFloat(newBalanceChange)
+        });
+      }
+      
+      console.log(`Транзакция обновлена: старая активна=${oldWasActive}, новая активна=${newWillBeActive}`);
     }
 
     res.json(transaction);
@@ -366,6 +440,246 @@ router.delete('/:id', auth, async (req, res) => {
     res.json({ message: 'Транзакция удалена' });
   } catch (error) {
     console.error('Ошибка удаления транзакции:', error);
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
+});
+
+// Подтвердить scheduled транзакцию
+router.patch('/:id/confirm', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { mode } = req.body;
+
+    // Валидация параметра mode
+    if (!mode || !['today', 'scheduledDate'].includes(mode)) {
+      return res.status(400).json({ message: 'Параметр mode должен быть "today" или "scheduledDate"' });
+    }
+
+    // Находим транзакцию
+    const transaction = await Transaction.findOne({
+      where: { id },
+      include: [
+        {
+          model: Account,
+          as: 'account',
+          where: { user_id: req.user.id },
+          include: [{ model: Currency, as: 'currency' }]
+        },
+        {
+          model: Account,
+          as: 'targetAccount',
+          required: false,
+          include: [{ model: Currency, as: 'currency' }]
+        }
+      ]
+    });
+
+    if (!transaction) {
+      return res.status(404).json({ message: 'Транзакция не найдена' });
+    }
+
+    // Проверяем, что транзакция имеет статус scheduled
+    if (transaction.status !== 'scheduled') {
+      return res.status(400).json({ message: 'Транзакция уже подтверждена' });
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const transactionDate = transaction.transaction_date;
+
+    // Определяем новую дату в зависимости от mode
+    let newDate = transactionDate;
+    if (mode === 'today' && transactionDate > today) {
+      newDate = today;
+    }
+
+    // Обновляем транзакцию
+    await transaction.update({
+      status: 'posted',
+      confirmed_at: new Date(),
+      transaction_date: newDate
+    });
+
+    // Обновляем балансы счетов
+    if (transaction.transaction_type === 'transfer') {
+      // Для transfer обновляем оба счёта
+      const transferAmount = parseFloat(transaction.amount);
+      
+      // Списываем с исходного счёта
+      await transaction.account.update({
+        balance: parseFloat(transaction.account.balance) - transferAmount
+      });
+
+      // Конвертируем валюту если нужно
+      let targetAmount = transferAmount;
+      if (transaction.targetAccount && transaction.account.currency.code !== transaction.targetAccount.currency.code) {
+        const exchangeRateService = require('../services/exchangeRate');
+        try {
+          targetAmount = await exchangeRateService.convertCurrency(
+            transferAmount, 
+            transaction.account.currency.code, 
+            transaction.targetAccount.currency.code
+          );
+        } catch (convError) {
+          console.error('Ошибка конвертации валюты:', convError);
+          targetAmount = transferAmount; // Используем 1:1 если конвертация не удалась
+        }
+      }
+
+      // Зачисляем на целевой счёт
+      if (transaction.targetAccount) {
+        await transaction.targetAccount.update({
+          balance: parseFloat(transaction.targetAccount.balance) + targetAmount
+        });
+      }
+    } else if (transaction.transaction_type === 'income') {
+      // Для income увеличиваем баланс
+      await transaction.account.update({
+        balance: parseFloat(transaction.account.balance) + parseFloat(transaction.amount)
+      });
+    } else if (transaction.transaction_type === 'expense') {
+      // Для expense уменьшаем баланс
+      await transaction.account.update({
+        balance: parseFloat(transaction.account.balance) - parseFloat(transaction.amount)
+      });
+    }
+
+    // Возвращаем обновленную транзакцию
+    const updatedTransaction = await Transaction.findByPk(id, {
+      include: [
+        {
+          model: Account,
+          as: 'account',
+          include: [{ model: Currency, as: 'currency' }]
+        },
+        {
+          model: Account,
+          as: 'targetAccount',
+          required: false,
+          include: [{ model: Currency, as: 'currency' }]
+        },
+        {
+          model: Category,
+          as: 'category',
+          required: false
+        }
+      ]
+    });
+
+    res.json(updatedTransaction);
+  } catch (error) {
+    console.error('Ошибка подтверждения транзакции:', error);
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
+});
+
+// Отменить подтверждение scheduled транзакции
+router.patch('/:id/unconfirm', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Находим транзакцию
+    const transaction = await Transaction.findOne({
+      where: { id },
+      include: [
+        {
+          model: Account,
+          as: 'account',
+          where: { user_id: req.user.id },
+          include: [{ model: Currency, as: 'currency' }]
+        },
+        {
+          model: Account,
+          as: 'targetAccount',
+          required: false,
+          include: [{ model: Currency, as: 'currency' }]
+        }
+      ]
+    });
+
+    if (!transaction) {
+      return res.status(404).json({ message: 'Транзакция не найдена' });
+    }
+
+    // Проверяем, что транзакция имеет статус posted
+    if (transaction.status !== 'posted') {
+      return res.status(400).json({ message: 'Транзакция не подтверждена' });
+    }
+
+    // Обновляем транзакцию обратно в scheduled
+    await transaction.update({
+      status: 'scheduled',
+      confirmed_at: null
+    });
+
+    // Откатываем изменения балансов счетов
+    if (transaction.transaction_type === 'transfer') {
+      // Для transfer откатываем оба счёта
+      const transferAmount = parseFloat(transaction.amount);
+      
+      // Возвращаем на исходный счёт
+      await transaction.account.update({
+        balance: parseFloat(transaction.account.balance) + transferAmount
+      });
+
+      // Конвертируем валюту если нужно
+      let targetAmount = transferAmount;
+      if (transaction.targetAccount && transaction.account.currency.code !== transaction.targetAccount.currency.code) {
+        const exchangeRateService = require('../services/exchangeRate');
+        try {
+          targetAmount = await exchangeRateService.convertCurrency(
+            transferAmount, 
+            transaction.account.currency.code, 
+            transaction.targetAccount.currency.code
+          );
+        } catch (convError) {
+          console.error('Ошибка конвертации валюты:', convError);
+          targetAmount = transferAmount; // Используем 1:1 если конвертация не удалась
+        }
+      }
+
+      // Списываем с целевого счёта
+      if (transaction.targetAccount) {
+        await transaction.targetAccount.update({
+          balance: parseFloat(transaction.targetAccount.balance) - targetAmount
+        });
+      }
+    } else if (transaction.transaction_type === 'income') {
+      // Для income уменьшаем баланс
+      await transaction.account.update({
+        balance: parseFloat(transaction.account.balance) - parseFloat(transaction.amount)
+      });
+    } else if (transaction.transaction_type === 'expense') {
+      // Для expense увеличиваем баланс
+      await transaction.account.update({
+        balance: parseFloat(transaction.account.balance) + parseFloat(transaction.amount)
+      });
+    }
+
+    // Возвращаем обновленную транзакцию
+    const updatedTransaction = await Transaction.findByPk(id, {
+      include: [
+        {
+          model: Account,
+          as: 'account',
+          include: [{ model: Currency, as: 'currency' }]
+        },
+        {
+          model: Account,
+          as: 'targetAccount',
+          required: false,
+          include: [{ model: Currency, as: 'currency' }]
+        },
+        {
+          model: Category,
+          as: 'category',
+          required: false
+        }
+      ]
+    });
+
+    res.json(updatedTransaction);
+  } catch (error) {
+    console.error('Ошибка отмены подтверждения транзакции:', error);
     res.status(500).json({ message: 'Ошибка сервера' });
   }
 });

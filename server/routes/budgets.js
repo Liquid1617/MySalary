@@ -72,6 +72,7 @@ router.get('/', authMiddleware, async (req, res) => {
             user_id: req.user.id,
             category_id: { [Op.in]: categoryIds },
             transaction_type: 'expense',
+            status: 'posted', // Исключаем scheduled транзакции
             transaction_date: {
               [Op.gte]: startDate,
               [Op.lt]: endDate

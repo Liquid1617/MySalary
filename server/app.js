@@ -49,7 +49,7 @@ app.get('/api/health', (req, res) => {
 // Chart debugging enabled
 console.log('📊 Chart API debugging enabled');
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 
 async function testConnection() {
   try {
@@ -62,7 +62,26 @@ async function testConnection() {
 
 testConnection()
 
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err);
+  console.error('Stack:', err.stack);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server listening on http://0.0.0.0:${PORT}`);
-  console.log(`🌐 Also available at http://192.168.100.11:${PORT}`);
+  console.log(`🚀 Server listening on http://localhost:${PORT}`);
+  console.log(`🌐 Server listening on all interfaces on port ${PORT}`);
+  console.log(`📱 iOS Simulator can access via localhost:${PORT}`);
+  console.log(`📱 Network access via http://192.168.100.24:${PORT}`);
+}).on('error', (err) => {
+  console.error('❌ Server failed to start:', err);
+  console.error('❌ Error details:', err.message);
+  if (err.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use`);
+  }
+  process.exit(1);
 });

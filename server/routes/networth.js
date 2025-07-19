@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { User, Account, Currency } = require('../db/models');
+const { User, Account, Currency, Transaction } = require('../db/models');
 const exchangeRateService = require('../services/exchangeRate');
 const authMiddleware = require('../middleware/auth');
 const { Op, Sequelize } = require('sequelize');
@@ -86,7 +86,8 @@ router.get('/chart', authMiddleware, async (req, res) => {
         user_id: req.user.id,
         transaction_date: {
           [Op.lte]: endDate
-        }
+        },
+        status: 'posted' // Исключаем scheduled транзакции
       },
       include: [
         {
@@ -272,10 +273,51 @@ router.get('/', authMiddleware, async (req, res) => {
     let totalNetWorth = 0;
     const accountsData = [];
 
+    // Получаем будущие транзакции для корректировки балансов
+    const today = new Date().toISOString().slice(0, 10);
+    const { Op } = require('sequelize');
+    
+    const scheduledTransactions = await Transaction.findAll({
+      where: {
+        '$account.user_id$': req.user.id,
+        status: 'scheduled' // Используем статус вместо даты
+      },
+      include: [{
+        model: Account,
+        as: 'account',
+        where: { is_active: true }
+      }]
+    });
+
+    // Группируем scheduled транзакции по счетам
+    const scheduledTransactionsByAccount = {};
+    for (const transaction of scheduledTransactions) {
+      const accountId = transaction.account_id;
+      if (!scheduledTransactionsByAccount[accountId]) {
+        scheduledTransactionsByAccount[accountId] = 0;
+      }
+      
+      // Вычисляем влияние scheduled транзакции на баланс
+      const impact = transaction.transaction_type === 'income' 
+        ? parseFloat(transaction.amount) 
+        : -parseFloat(transaction.amount);
+      
+      scheduledTransactionsByAccount[accountId] += impact;
+    }
+
+    console.log('📊 Scheduled transactions impact by account:', scheduledTransactionsByAccount);
+
     // Конвертируем каждый счет в основную валюту
     for (const account of accounts) {
       const accountCurrency = account.currency.code;
-      const accountBalance = parseFloat(account.balance) || 0;
+      let accountBalance = parseFloat(account.balance) || 0;
+      
+      // Корректируем баланс, исключая scheduled транзакции
+      if (scheduledTransactionsByAccount[account.id]) {
+        const scheduledImpact = scheduledTransactionsByAccount[account.id];
+        accountBalance -= scheduledImpact;
+        console.log(`💰 Account ${account.account_name}: ${account.balance} -> ${accountBalance} (excluding scheduled: ${scheduledImpact})`);
+      }
       
       let convertedBalance = accountBalance;
       
