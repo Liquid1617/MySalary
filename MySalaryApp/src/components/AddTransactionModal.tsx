@@ -9,24 +9,16 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { colors } from '../styles';
 import { apiService } from '../services/api';
 import AccountCard from './AccountCard';
 import TransactionTypeTabs from './TransactionTypeTabs';
-
-interface Account {
-  id: number;
-  account_name: string;
-  account_type: string;
-  balance: string;
-  currency: {
-    symbol: string;
-    code: string;
-  };
-}
+import { Account, Category } from '../types/transaction';
 
 interface AccountForCard {
   id: string;
@@ -34,16 +26,6 @@ interface AccountForCard {
   type: string;
   balance: number;
   currency_symbol: string;
-}
-
-interface Category {
-  id: number;
-  name: string;
-  type: string;
-  icon: string;
-  color: string;
-  createdAt: string;
-  updatedAt: string;
 }
 
 interface AddTransactionModalProps {
@@ -73,6 +55,10 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [transactionDate, setTransactionDate] = useState(
+    new Date().toISOString().split('T')[0],
+  );
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -111,6 +97,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     setSelectedCategory(null);
     setAmount('');
     setDescription('');
+    setTransactionDate(new Date().toISOString().split('T')[0]);
   };
 
   const handleSubmit = async () => {
@@ -154,6 +141,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
           amount: numericAmount,
           transaction_type: 'transfer',
           description: description || '',
+          transaction_date: transactionDate,
         });
 
         console.log('Transfer completed successfully');
@@ -172,6 +160,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
           amount: numericAmount,
           transaction_type: transactionType,
           description: description || '',
+          transaction_date: transactionDate,
         });
       }
 
@@ -346,6 +335,24 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             />
           </View>
 
+          {/* Date */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Date</Text>
+            <TouchableOpacity
+              style={styles.selector}
+              onPress={() => setShowDatePicker(true)}>
+              <Text style={styles.selectorText}>
+                <FontAwesome5 name="calendar" size={16} color={colors.text} />{'  '}
+                {new Date(transactionDate).toLocaleDateString()}
+              </Text>
+              <FontAwesome5
+                name="chevron-right"
+                size={16}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          </View>
+
           {/* Submit Button */}
           <TouchableOpacity
             style={[
@@ -394,6 +401,47 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             </ScrollView>
           </SafeAreaView>
         </Modal>
+
+        {/* Date Picker Modal */}
+        {showDatePicker && (
+          <Modal
+            visible={showDatePicker}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setShowDatePicker(false)}>
+            <TouchableOpacity 
+              style={styles.datePickerOverlay} 
+              activeOpacity={1} 
+              onPress={() => setShowDatePicker(false)}>
+              <View style={styles.datePickerContainer}>
+                <View style={styles.datePickerHeader}>
+                  <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                    <Text style={styles.modalClose}>Cancel</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.datePickerTitle}>Select Date</Text>
+                  <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                    <Text style={styles.modalClose}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={new Date(transactionDate)}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(event, selectedDate) => {
+                    if (selectedDate) {
+                      setTransactionDate(selectedDate.toISOString().split('T')[0]);
+                    }
+                    if (Platform.OS === 'android') {
+                      setShowDatePicker(false);
+                    }
+                  }}
+                  minimumDate={new Date(Date.now() - 365 * 24 * 60 * 60 * 1000 * 3)} // 3 года назад
+                  maximumDate={new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)} // 1 год вперед
+                />
+              </View>
+            </TouchableOpacity>
+          </Modal>
+        )}
       </SafeAreaView>
     </Modal>
   );
@@ -526,5 +574,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  datePickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  datePickerContainer: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 20,
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  datePickerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
   },
 });

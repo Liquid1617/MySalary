@@ -18,6 +18,7 @@ import { BudgetResponse } from '../types/budget';
 import { TotalBudgetDonut } from '../components/TotalBudgetDonut';
 import { useUserCurrency } from '../hooks/useUserCurrency';
 import { formatBudgetCurrency as formatBudgetCurrencyUtil } from '../utils/currencyUtils';
+import { Transaction } from '../types/transaction';
 // Импорты стилей можно добавить при необходимости
 // import { SkiaChart } from '../components/SkiaChart';
 
@@ -45,25 +46,6 @@ interface CategorySpending {
   color: string;
   totalAmount: number;
   percentage: number;
-}
-
-interface Transaction {
-  id: number;
-  amount: number;
-  transaction_type: 'income' | 'expense';
-  created_at?: string;
-  createdAt?: string;
-  transaction_date?: string;
-  category: {
-    id: number;
-    category_name: string;
-    category_type: string;
-  };
-  account: {
-    currency: {
-      symbol: string;
-    };
-  };
 }
 
 interface StatisticsScreenProps {
@@ -187,10 +169,8 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({ route }) => 
       // Группируем транзакции по дням
       const dailyData = last7Days.map(date => {
         const dayTransactions = transactions.filter(t => {
-          // Используем transaction_date или createdAt от Sequelize
-          const transactionDate = new Date(
-            t.transaction_date || t.createdAt || '',
-          );
+          // Используем только transaction_date
+          const transactionDate = new Date(t.transaction_date);
           const matches =
             transactionDate.toDateString() === date.toDateString();
           return matches;
@@ -204,11 +184,11 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({ route }) => 
 
         const income = dayTransactions
           .filter(t => t.transaction_type === 'income')
-          .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
+          .reduce((sum, t) => sum + parseFloat(t.amount), 0);
 
         const expense = dayTransactions
           .filter(t => t.transaction_type === 'expense')
-          .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
+          .reduce((sum, t) => sum + parseFloat(t.amount), 0);
 
         console.log(
           `Date ${date.toDateString()}: income=${income}, expense=${expense}`,
@@ -288,14 +268,16 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({ route }) => 
       } = {};
 
       expenseTransactions.forEach(transaction => {
+        if (!transaction.category) return; // Skip transactions without categories
+        
         const categoryId = transaction.category.id;
-        const amount = parseFloat(transaction.amount.toString()) || 0;
+        const amount = parseFloat(transaction.amount) || 0;
 
         if (!categoryTotals[categoryId]) {
           categoryTotals[categoryId] = {
-            name: transaction.category.category_name,
+            name: transaction.category?.category_name || transaction.category?.name || '',
             total: 0,
-            icon: getCategoryIcon(transaction.category.category_name),
+            icon: getCategoryIcon(transaction.category?.category_name || transaction.category?.name || ''),
           };
         }
 

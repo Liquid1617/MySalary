@@ -9,13 +9,16 @@ import {
   StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
-import { Svg, Circle } from 'react-native-svg';
+import { useFocusEffect } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
+import { Svg, Circle, Defs, Mask, Rect } from 'react-native-svg';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { BudgetResponse } from '../types/budget';
 import { useBudgets } from '../hooks/useBudgets';
 import { apiService } from '../services/api';
 import { useUserCurrency } from '../hooks/useUserCurrency';
 import { formatBudgetCurrency as formatBudgetCurrencyUtil } from '../utils/currencyUtils';
+import { Transaction } from '../types/transaction';
 
 interface BudgetDetailScreenProps {
   route: {
@@ -26,22 +29,6 @@ interface BudgetDetailScreenProps {
   navigation: any;
 }
 
-interface Transaction {
-  id: string;
-  amount: number;
-  transaction_date: string;
-  category: {
-    category_name: string;
-    category_type: string;
-  };
-  account: {
-    account_name: string;
-    currency: {
-      symbol: string;
-    };
-  };
-}
-
 export const BudgetDetailScreen: React.FC<BudgetDetailScreenProps> = ({
   route,
   navigation,
@@ -50,14 +37,51 @@ export const BudgetDetailScreen: React.FC<BudgetDetailScreenProps> = ({
   const { budgetId } = route.params;
   const { data: budgets = [] } = useBudgets();
   const { formatCurrency } = useUserCurrency();
+  const queryClient = useQueryClient();
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
+  const [scheduledTransactions, setScheduledTransactions] = useState<Transaction[]>([]);
+  const [scheduledAmount, setScheduledAmount] = useState(0);
   const [loadingTransactions, setLoadingTransactions] = useState(false);
 
   const budget = budgets.find((b) => b.id === budgetId);
+  
 
   const formatBudgetCurrency = (amount: number) => {
-    if (!budget?.currency) return formatCurrency(amount);
-    return formatBudgetCurrencyUtil(amount, budget.currency, formatCurrency);
+    // Handle both string currency (from server) and currency object
+    const currencyCode = typeof budget?.currency === 'string' ? budget.currency : budget?.currency?.code;
+    
+    if (!currencyCode) {
+      return formatCurrency(amount);
+    }
+    
+    // Get the budget currency symbol
+    const symbolMap: { [key: string]: string } = {
+      'USD': '$',
+      'EUR': '€', 
+      'GBP': '£',
+      'RUB': '₽',
+      'JPY': '¥'
+    };
+    const symbol = symbolMap[currencyCode] || currencyCode;
+    
+    return `${amount.toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 1,
+    })} ${symbol}`;
+  };
+
+  const convertToBudgetCurrency = (amount: number, accountCurrency: any) => {
+    const numAmount = Number(amount);
+    const budgetCurrencyCode = typeof budget?.currency === 'string' ? budget.currency : budget?.currency?.code;
+    
+    // Simple conversion logic - in real app you'd use exchange rates
+    if (accountCurrency?.code === 'USD' && budgetCurrencyCode === 'EUR') {
+      return numAmount * 0.85; // Rough USD to EUR conversion
+    }
+    if (accountCurrency?.code === 'USD' && budgetCurrencyCode === 'GBP') {
+      return numAmount * 0.79; // Rough USD to GBP conversion
+    }
+    return numAmount;
   };
 
   useEffect(() => {
@@ -65,6 +89,19 @@ export const BudgetDetailScreen: React.FC<BudgetDetailScreenProps> = ({
       loadRecentTransactions();
     }
   }, [budget]);
+
+  // Refresh budget data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      // Invalidate budget cache to get fresh spending totals
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      
+      // Reload transactions as well
+      if (budget) {
+        loadRecentTransactions();
+      }
+    }, [budget, queryClient])
+  );
 
   const loadRecentTransactions = async () => {
     if (!budget) return;
@@ -88,12 +125,29 @@ export const BudgetDetailScreen: React.FC<BudgetDetailScreenProps> = ({
                t.transaction_type === 'expense';
       });
 
-      // Sort by date (newest first) and take only the 10 most recent
+      // Sort by date (newest first)
       const sortedTransactions = budgetTransactions
-        .sort((a, b) => new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime())
+        .sort((a, b) => new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime());
+
+      // Split into scheduled and posted transactions
+      const scheduledTransactions = sortedTransactions
+        .filter(t => t.status === 'scheduled')
+        .slice(0, 10);
+      
+      const postedTransactions = sortedTransactions
+        .filter(t => t.status === 'posted' || !t.status) // Include legacy transactions without status
         .slice(0, 10);
 
-      setRecentTransactions(sortedTransactions);
+      // Calculate scheduled amount in budget currency
+      const scheduledAmountSum = scheduledTransactions.reduce((sum, transaction) => {
+        // Convert to budget currency if needed
+        const convertedAmount = convertToBudgetCurrency(transaction.amount, transaction.account?.currency);
+        return sum + convertedAmount;
+      }, 0);
+
+      setScheduledTransactions(scheduledTransactions);
+      setRecentTransactions(postedTransactions);
+      setScheduledAmount(scheduledAmountSum);
     } catch (error) {
       console.error('Error loading budget transactions:', error);
     } finally {
@@ -149,26 +203,30 @@ export const BudgetDetailScreen: React.FC<BudgetDetailScreenProps> = ({
     );
   }
 
-  const progress = Math.min(budget.percent || 0, 100);
-  const isOverBudget = (budget.percent || 0) > 100;
+  const spentAmount = budget.spent_amount || 0;
+  const budgetAmount = budget.limit_amount || budget.amount || 1;
+  
+  const spentProgress = Math.min((spentAmount / budgetAmount) * 100, 100);
+  const scheduledProgress = Math.min((scheduledAmount / budgetAmount) * 100, 100);
+  const totalProgress = Math.min(spentProgress + scheduledProgress, 100);
+  
+  const isOverBudget = totalProgress > 100;
   const timeProgress = getTimeProgress();
   
   // Progress colors
-  const getProgressColor = (percent: number) => {
-    if (percent > 100) return '#E74C3C'; // Red for over budget
-    if (percent >= 80) return '#F1C40F'; // Yellow for 80-100%
-    return '#2ECC71'; // Green for 0-80%
-  };
-
-  const progressColor = getProgressColor(progress);
+  const spentColor = '#2ECC71'; // Green for spent
+  const scheduledColor = '#2ECC71'; // Same green but will be dashed
+  const overBudgetColor = '#E74C3C'; // Red for over budget
 
   // Hero donut calculations (160pt diameter)
   const donutSize = 160;
   const strokeWidth = 20;
   const radius = (donutSize - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const strokeDasharray = circumference;
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
+  
+  // Calculate stroke offsets for layered progress
+  const spentStrokeDasharray = circumference;
+  const spentStrokeDashoffset = circumference - (spentProgress / 100) * circumference;
 
   const daysLeft = () => {
     const end = new Date(budget.custom_end_date);
@@ -212,15 +270,32 @@ export const BudgetDetailScreen: React.FC<BudgetDetailScreenProps> = ({
                 strokeWidth={strokeWidth}
                 fill="none"
               />
-              {/* Progress circle */}
+              
+              {/* Scheduled portion - lighter green (total progress including spent) */}
+              {scheduledAmount > 0 && (
+                <Circle
+                  cx={donutSize / 2}
+                  cy={donutSize / 2}
+                  r={radius}
+                  stroke="#B8E6B8"
+                  strokeWidth={strokeWidth}
+                  strokeDasharray={circumference}
+                  strokeDashoffset={circumference - (totalProgress / 100) * circumference}
+                  strokeLinecap="round"
+                  fill="none"
+                  transform={`rotate(-90 ${donutSize / 2} ${donutSize / 2})`}
+                />
+              )}
+              
+              {/* Spent (solid green) circle on top */}
               <Circle
                 cx={donutSize / 2}
                 cy={donutSize / 2}
                 r={radius}
-                stroke={progressColor}
+                stroke={spentColor}
                 strokeWidth={strokeWidth}
-                strokeDasharray={strokeDasharray}
-                strokeDashoffset={strokeDashoffset}
+                strokeDasharray={spentStrokeDasharray}
+                strokeDashoffset={spentStrokeDashoffset}
                 strokeLinecap="round"
                 fill="none"
                 transform={`rotate(-90 ${donutSize / 2} ${donutSize / 2})`}
@@ -228,15 +303,23 @@ export const BudgetDetailScreen: React.FC<BudgetDetailScreenProps> = ({
             </Svg>
             {/* Center content */}
             <View style={styles.donutCenter}>
-              <Text style={[styles.percentageText, { color: progressColor }]}>
-                {Math.round(progress)}%
+              <Text style={[styles.percentageText, { color: spentColor }]}>
+                {Math.round(spentProgress)}%
               </Text>
-              <Text style={styles.percentageSubtext}>spent</Text>
+              <Text style={styles.percentageSubtext}>
+                {scheduledAmount > 0 ? `spent (+${Math.round(scheduledProgress)}%)` : 'spent'}
+              </Text>
             </View>
           </View>
           
           <Text style={styles.budgetAmount}>
-            {formatBudgetCurrency(budget.spent || 0)} / {formatBudgetCurrency(budget.limit_amount)}
+            {formatBudgetCurrency(spentAmount)}
+            {scheduledAmount > 0 && (
+              <Text style={[styles.budgetAmount, { opacity: 0.7, fontStyle: 'italic' }]}>
+                {' '}(+{formatBudgetCurrency(scheduledAmount)})
+              </Text>
+            )}
+            {' '}/ {formatBudgetCurrency(budgetAmount)}
           </Text>
         </View>
 
@@ -282,6 +365,40 @@ export const BudgetDetailScreen: React.FC<BudgetDetailScreenProps> = ({
           </View>
         </View>
 
+        {/* Expected Transactions */}
+        {scheduledTransactions.length > 0 && (
+          <View style={styles.transactionsSection}>
+            <Text style={styles.sectionTitle}>Expected Transactions</Text>
+            <View style={styles.transactionsList}>
+              {scheduledTransactions.map((transaction, index) => (
+                <View key={transaction.id}>
+                  <View style={styles.transactionItem}>
+                    <View style={styles.transactionInfo}>
+                      <Text style={styles.transactionCategory} numberOfLines={1}>
+                        {transaction.category?.category_name || 'Unknown'}
+                      </Text>
+                      <Text style={styles.transactionAccount} numberOfLines={1}>
+                        {transaction.account?.account_name || 'Unknown'}
+                      </Text>
+                    </View>
+                    <View style={styles.transactionAmountContainer}>
+                      <Text style={[styles.transactionAmount, styles.expectedAmount]}>
+                        -{transaction.account?.currency?.symbol || '$'}{Number(transaction.amount).toFixed(2)}
+                      </Text>
+                      <Text style={styles.transactionDate}>
+                        {formatDate(transaction.transaction_date)}
+                      </Text>
+                    </View>
+                  </View>
+                  {index < scheduledTransactions.length - 1 && (
+                    <View style={styles.separator} />
+                  )}
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
         {/* Recent Transactions */}
         <View style={styles.transactionsSection}>
           <Text style={styles.sectionTitle}>Recent Transactions</Text>
@@ -312,7 +429,7 @@ export const BudgetDetailScreen: React.FC<BudgetDetailScreenProps> = ({
                     </View>
                     <View style={styles.transactionAmountContainer}>
                       <Text style={styles.transactionAmount}>
-                        -{formatBudgetCurrency(transaction.amount)}
+                        -{transaction.account?.currency?.symbol || '$'}{Number(transaction.amount).toFixed(2)}
                       </Text>
                       <Text style={styles.transactionDate}>
                         {formatDate(transaction.transaction_date)}
@@ -544,6 +661,10 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: '#E5E5EA',
+  },
+  expectedAmount: {
+    opacity: 0.7,
+    fontStyle: 'italic',
   },
   errorContainer: {
     flex: 1,

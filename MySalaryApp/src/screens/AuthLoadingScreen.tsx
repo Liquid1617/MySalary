@@ -18,10 +18,16 @@ export const AuthLoadingScreen: React.FC<AuthLoadingScreenProps> = ({
 
   const checkAuthAndNavigate = async () => {
     try {
+      console.log('=== AuthLoadingScreen: Checking auth status ===');
+      const storedToken = await apiService.getStoredToken();
+      console.log('Stored token:', storedToken ? 'exists' : 'not found');
+      
       const isAuthenticated = await apiService.checkAuthStatus();
+      console.log('Is authenticated:', isAuthenticated);
 
       if (!isAuthenticated) {
         // Если пользователь не авторизован, переходим на логин
+        console.log('User not authenticated, navigating to Login');
         setTimeout(() => {
           navigation.reset({
             index: 0,
@@ -64,7 +70,9 @@ export const AuthLoadingScreen: React.FC<AuthLoadingScreenProps> = ({
         }, 1000);
       }
     } catch (error) {
-      console.error('Ошибка проверки авторизации:', error);
+      console.error('=== AuthLoadingScreen: Auth check error ===');
+      console.error('Error details:', error);
+      console.log('Navigating to Login due to error');
       setTimeout(() => {
         navigation.reset({
           index: 0,

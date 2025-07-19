@@ -18,46 +18,8 @@ import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { apiService } from '../services/api';
 import { Colors } from '../styles/colors';
 import { getAccountTypeIcon } from '../utils/accountTypeIcon';
+import { Transaction, Account } from '../types/transaction';
 
-interface Account {
-  id: number;
-  account_name: string;
-  account_type: string;
-  balance: string;
-  currency: {
-    id: number;
-    code: string;
-    name: string;
-    symbol: string;
-  };
-}
-
-interface Transaction {
-  id: number;
-  amount: string;
-  description: string;
-  transaction_date: string;
-  transaction_type: 'income' | 'expense' | 'transfer';
-  category?: {
-    id: number;
-    name: string;
-    category_name: string;
-    category_type: string;
-    icon: string;
-    color: string;
-  };
-  account: {
-    id: number;
-    account_name: string;
-    account_type: string;
-  };
-  targetAccount?: {
-    id: number;
-    account_name: string;
-    account_type: string;
-    is_active: boolean;
-  };
-}
 
 // Function to get category icon and color for transactions
 const getCategoryIcon = (categoryName: string, categoryType: string) => {

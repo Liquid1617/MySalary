@@ -37,6 +37,7 @@ import {
   formatCurrencyCompact,
 } from '../utils/formatCurrency';
 import { getAccountTypeIcon } from '../utils/accountTypeIcon';
+import { Transaction } from '../types/transaction';
 
 // Helper functions for greeting and date
 const getTimeBasedGreeting = () => {
@@ -91,7 +92,7 @@ const convertCurrency = (
 
 // Functions to calculate monthly totals from transactions in user's currency
 const calculateMonthlyTotals = (
-  transactions: any[],
+  transactions: Transaction[],
   userCurrency: Currency | undefined,
 ) => {
   const currentDate = new Date();
@@ -130,7 +131,7 @@ const calculateMonthlyTotals = (
 
 // Function to calculate previous month totals for comparison in user's currency
 const calculatePreviousMonthTotals = (
-  transactions: any[],
+  transactions: Transaction[],
   userCurrency: Currency | undefined,
 ) => {
   const currentDate = new Date();
@@ -173,7 +174,7 @@ const calculatePreviousMonthTotals = (
 
 // Function to calculate net worth change percentage
 const calculateNetWorthChange = (
-  transactions: any[],
+  transactions: Transaction[],
   userCurrency: Currency | undefined,
 ) => {
   const { monthlyIncome, monthlyExpenses } = calculateMonthlyTotals(
@@ -264,7 +265,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
   const [biometricCapability, setBiometricCapability] =
     useState<BiometricCapability | null>(null);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(false);
   const [netWorth, setNetWorth] = useState<any>(null);
   const [netWorthLoading, setNetWorthLoading] = useState(false);
@@ -359,7 +360,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
   const loadTransactions = async () => {
     try {
       setTransactionsLoading(true);
-      const transactionsData = await apiService.get<any[]>('/transactions');
+      const transactionsData = await apiService.get<Transaction[]>('/transactions');
       setTransactions(transactionsData || []);
     } catch (error) {
       // Тихо обрабатываем ошибку без вывода в консоль
@@ -434,16 +435,44 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
       yesterday.getDate(),
     );
 
+    // Проверяем, является ли дата будущей
+    const isFuture = transactionDateOnly.getTime() > todayOnly.getTime();
+
     if (transactionDateOnly.getTime() === todayOnly.getTime()) {
       return 'Today';
     } else if (transactionDateOnly.getTime() === yesterdayOnly.getTime()) {
       return 'Yesterday';
+    } else if (isFuture) {
+      const formatted = transactionDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      });
+      return `📅 ${formatted}`;  // Добавляем иконку календаря для будущих дат
     } else {
       return transactionDate.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
       });
     }
+  };
+
+  // Функция для проверки, является ли транзакция запланированной
+  const isTransactionFuture = (dateString: string) => {
+    const transactionDate = new Date(dateString);
+    const today = new Date();
+    
+    const transactionDateOnly = new Date(
+      transactionDate.getFullYear(),
+      transactionDate.getMonth(),
+      transactionDate.getDate(),
+    );
+    const todayOnly = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+    
+    return transactionDateOnly.getTime() > todayOnly.getTime();
   };
 
   const getCategoryIcon = (categoryName: string, categoryType: string) => {
@@ -1309,10 +1338,22 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                     // Check if account is deactivated
                     const isAccountDeactivated =
                       !transaction.account?.is_active;
+                    const isFuture = isTransactionFuture(transaction.transaction_date);
                     const opacity = isAccountDeactivated ? 0.5 : 1.0;
 
                     return (
-                      <View key={transaction.id} style={{ opacity }}>
+                      <View 
+                        key={transaction.id} 
+                        style={{ 
+                          opacity,
+                          backgroundColor: isFuture ? '#F3F4F6' : 'transparent',
+                          borderRadius: isFuture ? 8 : 0,
+                          borderLeftWidth: isFuture ? 3 : 0,
+                          borderLeftColor: isFuture ? '#3B82F6' : 'transparent',
+                          paddingHorizontal: isFuture ? 8 : 0,
+                          marginVertical: isFuture ? 2 : 0,
+                        }}
+                      >
                         <TouchableOpacity
                           style={{
                             flexDirection: 'row',

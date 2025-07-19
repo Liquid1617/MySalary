@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// const API_BASE_URL = 'http://localhost:3001/api'; // Для iOS simulator (не работает)
-const API_BASE_URL = 'http://127.0.0.1:3001/api'; // Для iOS simulator
+// For iOS Simulator, use your machine's IP address
+const API_BASE_URL = 'http://192.168.100.24:3002/api';
+// const API_BASE_URL = 'http://localhost:3002/api'; // Only works for Android emulator on same machine
 
 interface LoginRequest {
   email: string;
@@ -77,15 +78,29 @@ class ApiService {
     };
 
     try {
+      console.log(`=== API REQUEST ${options.method || 'GET'} ===`);
+      console.log('URL:', url);
+      console.log('Has token:', !!token);
+      console.log('Config:', JSON.stringify(config, null, 2));
+
       const response = await fetch(url, config);
+      
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
       const data = await response.json();
+      console.log('Response data:', JSON.stringify(data, null, 2));
 
       if (!response.ok) {
+        console.error('Request failed with:', data);
         throw new Error(data.error || 'Ошибка сервера');
       }
 
       return data as T;
     } catch (error) {
+      console.error('=== API REQUEST ERROR ===');
+      console.error('URL:', url);
+      console.error('Error:', error);
       if (error instanceof Error) {
         throw error;
       }
@@ -168,16 +183,23 @@ class ApiService {
 
   async checkAuthStatus(): Promise<boolean> {
     try {
+      console.log('=== API checkAuthStatus ===');
       const token = await this.getStoredToken();
+      console.log('Token check:', token ? 'exists' : 'not found');
       if (!token) {
+        console.log('No token found, returning false');
         return false;
       }
 
       // Проверяем валидность токена через API
+      console.log('Making getCurrentUser request...');
       await this.getCurrentUser();
+      console.log('getCurrentUser successful, user is authenticated');
       return true;
     } catch (error) {
+      console.error('checkAuthStatus error:', error);
       // Если токен невалидный, очищаем хранилище
+      console.log('Clearing token due to error');
       await this.logout();
       return false;
     }
@@ -292,6 +314,26 @@ class ApiService {
       balance: number;
       currency: { id: number; code: string; name: string; symbol: string };
     }>(`/accounts/${accountId}/balance`);
+  }
+
+  async confirmTransaction(transactionId: number, mode: 'today' | 'scheduledDate'): Promise<any> {
+    return this.request(`/transactions/${transactionId}/confirm`, {
+      method: 'PATCH',
+      body: JSON.stringify({ mode }),
+    });
+  }
+
+  async updateTransactionDate(transactionId: number, newDate: string): Promise<any> {
+    return this.request(`/transactions/${transactionId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ transaction_date: newDate }),
+    });
+  }
+
+  async unconfirmTransaction(transactionId: number): Promise<any> {
+    return this.request(`/transactions/${transactionId}/unconfirm`, {
+      method: 'PATCH',
+    });
   }
 }
 

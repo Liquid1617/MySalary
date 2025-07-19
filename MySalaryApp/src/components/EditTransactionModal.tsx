@@ -9,42 +9,15 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { colors } from '../styles';
 import { apiService } from '../services/api';
 import AccountCard from './AccountCard';
-
-interface Transaction {
-  id: number;
-  amount: string;
-  description: string;
-  transaction_type: 'income' | 'expense' | 'transfer';
-  account: {
-    id: number;
-    account_name: string;
-  };
-  category?: {
-    id: number;
-    category_name: string;
-  };
-  transfer_to_account?: {
-    id: number;
-    account_name: string;
-  };
-}
-
-interface Account {
-  id: number;
-  account_name: string;
-  account_type: string;
-  balance: string;
-  currency: {
-    symbol: string;
-    code: string;
-  };
-}
+import { Transaction, Account, Category } from '../types/transaction';
 
 interface AccountForCard {
   id: string;
@@ -52,14 +25,6 @@ interface AccountForCard {
   type: string;
   balance: number;
   currency_symbol: string;
-}
-
-interface Category {
-  id: number;
-  category_name: string;
-  name: string;
-  category_type: string;
-  icon: string;
 }
 
 interface EditTransactionModalProps {
@@ -88,12 +53,17 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [transactionDate, setTransactionDate] = useState(
+    new Date().toISOString().split('T')[0],
+  );
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const populateForm = useCallback(() => {
     if (!transaction) return;
 
     setAmount(transaction.amount);
     setDescription(transaction.description || '');
+    setTransactionDate(transaction.transaction_date || new Date().toISOString().split('T')[0]);
 
     // Will be set once accounts/categories are loaded in useEffect below
   }, [transaction]);
@@ -186,6 +156,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
         amount: numericAmount,
         transaction_type: transaction.transaction_type,
         description: description || '',
+        transaction_date: transactionDate,
       });
 
       Alert.alert('Success', 'Transaction updated successfully');
@@ -231,7 +202,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
 
   const isTransfer = transaction.transaction_type === 'transfer';
   const filteredCategories = categories.filter(
-    category => category.category_type === transaction.transaction_type,
+    category => (category.category_type || category.type) === transaction.transaction_type,
   );
   const availableToAccounts = accounts.filter(
     account => account.id !== selectedAccount?.id,
@@ -363,7 +334,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                   ]}>
                   {selectedCategory
                     ? `${selectedCategory.icon} ${
-                        selectedCategory.category_name || selectedCategory.name
+                        selectedCategory.category_name || selectedCategory.name || ''
                       }`
                     : 'Select Category'}
                 </Text>
@@ -401,6 +372,24 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
               multiline
               numberOfLines={3}
             />
+          </View>
+
+          {/* Date */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Date</Text>
+            <TouchableOpacity
+              style={styles.selector}
+              onPress={() => setShowDatePicker(true)}>
+              <Text style={styles.selectorText}>
+                <FontAwesome5 name="calendar" size={16} color={colors.text} />{'  '}
+                {new Date(transactionDate).toLocaleDateString()}
+              </Text>
+              <FontAwesome5
+                name="chevron-right"
+                size={16}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
           </View>
 
           {/* Update Button */}
@@ -450,6 +439,47 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
             </ScrollView>
           </SafeAreaView>
         </Modal>
+
+        {/* Date Picker Modal */}
+        {showDatePicker && (
+          <Modal
+            visible={showDatePicker}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setShowDatePicker(false)}>
+            <TouchableOpacity 
+              style={styles.datePickerOverlay} 
+              activeOpacity={1} 
+              onPress={() => setShowDatePicker(false)}>
+              <View style={styles.datePickerContainer}>
+                <View style={styles.datePickerHeader}>
+                  <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                    <Text style={styles.modalClose}>Cancel</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.datePickerTitle}>Select Date</Text>
+                  <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                    <Text style={styles.modalClose}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={new Date(transactionDate)}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(event, selectedDate) => {
+                    if (selectedDate) {
+                      setTransactionDate(selectedDate.toISOString().split('T')[0]);
+                    }
+                    if (Platform.OS === 'android') {
+                      setShowDatePicker(false);
+                    }
+                  }}
+                  minimumDate={new Date(Date.now() - 365 * 24 * 60 * 60 * 1000 * 3)} // 3 года назад
+                  maximumDate={new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)} // 1 год вперед
+                />
+              </View>
+            </TouchableOpacity>
+          </Modal>
+        )}
       </SafeAreaView>
     </Modal>
   );
@@ -602,5 +632,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  datePickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  datePickerContainer: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 20,
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  datePickerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
   },
 });

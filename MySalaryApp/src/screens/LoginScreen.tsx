@@ -10,6 +10,7 @@ import {
   SafeAreaView,
   TextInput,
 } from 'react-native';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { loginScreenStyles, layoutStyles, typographyStyles } from '../styles';
 import { CustomInput } from '../components/CustomInput';
 import { CustomButton } from '../components/CustomButton';
@@ -27,6 +28,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const validateEmail = (emailValue: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -255,32 +257,51 @@ Error: ${capability.error || 'None'}`;
 
               {/* Password Input */}
               <View style={{ marginBottom: 32 }}>
-                <TextInput
+                <View
                   style={{
                     borderWidth: 1,
                     borderColor: passwordError ? '#EF4444' : '#E5E5EA',
                     borderRadius: 16,
-                    paddingHorizontal: 20,
-                    paddingVertical: 18,
-                    fontSize: 16,
-                    fontFamily: 'Commissioner-Regular',
                     backgroundColor: '#FFFFFF',
-                    color: '#252234',
-                  }}
-                  value={password}
-                  onChangeText={text => {
-                    setPassword(text);
-                    if (passwordError) {
-                      validatePassword(text);
-                    }
-                  }}
-                  placeholder="Password"
-                  placeholderTextColor="#999999"
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  textContentType="password"
-                />
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }}>
+                  <TextInput
+                    style={{
+                      flex: 1,
+                      paddingHorizontal: 20,
+                      paddingVertical: 18,
+                      fontSize: 16,
+                      fontFamily: 'Commissioner-Regular',
+                      color: '#252234',
+                    }}
+                    value={password}
+                    onChangeText={text => {
+                      setPassword(text);
+                      if (passwordError) {
+                        validatePassword(text);
+                      }
+                    }}
+                    placeholder="Password"
+                    placeholderTextColor="#999999"
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    textContentType="password"
+                  />
+                  <TouchableOpacity
+                    style={{
+                      paddingHorizontal: 20,
+                      paddingVertical: 18,
+                    }}
+                    onPress={() => setShowPassword(!showPassword)}>
+                    <FontAwesome5
+                      name={showPassword ? 'eye-slash' : 'eye'}
+                      size={20}
+                      color="#999999"
+                    />
+                  </TouchableOpacity>
+                </View>
                 {passwordError ? (
                   <Text
                     style={{
