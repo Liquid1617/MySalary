@@ -157,10 +157,8 @@ module.exports = (sequelize, DataTypes) => {
           if (!transaction.transfer_to) {
             throw new Error('Transfer transactions must have transfer_to account specified');
           }
-          return;
-        }
-        
-        if (transaction.changed('category_id') || transaction.changed('transaction_type')) {
+          // Не проверяем категории для transfer, переходим к обновлению баланса
+        } else if (transaction.changed('category_id') || transaction.changed('transaction_type')) {
           // Для обычных транзакций проверяем категорию
           if (!transaction.category_id) {
             throw new Error('Non-transfer transactions must have a category');
@@ -173,6 +171,9 @@ module.exports = (sequelize, DataTypes) => {
             throw new Error(`Category type '${category.category_type}' does not match transaction type '${transaction.transaction_type}'`);
           }
         }
+        
+        // Баланс обновляется в endpoints transactions.js, не в hooks
+        // чтобы избежать дублирования логики
       }
     }
   });

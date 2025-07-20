@@ -4,10 +4,17 @@ module.exports = {
   async up(queryInterface, Sequelize) {
     console.log('🗓️ Removing future date constraint to allow scheduled transactions...');
     
-    // Удаляем ограничение, запрещающее будущие даты
-    await queryInterface.removeConstraint('Transactions', 'transaction_date_not_future');
-    
-    console.log('✅ Future date constraint removed - scheduled transactions now allowed');
+    try {
+      // Удаляем ограничение, запрещающее будущие даты
+      await queryInterface.removeConstraint('Transactions', 'transaction_date_not_future');
+      console.log('✅ Future date constraint removed - scheduled transactions now allowed');
+    } catch (error) {
+      if (error.message.includes('does not exist') || error.message.includes('Unknown constraint')) {
+        console.log('⚠️ Constraint transaction_date_not_future does not exist - already removed');
+      } else {
+        throw error;
+      }
+    }
   },
 
   async down(queryInterface, Sequelize) {

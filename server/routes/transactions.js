@@ -8,11 +8,17 @@ router.get('/', auth, async (req, res) => {
   try {
     console.log('🔍 Fetching transactions with ORDER BY createdAt DESC');
     
-    // Добавляем опциональную фильтрацию по дате
-    const { excludeFuture, maxDate } = req.query;
+    // Добавляем опциональную фильтрацию по дате и статусу
+    const { excludeFuture, maxDate, status } = req.query;
     const whereConditions = { 
       '$account.user_id$': req.user.id 
     };
+    
+    // Фильтрация по статусу
+    if (status && ['scheduled', 'posted'].includes(status)) {
+      whereConditions.status = status;
+      console.log(`📊 Filtering transactions by status: ${status}`);
+    }
     
     // Если запрошено исключение будущих транзакций или указана максимальная дата
     if (excludeFuture === 'true' || maxDate) {
@@ -154,6 +160,12 @@ router.post('/', auth, async (req, res) => {
     const today = new Date().toISOString().slice(0, 10);
     const isScheduled = transactionDate > today;
     
+    console.log('\n=== TRANSACTION DATE ANALYSIS ===');
+    console.log('Today:', today);
+    console.log('Transaction date:', transactionDate);
+    console.log('Is scheduled (future date)?:', isScheduled);
+    console.log('===============================');
+    
     // Подготавливаем данные для создания транзакции
     const transactionData = {
       user_id: req.user.id,
@@ -177,10 +189,17 @@ router.post('/', auth, async (req, res) => {
     // Создаем транзакцию
     const transaction = await Transaction.create(transactionData);
 
-    console.log('Транзакция создана:', transaction.id);
+    console.log('\n=== TRANSACTION CREATED ===');
+    console.log('ID:', transaction.id);
+    console.log('Status:', transaction.status);
+    console.log('Type:', transaction.transaction_type);
+    console.log('Amount:', transaction.amount);
+    console.log('Scheduled?:', transaction.status === 'scheduled');
 
     // Обновляем балансы только для posted транзакций (не scheduled)
     const shouldUpdateBalance = transaction.status === 'posted';
+    console.log('shouldUpdateBalance:', shouldUpdateBalance);
+    console.log('Account balance before updates:', account.balance);
     
     if (shouldUpdateBalance && transaction_type === 'transfer') {
       // Для transfer обновляем оба счёта
@@ -218,13 +237,21 @@ router.post('/', auth, async (req, res) => {
     } else if (shouldUpdateBalance) {
       // Для обычных транзакций обновляем один счёт
       const balanceChange = transaction_type === 'income' ? amount : -amount;
+      const oldBalance = parseFloat(account.balance);
+      const newBalance = oldBalance + parseFloat(balanceChange);
+      
+      console.log(`CREATING ${transaction_type.toUpperCase()}: Account ${account.account_name}`);
+      console.log(`  Balance before: ${oldBalance}`);
+      console.log(`  Balance change: ${balanceChange}`);
+      console.log(`  Balance after: ${newBalance}`);
+      
       await account.update({
-        balance: parseFloat(account.balance) + parseFloat(balanceChange)
+        balance: newBalance
       });
 
-      console.log('Баланс счета обновлен:', account.balance, '->', parseFloat(account.balance) + parseFloat(balanceChange));
+      console.log('✅ Баланс счета обновлен при создании:', oldBalance, '->', newBalance);
     } else {
-      console.log('Запланированная транзакция создана, баланс не изменен (будущая дата)');
+      console.log('❌ Запланированная транзакция создана, баланс НЕ изменен');
     }
 
     // Получаем созданную транзакцию с включенными данными
@@ -450,6 +477,11 @@ router.patch('/:id/confirm', auth, async (req, res) => {
     const { id } = req.params;
     const { mode } = req.body;
 
+    console.log(`\n=== CONFIRM TRANSACTION START ===`);
+    console.log(`Transaction ID: ${id}`);
+    console.log(`Mode: ${mode}`);
+    console.log(`User ID: ${req.user.id}`);
+
     // Валидация параметра mode
     if (!mode || !['today', 'scheduledDate'].includes(mode)) {
       return res.status(400).json({ message: 'Параметр mode должен быть "today" или "scheduledDate"' });
@@ -474,6 +506,14 @@ router.patch('/:id/confirm', auth, async (req, res) => {
       ]
     });
 
+    console.log(`Found transaction:`, {
+      id: transaction?.id,
+      status: transaction?.status,
+      type: transaction?.transaction_type,
+      amount: transaction?.amount,
+      account_balance_before: transaction?.account?.balance
+    });
+
     if (!transaction) {
       return res.status(404).json({ message: 'Транзакция не найдена' });
     }
@@ -492,6 +532,8 @@ router.patch('/:id/confirm', auth, async (req, res) => {
       newDate = today;
     }
 
+    console.log(`Updating transaction status to posted...`);
+    
     // Обновляем транзакцию
     await transaction.update({
       status: 'posted',
@@ -499,7 +541,10 @@ router.patch('/:id/confirm', auth, async (req, res) => {
       transaction_date: newDate
     });
 
-    // Обновляем балансы счетов
+    console.log(`Transaction status updated. Current account balance: ${transaction.account.balance}`);
+
+    // Обновляем балансы счетов при подтверждении scheduled транзакции
+    console.log(`Starting balance update for ${transaction.transaction_type} transaction...`);
     if (transaction.transaction_type === 'transfer') {
       // Для transfer обновляем оба счёта
       const transferAmount = parseFloat(transaction.amount);
@@ -531,17 +576,31 @@ router.patch('/:id/confirm', auth, async (req, res) => {
           balance: parseFloat(transaction.targetAccount.balance) + targetAmount
         });
       }
+      
+      console.log(`Transfer подтвержден: ${transaction.account.account_name} (-${transferAmount}) -> ${transaction.targetAccount?.account_name} (+${targetAmount})`);
     } else if (transaction.transaction_type === 'income') {
       // Для income увеличиваем баланс
       await transaction.account.update({
         balance: parseFloat(transaction.account.balance) + parseFloat(transaction.amount)
       });
+      console.log(`Income подтвержден: ${transaction.account.account_name} +${transaction.amount}`);
     } else if (transaction.transaction_type === 'expense') {
       // Для expense уменьшаем баланс
+      const oldBalance = parseFloat(transaction.account.balance);
+      const newBalance = oldBalance - parseFloat(transaction.amount);
+      
+      console.log(`EXPENSE: Account ${transaction.account.account_name}`);
+      console.log(`  Balance before: ${oldBalance}`);
+      console.log(`  Transaction amount: ${transaction.amount}`);
+      console.log(`  Balance after: ${newBalance}`);
+      
       await transaction.account.update({
-        balance: parseFloat(transaction.account.balance) - parseFloat(transaction.amount)
+        balance: newBalance
       });
+      console.log(`Expense подтвержден: ${transaction.account.account_name} ${oldBalance} -> ${newBalance}`);
     }
+
+    console.log(`=== CONFIRM TRANSACTION END ===\n`);
 
     // Возвращаем обновленную транзакцию
     const updatedTransaction = await Transaction.findByPk(id, {

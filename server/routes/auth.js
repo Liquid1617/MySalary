@@ -267,20 +267,20 @@ router.post('/register', async (req, res) => {
 // Авторизация пользователя
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
     // Проверка обязательных полей
-    if (!email || !password) {
+    if (!username || !password) {
       return res.status(400).json({ 
-        error: 'Email и пароль обязательны' 
+        error: 'Username и пароль обязательны' 
       });
     }
 
-    // Поиск пользователя
-    const user = await User.findOne({ where: { email } });
+    // Поиск пользователя по логину
+    const user = await User.findOne({ where: { login: username } });
     if (!user) {
       return res.status(401).json({ 
-        error: 'Неверный email или пароль' 
+        error: 'Неверный username или пароль' 
       });
     }
 
@@ -288,13 +288,22 @@ router.post('/login', async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({ 
-        error: 'Неверный email или пароль' 
+        error: 'Неверный username или пароль' 
       });
     }
 
+    // Получаем пользователя с валютой для ответа
+    const userWithCurrency = await User.findByPk(user.id, {
+      include: [{
+        model: Currency,
+        as: 'primaryCurrency',
+        attributes: ['id', 'code', 'name', 'symbol']
+      }]
+    });
+
     // Создание JWT токена
     const token = jwt.sign(
-      { id: user.id, email: user.email },
+      { id: user.id, login: user.login },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -302,10 +311,14 @@ router.post('/login', async (req, res) => {
     res.json({
       message: 'Авторизация прошла успешно',
       user: {
-        id: user.id,
-        name: user.name,
-        login: user.login,
-        email: user.email
+        id: userWithCurrency.id,
+        name: userWithCurrency.name,
+        login: userWithCurrency.login,
+        email: userWithCurrency.email,
+        phone: userWithCurrency.phone,
+        country_id: userWithCurrency.country_id,
+        primary_currency_id: userWithCurrency.primary_currency_id,
+        primaryCurrency: userWithCurrency.primaryCurrency
       },
       token
     });

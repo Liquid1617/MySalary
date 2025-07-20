@@ -206,16 +206,22 @@ export const BudgetDetailScreen: React.FC<BudgetDetailScreenProps> = ({
   const spentAmount = budget.spent_amount || 0;
   const budgetAmount = budget.limit_amount || budget.amount || 1;
   
-  const spentProgress = Math.min((spentAmount / budgetAmount) * 100, 100);
-  const scheduledProgress = Math.min((scheduledAmount / budgetAmount) * 100, 100);
-  const totalProgress = Math.min(spentProgress + scheduledProgress, 100);
+  const spentProgress = (spentAmount / budgetAmount) * 100; // Don't cap at 100% for calculation
+  const scheduledProgress = (scheduledAmount / budgetAmount) * 100; // Don't cap at 100% for calculation
+  const totalProgress = spentProgress + scheduledProgress;
   
   const isOverBudget = totalProgress > 100;
   const timeProgress = getTimeProgress();
   
-  // Progress colors
-  const spentColor = '#2ECC71'; // Green for spent
-  const scheduledColor = '#2ECC71'; // Same green but will be dashed
+  // Progress colors based on budget card logic
+  const getProgressColor = (percent: number) => {
+    if (percent > 100) return '#FF4C4C'; // Red for over budget
+    if (percent >= 80) return '#FFBD2F'; // Yellow for 80-100%
+    return '#2ECC71'; // Green for 0-80%
+  };
+  
+  const spentColor = getProgressColor(spentProgress);
+  const scheduledColor = '#2ECC71'; // Keep scheduled as green always
   const overBudgetColor = '#E74C3C'; // Red for over budget
 
   // Hero donut calculations (160pt diameter)
@@ -226,7 +232,10 @@ export const BudgetDetailScreen: React.FC<BudgetDetailScreenProps> = ({
   
   // Calculate stroke offsets for layered progress
   const spentStrokeDasharray = circumference;
-  const spentStrokeDashoffset = circumference - (spentProgress / 100) * circumference;
+  // Cap the visual progress at 100% for the circle display
+  const visualSpentProgress = Math.min(spentProgress, 100);
+  const visualTotalProgress = Math.min(totalProgress, 100);
+  const spentStrokeDashoffset = circumference - (visualSpentProgress / 100) * circumference;
 
   const daysLeft = () => {
     const end = new Date(budget.custom_end_date);
@@ -280,7 +289,7 @@ export const BudgetDetailScreen: React.FC<BudgetDetailScreenProps> = ({
                   stroke="#B8E6B8"
                   strokeWidth={strokeWidth}
                   strokeDasharray={circumference}
-                  strokeDashoffset={circumference - (totalProgress / 100) * circumference}
+                  strokeDashoffset={circumference - (visualTotalProgress / 100) * circumference}
                   strokeLinecap="round"
                   fill="none"
                   transform={`rotate(-90 ${donutSize / 2} ${donutSize / 2})`}
@@ -328,7 +337,7 @@ export const BudgetDetailScreen: React.FC<BudgetDetailScreenProps> = ({
           <View style={styles.kpiCard}>
             <Text style={styles.kpiTitle}>Remaining</Text>
             <Text style={[styles.kpiValue, { color: isOverBudget ? '#E74C3C' : '#2ECC71' }]}>
-              {formatBudgetCurrency(Math.abs(budget.limit_amount - (budget.spent || 0)))}
+              {isOverBudget ? '-' : ''}{formatBudgetCurrency(Math.abs(budgetAmount - spentAmount))}
             </Text>
           </View>
           

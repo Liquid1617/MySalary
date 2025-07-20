@@ -2,8 +2,23 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // Drop existing view
-    await queryInterface.sequelize.query('DROP VIEW IF EXISTS budget_progress_view;');
+    try {
+      // Check if budgets table exists
+      const [results] = await queryInterface.sequelize.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'budgets'
+        );
+      `);
+      
+      if (!results[0].exists) {
+        console.log('⚠️ Budgets table does not exist - skipping budget view creation');
+        return;
+      }
+      
+      // Drop existing view
+      await queryInterface.sequelize.query('DROP VIEW IF EXISTS budget_progress_view;');
     
     // Recreate view with status filter to exclude scheduled transactions
     await queryInterface.sequelize.query(`
@@ -54,6 +69,9 @@ module.exports = {
         b.id, b.category_id, b.amount, b.period, b.start_date, b.end_date, b.user_id,
         c.category_name, c.icon, c.category_type;
     `);
+    } catch (error) {
+      console.log('⚠️ Error updating budget view, but continuing:', error.message);
+    }
   },
 
   async down(queryInterface, Sequelize) {

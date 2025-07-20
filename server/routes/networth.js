@@ -214,6 +214,12 @@ router.get('/chart', authMiddleware, async (req, res) => {
 // GET /api/networth - get user's total balance in primary currency
 router.get('/', authMiddleware, async (req, res) => {
   try {
+    const validateBalances = req.query.validate === 'true';
+    
+    if (validateBalances) {
+      console.log('🔍 VALIDATION MODE ENABLED - Checking balance integrity');
+    }
+    
     // Получаем пользователя с его основной валютой
     const user = await User.findByPk(req.user.id, {
       include: [
@@ -273,51 +279,68 @@ router.get('/', authMiddleware, async (req, res) => {
     let totalNetWorth = 0;
     const accountsData = [];
 
-    // Получаем будущие транзакции для корректировки балансов
-    const today = new Date().toISOString().slice(0, 10);
-    const { Op } = require('sequelize');
-    
-    const scheduledTransactions = await Transaction.findAll({
-      where: {
-        '$account.user_id$': req.user.id,
-        status: 'scheduled' // Используем статус вместо даты
-      },
-      include: [{
-        model: Account,
-        as: 'account',
-        where: { is_active: true }
-      }]
-    });
-
-    // Группируем scheduled транзакции по счетам
-    const scheduledTransactionsByAccount = {};
-    for (const transaction of scheduledTransactions) {
-      const accountId = transaction.account_id;
-      if (!scheduledTransactionsByAccount[accountId]) {
-        scheduledTransactionsByAccount[accountId] = 0;
-      }
-      
-      // Вычисляем влияние scheduled транзакции на баланс
-      const impact = transaction.transaction_type === 'income' 
-        ? parseFloat(transaction.amount) 
-        : -parseFloat(transaction.amount);
-      
-      scheduledTransactionsByAccount[accountId] += impact;
-    }
-
-    console.log('📊 Scheduled transactions impact by account:', scheduledTransactionsByAccount);
+    // Scheduled транзакции не должны влиять на текущий баланс счетов
+    // Баланс счета должен отражать только posted транзакции
 
     // Конвертируем каждый счет в основную валюту
     for (const account of accounts) {
       const accountCurrency = account.currency.code;
       let accountBalance = parseFloat(account.balance) || 0;
       
-      // Корректируем баланс, исключая scheduled транзакции
-      if (scheduledTransactionsByAccount[account.id]) {
-        const scheduledImpact = scheduledTransactionsByAccount[account.id];
-        accountBalance -= scheduledImpact;
-        console.log(`💰 Account ${account.account_name}: ${account.balance} -> ${accountBalance} (excluding scheduled: ${scheduledImpact})`);
+      // Validation mode: recalculate expected balance from posted transactions
+      let expectedBalance = null;
+      let balanceDiscrepancy = 0;
+      
+      if (validateBalances) {
+        // Calculate expected balance from posted transactions only
+        const postedTransactions = await Transaction.findAll({
+          where: {
+            account_id: account.id,
+            status: 'posted'
+          }
+        });
+        
+        expectedBalance = 0;
+        for (const transaction of postedTransactions) {
+          const amount = parseFloat(transaction.amount) || 0;
+          if (transaction.transaction_type === 'income') {
+            expectedBalance += amount;
+          } else if (transaction.transaction_type === 'expense') {
+            expectedBalance -= amount;
+          } else if (transaction.transaction_type === 'transfer') {
+            if (transaction.account_id === account.id) {
+              expectedBalance -= amount; // Outgoing transfer
+            }
+          }
+        }
+        
+        // Handle incoming transfers
+        const incomingTransfers = await Transaction.findAll({
+          where: {
+            transfer_to: account.id,
+            status: 'posted'
+          }
+        });
+        
+        for (const transfer of incomingTransfers) {
+          expectedBalance += parseFloat(transfer.amount) || 0;
+        }
+        
+        balanceDiscrepancy = Math.abs(accountBalance - expectedBalance);
+        
+        if (balanceDiscrepancy > 0.01) {
+          console.log(`⚠️ BALANCE MISMATCH for account ${account.account_name}:`);
+          console.log(`   Stored balance: ${accountBalance} ${accountCurrency}`);
+          console.log(`   Expected balance: ${expectedBalance} ${accountCurrency}`);
+          console.log(`   Discrepancy: ${balanceDiscrepancy} ${accountCurrency}`);
+          
+          // Use expected balance if there's a significant discrepancy
+          accountBalance = expectedBalance;
+          console.log(`   Using calculated balance: ${expectedBalance}`);
+        }
       }
+      
+      // Используем баланс счета как есть - он уже должен отражать только posted транзакции
       
       let convertedBalance = accountBalance;
       
@@ -339,7 +362,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
       totalNetWorth += convertedBalance;
 
-      accountsData.push({
+      const accountData = {
         id: account.id,
         name: account.account_name,
         type: account.account_type,
@@ -350,10 +373,35 @@ router.get('/', authMiddleware, async (req, res) => {
         },
         convertedBalance: convertedBalance,
         exchangeRate: accountCurrency === primaryCurrency.code ? 1 : (exchangeRates[accountCurrency] || 1)
-      });
+      };
+      
+      if (validateBalances && expectedBalance !== null) {
+        accountData.validation = {
+          expectedBalance: expectedBalance,
+          storedBalance: parseFloat(account.balance),
+          discrepancy: balanceDiscrepancy,
+          hasMismatch: balanceDiscrepancy > 0.01
+        };
+      }
+      
+      accountsData.push(accountData);
     }
 
-    res.json({
+    console.log('\n=== NET WORTH CALCULATION DEBUG ===');
+    console.log('User ID:', req.user.id);
+    console.log('Primary Currency:', primaryCurrency.code);
+    console.log('Accounts found:', accounts.length);
+    
+    accounts.forEach((account, index) => {
+      console.log(`Account ${index + 1}: ${account.account_name}`);
+      console.log(`  Balance: ${account.balance} ${account.currency.code}`);
+      console.log(`  Converted: ${accountsData[index].convertedBalance} ${primaryCurrency.code}`);
+    });
+    
+    console.log('Total Net Worth:', Math.round(totalNetWorth * 100) / 100);
+    console.log('=== END NET WORTH DEBUG ===\n');
+
+    const response = {
       netWorth: Math.round(totalNetWorth * 100) / 100, // Round to 2 decimal places
       primaryCurrency: primaryCurrency,
       accounts: accountsData,
@@ -361,11 +409,31 @@ router.get('/', authMiddleware, async (req, res) => {
       message: accounts.length === 1 ? 
         `Your total balance from ${accounts.length} account` : 
         `Your total balance from ${accounts.length} accounts`
-    });
+    };
+    
+    if (validateBalances) {
+      const accountsWithMismatch = accountsData.filter(acc => acc.validation?.hasMismatch);
+      response.validation = {
+        enabled: true,
+        accountsChecked: accounts.length,
+        accountsWithMismatch: accountsWithMismatch.length,
+        totalDiscrepancy: accountsWithMismatch.reduce((sum, acc) => sum + (acc.validation?.discrepancy || 0), 0)
+      };
+      
+      if (accountsWithMismatch.length > 0) {
+        console.log(`⚠️ Found ${accountsWithMismatch.length} accounts with balance mismatches`);
+        response.warning = `Found ${accountsWithMismatch.length} accounts with balance discrepancies. Net Worth calculated using corrected balances.`;
+      }
+    }
+    
+    res.json(response);
 
   } catch (error) {
     console.error('Error calculating Net Worth:', error);
-    res.status(500).json({ error: 'Server error calculating total balance' });
+    res.status(500).json({ 
+      error: 'Server error calculating total balance',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

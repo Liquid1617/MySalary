@@ -5,7 +5,7 @@ const API_BASE_URL = 'http://192.168.100.24:3002/api';
 // const API_BASE_URL = 'http://localhost:3002/api'; // Only works for Android emulator on same machine
 
 interface LoginRequest {
-  email: string;
+  username: string;
   password: string;
 }
 

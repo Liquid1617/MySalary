@@ -18,6 +18,7 @@ import { Transaction } from '../types/transaction';
 import { SwipeableTransactionRow } from '../components/SwipeableTransactionRow';
 import { SnackBar } from '../components/SnackBar';
 import { EditTransactionModal } from '../components/EditTransactionModal';
+import { AddTransactionModal } from '../components/AddTransactionModal';
 import { getAccountTypeIcon } from '../utils/accountTypeIcon';
 
 
@@ -32,6 +33,7 @@ export const AllTransactionsScreen: React.FC<{ navigation: any }> = ({
   const [undoAction, setUndoAction] = useState<(() => void) | null>(null);
   const [showEditTransactionModal, setShowEditTransactionModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
 
   const loadTransactions = async () => {
     try {
@@ -372,7 +374,7 @@ export const AllTransactionsScreen: React.FC<{ navigation: any }> = ({
           </Text>
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => navigation.navigate('BalanceChange')}>
+            onPress={() => setShowAddTransactionModal(true)}>
             <Text style={styles.addButtonText}>Add Transaction</Text>
           </TouchableOpacity>
         </View>
@@ -407,6 +409,15 @@ export const AllTransactionsScreen: React.FC<{ navigation: any }> = ({
           loadTransactions();
           setShowEditTransactionModal(false);
           setSelectedTransaction(null);
+        }}
+      />
+      
+      <AddTransactionModal
+        visible={showAddTransactionModal}
+        onClose={() => setShowAddTransactionModal(false)}
+        onSuccess={() => {
+          loadTransactions();
+          setShowAddTransactionModal(false);
         }}
       />
     </SafeAreaView>

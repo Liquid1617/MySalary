@@ -33,11 +33,23 @@ export const SettingsRoot: React.FC<SettingsRootProps> = ({ navigation }) => {
     loadUserData();
   }, []);
 
+  // Reload user data when screen comes into focus to ensure fresh currency data
+  React.useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadUserData();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
   const loadUserData = async () => {
     try {
+      // Always try to get fresh data from server first
       const currentUser = await apiService.getCurrentUser();
       if (currentUser) {
         setUser(currentUser.user);
+        // Update stored user data to ensure consistency
+        await apiService.updateStoredUser(currentUser.user);
       } else {
         const storedUser = await apiService.getStoredUser();
         if (storedUser) {
@@ -46,6 +58,15 @@ export const SettingsRoot: React.FC<SettingsRootProps> = ({ navigation }) => {
       }
     } catch (error) {
       console.error('Error loading user data:', error);
+      // Fallback to stored data if server request fails
+      try {
+        const storedUser = await apiService.getStoredUser();
+        if (storedUser) {
+          setUser(storedUser);
+        }
+      } catch (storageError) {
+        console.error('Error loading stored user data:', storageError);
+      }
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Alert,
   StatusBar,
   Dimensions,
+  Animated,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
@@ -26,8 +27,9 @@ import { AddTransactionModal } from '../components/AddTransactionModal';
 import { EditTransactionModal } from '../components/EditTransactionModal';
 import { AccountsManagementModal } from '../components/AccountsManagementModal';
 import { AddAccountModal } from '../components/AddAccountModal';
-import { BudgetChip } from '../components/BudgetChip';
-import { AddBudgetChip } from '../components/AddBudgetChip';
+import { BudgetCard } from '../components/BudgetCard';
+import { SwipeableTransactionRow } from '../components/SwipeableTransactionRow';
+import { SnackBar } from '../components/SnackBar';
 import { BudgetResponse } from '../types/budget';
 import { useBudgets, useBudgetActions } from '../hooks/useBudgets';
 import { useQueryClient } from '@tanstack/react-query';
@@ -108,7 +110,8 @@ const calculateMonthlyTotals = (
     const transactionDate = new Date(transaction.transaction_date);
     if (
       transactionDate.getMonth() === currentMonth &&
-      transactionDate.getFullYear() === currentYear
+      transactionDate.getFullYear() === currentYear &&
+      (transaction.status === 'posted' || !transaction.status) // Include legacy transactions without status
     ) {
       const amount = parseFloat(transaction.amount) || 0;
       const transactionCurrency = transaction.account?.currency?.code || 'USD';
@@ -278,6 +281,9 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
   const [showAccountsManagementModal, setShowAccountsManagementModal] =
     useState(false);
   const [showAddAccountModal, setShowAddAccountModal] = useState(false);
+  const [snackBarVisible, setSnackBarVisible] = useState(false);
+  const [snackBarMessage, setSnackBarMessage] = useState('');
+  const [undoAction, setUndoAction] = useState<(() => void) | null>(null);
   
   // Budget data
   const { data: budgets = [], isLoading: budgetsLoading } = useBudgets();
@@ -287,14 +293,19 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
     undefined,
   );
   const [user, setUser] = useState<any>(null);
+  
+  // Animation for floating button
+  const buttonScale = useRef(new Animated.Value(1)).current;
 
   // Calculate monthly totals and net worth change
   const { monthlyIncome, monthlyExpenses } = calculateMonthlyTotals(
     transactions,
     userCurrency,
   );
-  const { change: netWorthChangePercent, isPositive: isNetWorthPositive } =
-    calculateNetWorthChange(transactions, userCurrency);
+  
+  // Calculate absolute change as income - expenses
+  const monthlyNetChange = monthlyIncome - monthlyExpenses;
+  const isNetChangePositive = monthlyNetChange >= 0;
 
   useEffect(() => {
     initializeBiometric();
@@ -585,6 +596,71 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
     setShowEditTransactionModal(true);
   };
 
+  const handleConfirmTransaction = async (transaction: Transaction) => {
+    try {
+      // Store original transaction for undo
+      const originalTransaction = { ...transaction };
+      
+      // Optimistically update UI - remove from scheduled list
+      setTransactions(prev => 
+        prev.filter(t => t.id !== transaction.id)
+      );
+      
+      // Confirm on server
+      await apiService.confirmTransaction(transaction.id, 'scheduledDate');
+      
+      // Invalidate budget cache to refresh spending totals
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      
+      // Show success message with undo
+      const dateStr = new Date(transaction.transaction_date).toLocaleDateString('en-US', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+      
+      setSnackBarMessage(`Transaction confirmed for ${dateStr}`);
+      setUndoAction(() => () => undoConfirmation(originalTransaction));
+      setSnackBarVisible(true);
+      
+      // Reload transactions after a delay
+      setTimeout(() => {
+        loadTransactions();
+        loadNetWorth();
+        loadAccounts();
+      }, 500);
+      
+    } catch (error) {
+      console.error('Error confirming transaction:', error);
+      Alert.alert('Error', 'Failed to confirm transaction');
+      // Reload to restore correct state
+      loadTransactions();
+    }
+  };
+
+  const undoConfirmation = async (originalTransaction: Transaction) => {
+    try {
+      // Call API to revert transaction status on server
+      await apiService.unconfirmTransaction(originalTransaction.id);
+      
+      // Invalidate budget cache
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      
+      // Reload all data
+      loadTransactions();
+      loadNetWorth();
+      loadAccounts();
+      
+      console.log('Successfully undid confirmation for transaction:', originalTransaction.id);
+      
+    } catch (error) {
+      console.error('Error undoing confirmation:', error);
+      Alert.alert('Error', 'Failed to undo transaction confirmation');
+      // Reload to get correct state from server
+      loadTransactions();
+    }
+  };
+
   const handleBudgetPress = (budget: BudgetResponse) => {
     // Navigate to BudgetDetailScreen
     navigation.navigate('BudgetDetail', { budgetId: budget.id });
@@ -608,15 +684,6 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
     }
   };
 
-  const handleBudgetAnalytics = (event: string, properties: any) => {
-    // Track analytics event
-    console.log('Budget analytics:', event, properties);
-    
-    // Navigate to Analytics screen when chart icon is clicked
-    if (event === 'budget_analytics_click') {
-      navigation.navigate('Analytics', { segment: 'budgets' });
-    }
-  };
 
   return (
     <>
@@ -640,7 +707,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
           angle={30}
           style={{
             paddingTop: insets.top, // Отступ для статус-бара
-            paddingBottom: 30,
+            paddingBottom: 20,
             borderBottomLeftRadius: 30,
             borderBottomRightRadius: 30,
           }}>
@@ -651,8 +718,8 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
               justifyContent: 'space-between',
               alignItems: 'flex-start',
               paddingHorizontal: 24,
-              paddingTop: 20,
-              marginBottom: 40,
+              paddingTop: 16,
+              marginBottom: 28,
             }}>
             {/* Left side - Greeting */}
             <View>
@@ -699,7 +766,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
           <View
             style={{
               paddingHorizontal: 24,
-              marginBottom: 32,
+              marginBottom: 24,
             }}>
             <View
               style={{
@@ -747,23 +814,23 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                   }}>
                   <FontAwesome6
                     name={
-                      netWorthChangePercent >= 0
+                      isNetChangePositive
                         ? 'arrow-trend-up'
                         : 'arrow-trend-down'
                     }
                     size={14}
-                    color={netWorthChangePercent >= 0 ? '#22C55E' : '#EF4444'}
+                    color={isNetChangePositive ? '#22C55E' : '#EF4444'}
                     solid
                     style={{ marginRight: 6 }}
                   />
                   <Text
                     style={{
                       fontSize: 16,
-                      color: netWorthChangePercent >= 0 ? '#22C55E' : '#EF4444',
+                      color: isNetChangePositive ? '#22C55E' : '#EF4444',
                       fontWeight: '500',
                     }}>
-                    {netWorthChangePercent >= 0 ? '+' : ''}
-                    {netWorthChangePercent.toFixed(1)}% this month
+                    {isNetChangePositive ? '+' : ''}
+                    {formatCurrencyCompact(Math.abs(monthlyNetChange), userCurrency)} this month
                   </Text>
                 </View>
               </View>
@@ -957,31 +1024,61 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                 }}>
                 Budgets
               </Text>
+              <TouchableOpacity
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 8,
+                  backgroundColor: 'transparent',
+                  borderWidth: 1,
+                  borderColor: '#E5E5EA',
+                }}
+                onPress={handleCreateBudget}>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: '500',
+                    color: 'rgba(0, 0, 0, 0.7)',
+                  }}>
+                  Add
+                </Text>
+              </TouchableOpacity>
             </View>
             
             {budgetsLoading ? (
               <View style={{
-                height: 96,
+                height: 140,
                 justifyContent: 'center',
                 alignItems: 'center',
                 backgroundColor: 'white',
                 borderRadius: 16,
-                marginHorizontal: 16,
               }}>
                 <Text style={{ fontSize: 16, color: '#666' }}>Loading budgets...</Text>
               </View>
+            ) : budgets.length === 0 ? (
+              <View style={{
+                height: 140,
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: 'white',
+                borderRadius: 16,
+              }}>
+                <Text style={{ fontSize: 16, color: '#666' }}>No budgets yet</Text>
+                <Text style={{ fontSize: 14, color: '#999', marginTop: 4 }}>
+                  Create your first budget to get started
+                </Text>
+              </View>
             ) : (
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{
-                  paddingHorizontal: 16,
+              <View 
+                style={{
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  justifyContent: 'flex-start',
                   gap: 12,
                 }}
-                style={{ marginHorizontal: -16 }} // Offset container padding
               >
                 {budgets.map((budget) => (
-                  <BudgetChip
+                  <BudgetCard
                     key={budget.id}
                     budget={budget}
                     onPress={handleBudgetPress}
@@ -989,57 +1086,12 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                     onDelete={handleDeleteBudget}
                   />
                 ))}
-                <AddBudgetChip onPress={handleCreateBudget} />
-              </ScrollView>
+              </View>
             )}
           </View>
 
           <View
             style={[homeScreenStyles.mainContent, { marginTop: 0, gap: 10 }]}>
-            {/* Add Transaction Button */}
-            <TouchableOpacity
-              style={{
-                borderRadius: 16,
-                marginBottom: 24,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.15,
-                shadowRadius: 8,
-                elevation: 5,
-              }}
-              onPress={() => setShowAddTransactionModal(true)}>
-              <LinearGradient
-                colors={['#D1CCFF', '#8CE6F3', '#7AF0C4', '#C7FB33']}
-                start={{ x: 0, y: 1 }}
-                end={{ x: 1, y: 0 }}
-                useAngle={true}
-                angle={30}
-                style={{
-                  borderRadius: 16,
-                  padding: 20,
-                  alignItems: 'center',
-                  flexDirection: 'row',
-                  justifyContent: 'center',
-                }}>
-                <Text
-                  style={{
-                    fontSize: 24,
-                    fontWeight: 'bold',
-                    color: '#000',
-                    marginRight: 12,
-                  }}>
-                  +
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 18,
-                    fontWeight: '600',
-                    color: '#000',
-                  }}>
-                  Add Transaction
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
 
             {/* Accounts Section */}
             <View
@@ -1226,7 +1278,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                     fontWeight: 'bold',
                     color: '#000',
                   }}>
-                  Recent Transactions
+                  Future Transactions
                 </Text>
                 <TouchableOpacity
                   style={{
@@ -1265,7 +1317,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                     Loading transactions...
                   </Text>
                 </View>
-              ) : transactions.length === 0 ? (
+              ) : transactions.filter(t => t.status === 'scheduled').length === 0 ? (
                 <View
                   style={{
                     backgroundColor: 'white',
@@ -1278,10 +1330,10 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                     elevation: 1,
                   }}>
                   <Text style={{ fontSize: 16, color: '#666' }}>
-                    No transactions yet
+                    No future transactions
                   </Text>
                   <Text style={{ fontSize: 14, color: '#999', marginTop: 4 }}>
-                    Transactions will appear here after creation
+                    Scheduled transactions will appear here
                   </Text>
                 </View>
               ) : (
@@ -1296,7 +1348,10 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                     shadowRadius: 2,
                     elevation: 1,
                   }}>
-                  {transactions.slice(0, 10).map((transaction, index) => {
+                  {transactions
+                    .filter(t => t.status === 'scheduled')
+                    .slice(0, 10)
+                    .map((transaction, index) => {
                     const isTransfer =
                       transaction.transaction_type === 'transfer';
 
@@ -1338,23 +1393,11 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                     // Check if account is deactivated
                     const isAccountDeactivated =
                       !transaction.account?.is_active;
-                    const isFuture = isTransactionFuture(transaction.transaction_date);
                     const opacity = isAccountDeactivated ? 0.5 : 1.0;
+                    const isScheduled = transaction.status === 'scheduled';
 
-                    return (
-                      <View 
-                        key={transaction.id} 
-                        style={{ 
-                          opacity,
-                          backgroundColor: isFuture ? '#F3F4F6' : 'transparent',
-                          borderRadius: isFuture ? 8 : 0,
-                          borderLeftWidth: isFuture ? 3 : 0,
-                          borderLeftColor: isFuture ? '#3B82F6' : 'transparent',
-                          paddingHorizontal: isFuture ? 8 : 0,
-                          marginVertical: isFuture ? 2 : 0,
-                        }}
-                      >
-                        <TouchableOpacity
+                    const transactionRow = (
+                      <TouchableOpacity
                           style={{
                             flexDirection: 'row',
                             alignItems: 'center',
@@ -1556,8 +1599,23 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                             </Text>
                           </View>
                         </TouchableOpacity>
+                    );
 
-                        {index < transactions.slice(0, 10).length - 1 && (
+                    return (
+                      <View 
+                        key={transaction.id} 
+                        style={{ 
+                          opacity,
+                        }}
+                      >
+                        <SwipeableTransactionRow
+                          transaction={transaction}
+                          onConfirm={handleConfirmTransaction}
+                          isScheduled={isScheduled}>
+                          {transactionRow}
+                        </SwipeableTransactionRow>
+
+                        {index < transactions.filter(t => t.status === 'scheduled').slice(0, 10).length - 1 && (
                           <View
                             style={{
                               height: 1,
@@ -1653,6 +1711,73 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
           setTimeout(() => setShowAccountsManagementModal(true), 100); // Return to accounts management
         }}
       />
+
+      <SnackBar
+        visible={snackBarVisible}
+        message={snackBarMessage}
+        onDismiss={() => setSnackBarVisible(false)}
+        onUndo={undoAction}
+      />
+
+      {/* Floating Add Transaction Button */}
+      <Animated.View
+        style={{
+          position: 'absolute',
+          bottom: 24, // Equal spacing with right margin
+          right: 24,
+          transform: [{ scale: buttonScale }],
+        }}>
+        <TouchableOpacity
+          style={{
+            width: 45,
+            height: 45,
+            borderRadius: 22.5,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.25,
+            shadowRadius: 12,
+            elevation: 8,
+            zIndex: 1000,
+          }}
+          onPress={() => setShowAddTransactionModal(true)}
+          activeOpacity={1}
+          onPressIn={() => {
+            Animated.spring(buttonScale, {
+              toValue: 0.9,
+              useNativeDriver: true,
+            }).start();
+          }}
+          onPressOut={() => {
+            Animated.spring(buttonScale, {
+              toValue: 1,
+              useNativeDriver: true,
+            }).start();
+          }}>
+        <LinearGradient
+          colors={['#D1CCFF', '#8CE6F3', '#7AF0C4', '#C7FB33']}
+          start={{ x: 0, y: 1 }}
+          end={{ x: 1, y: 0 }}
+          useAngle={true}
+          angle={30}
+          style={{
+            width: 45,
+            height: 45,
+            borderRadius: 22.5,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+          <Text
+            style={{
+              fontSize: 28,
+              fontWeight: 'bold',
+              color: '#000',
+              lineHeight: 28,
+            }}>
+            +
+          </Text>
+        </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
 
     </>
   );

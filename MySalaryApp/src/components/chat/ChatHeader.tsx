@@ -42,8 +42,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     height: chatTokens.dimensions.headerHeight,
     paddingHorizontal: chatTokens.spacing.lg,
-    backgroundColor: chatTokens.colors.surface,
-    ...chatTokens.shadows.header,
+    backgroundColor: 'transparent',
     position: 'relative',
   },
   title: {

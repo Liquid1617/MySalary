@@ -25,17 +25,18 @@ export const BudgetChip: React.FC<BudgetChipProps> = ({
   onEdit, 
   onDelete 
 }) => {
-  const progress = Math.min(budget.percent || 0, 100);
-  const isOverBudget = (budget.percent || 0) > 100;
+  const actualPercent = budget.percent || 0;
+  const progress = Math.min(actualPercent, 100); // Cap visual progress at 100%
+  const isOverBudget = actualPercent > 100;
   
   // Progress colors based on percentage
   const getProgressColor = (percent: number) => {
-    if (percent > 100) return '#E74C3C'; // Red for over budget
-    if (percent >= 80) return '#F1C40F'; // Yellow for 80-100%
-    return '#2ECC71'; // Green for 0-80%
+    if (percent > 100) return '#FF4C4C'; // Red for over budget
+    if (percent >= 80) return '#FFBD2F'; // Yellow for 80-100%
+    return '#3FD777'; // Green for 0-80%
   };
 
-  const progressColor = getProgressColor(progress);
+  const progressColor = getProgressColor(actualPercent); // Use actual percent for color
   
   // Small donut calculations (24pt diameter)
   const donutSize = 24;

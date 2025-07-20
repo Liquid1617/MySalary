@@ -23,24 +23,32 @@ interface LoginScreenProps {
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [emailError, setEmailError] = useState('');
+  const [usernameError, setUsernameError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const validateEmail = (emailValue: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailValue) {
-      setEmailError('Email is required');
+  const validateUsername = (usernameValue: string): boolean => {
+    if (!usernameValue) {
+      setUsernameError('Username is required');
       return false;
     }
-    if (!emailRegex.test(emailValue)) {
-      setEmailError('Please enter a valid email');
+    if (usernameValue.length < 3) {
+      setUsernameError('Username must be at least 3 characters');
       return false;
     }
-    setEmailError('');
+    if (usernameValue.length > 50) {
+      setUsernameError('Username must be no more than 50 characters');
+      return false;
+    }
+    const usernameRegex = /^[a-zA-Z0-9._]+$/;
+    if (!usernameRegex.test(usernameValue)) {
+      setUsernameError('Username can only contain letters, numbers, dots and underscores');
+      return false;
+    }
+    setUsernameError('');
     return true;
   };
 
@@ -58,10 +66,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   };
 
   const handleLogin = async () => {
-    const isEmailValid = validateEmail(email);
+    const isUsernameValid = validateUsername(username);
     const isPasswordValid = validatePassword(password);
 
-    if (!isEmailValid || !isPasswordValid) {
+    if (!isUsernameValid || !isPasswordValid) {
       return;
     }
 
@@ -69,7 +77,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
     try {
       await apiService.login({
-        email,
+        username,
         password,
       });
 
@@ -213,12 +221,12 @@ Error: ${capability.error || 'None'}`;
 
             {/* Form */}
             <View style={{ marginBottom: 32 }}>
-              {/* Email Input */}
+              {/* Username Input */}
               <View style={{ marginBottom: 20 }}>
                 <TextInput
                   style={{
                     borderWidth: 1,
-                    borderColor: emailError ? '#EF4444' : '#E5E5EA',
+                    borderColor: usernameError ? '#EF4444' : '#E5E5EA',
                     borderRadius: 16,
                     paddingHorizontal: 20,
                     paddingVertical: 18,
@@ -227,21 +235,21 @@ Error: ${capability.error || 'None'}`;
                     backgroundColor: '#FFFFFF',
                     color: '#252234',
                   }}
-                  value={email}
+                  value={username}
                   onChangeText={text => {
-                    setEmail(text);
-                    if (emailError) {
-                      validateEmail(text);
+                    setUsername(text);
+                    if (usernameError) {
+                      validateUsername(text);
                     }
                   }}
-                  placeholder="Email"
+                  placeholder="Username"
                   placeholderTextColor="#999999"
-                  keyboardType="email-address"
+                  keyboardType="default"
                   autoCapitalize="none"
                   autoCorrect={false}
-                  textContentType="emailAddress"
+                  textContentType="username"
                 />
-                {emailError ? (
+                {usernameError ? (
                   <Text
                     style={{
                       color: '#EF4444',
@@ -250,7 +258,7 @@ Error: ${capability.error || 'None'}`;
                       marginTop: 8,
                       marginLeft: 4,
                     }}>
-                    {emailError}
+                    {usernameError}
                   </Text>
                 ) : null}
               </View>

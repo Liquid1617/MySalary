@@ -15,7 +15,6 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { AuthLoadingScreen } from '../screens/AuthLoadingScreen';
 import { NewDiscoverScreen } from '../screens/NewDiscoverScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
-import { BalanceChangeScreen } from '../screens/BalanceChangeScreen';
 import { AccountDetailsScreen } from '../screens/AccountDetailsScreen';
 import { AllTransactionsScreen } from '../screens/AllTransactionsScreen';
 import { BudgetDetailScreen } from '../screens/BudgetDetailScreen';
@@ -35,7 +34,6 @@ export type RootStackParamList = {
   Home: undefined;
   MainTabs: undefined;
   Profile: undefined;
-  BalanceChange: undefined;
   AccountDetails: { account: any };
   AllTransactions: undefined;
   BudgetDetail: { budgetId: string };
@@ -302,15 +300,6 @@ export const AppNavigator: React.FC = () => {
           component={MainTabsWrapper}
           options={{
             headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="BalanceChange"
-          component={BalanceChangeScreen}
-          options={{
-            title: 'Balance Change',
-            headerShown: true,
-            headerBackTitle: 'Back',
           }}
         />
         <Stack.Screen
