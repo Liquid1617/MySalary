@@ -6,6 +6,22 @@ module.exports = {
     const transaction = await queryInterface.sequelize.transaction();
     
     try {
+      // Check if BudgetCategories table exists
+      const [tableExists] = await queryInterface.sequelize.query(
+        `SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'BudgetCategories'
+        )`,
+        { transaction }
+      );
+      
+      if (!tableExists[0].exists) {
+        console.log('BudgetCategories table does not exist yet, skipping migration');
+        await transaction.commit();
+        return;
+      }
+      
       // Get all BudgetCategories to check for data type issues
       const [budgetCategories] = await queryInterface.sequelize.query(
         'SELECT id, budget_id, category_id FROM "BudgetCategories"',
@@ -98,8 +114,24 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
+    // Check if BudgetCategories table exists
+    const [tableExists] = await queryInterface.sequelize.query(
+      `SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'BudgetCategories'
+      )`
+    );
+    
+    if (!tableExists[0].exists) {
+      console.log('BudgetCategories table does not exist, skipping down migration');
+      return;
+    }
+    
     // Remove the CHECK constraint
-    await queryInterface.removeConstraint('BudgetCategories', 'check_category_id_integer');
+    await queryInterface.removeConstraint('BudgetCategories', 'check_category_id_integer').catch(() => {
+      console.log('CHECK constraint does not exist, skipping removal');
+    });
     
     // Note: We cannot restore deleted invalid records as they were corrupted data
     console.log('Removed CHECK constraint. Invalid data that was cleaned cannot be restored.');
