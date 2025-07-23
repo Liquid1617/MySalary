@@ -11,7 +11,7 @@ router.get('/', auth, async (req, res) => {
     // Добавляем опциональную фильтрацию по дате и статусу
     const { excludeFuture, maxDate, status } = req.query;
     const whereConditions = { 
-      '$account.user_id$': req.user.id 
+      user_id: req.user.id 
     };
     
     // Фильтрация по статусу

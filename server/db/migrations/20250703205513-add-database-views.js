@@ -189,18 +189,26 @@ module.exports = {
   async down(queryInterface, Sequelize) {
     console.log('Dropping database views...');
     
-    // Удаляем представления в обратном порядке
-    const viewsToDrop = [
-      'transaction_search_view',
-      'budget_progress_view', 
-      'monthly_expense_summary_mv',
-      'user_balance_summary_view',
-      'transaction_details_view'
-    ];
-    
-    for (const viewName of viewsToDrop) {
-      await queryInterface.sequelize.query(`DROP VIEW IF EXISTS ${viewName} CASCADE;`);
-      await queryInterface.sequelize.query(`DROP MATERIALIZED VIEW IF EXISTS ${viewName} CASCADE;`);
+    try {
+      // Drop each view/materialized view with proper error handling
+      const dropStatements = [
+        'DROP VIEW IF EXISTS transaction_search_view CASCADE',
+        'DROP VIEW IF EXISTS budget_progress_view CASCADE',
+        'DROP MATERIALIZED VIEW IF EXISTS monthly_expense_summary_mv CASCADE',
+        'DROP VIEW IF EXISTS user_balance_summary_view CASCADE',
+        'DROP VIEW IF EXISTS transaction_details_view CASCADE'
+      ];
+      
+      for (const statement of dropStatements) {
+        try {
+          await queryInterface.sequelize.query(statement);
+          console.log(`✓ ${statement}`);
+        } catch (error) {
+          console.log(`⚠️ Error with ${statement}: ${error.message}`);
+        }
+      }
+    } catch (error) {
+      console.log('⚠️ Error dropping views, but continuing:', error.message);
     }
     
     console.log('Database views dropped!');

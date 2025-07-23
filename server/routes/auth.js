@@ -276,8 +276,16 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Поиск пользователя по логину
-    const user = await User.findOne({ where: { login: username } });
+    // Поиск пользователя по логину или email
+    const { Op } = require('sequelize');
+    const user = await User.findOne({ 
+      where: {
+        [Op.or]: [
+          { login: username },
+          { email: username.toLowerCase() }
+        ]
+      }
+    });
     if (!user) {
       return res.status(401).json({ 
         error: 'Неверный username или пароль' 

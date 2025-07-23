@@ -75,11 +75,26 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    // Drop the view
-    await queryInterface.sequelize.query('DROP VIEW IF EXISTS budget_progress_view;');
-    
-    // Recreate original view without status filter
-    await queryInterface.sequelize.query(`
+    try {
+      // Check if budgets table exists
+      const [results] = await queryInterface.sequelize.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'budgets'
+        );
+      `);
+      
+      if (!results[0].exists) {
+        console.log('⚠️ Budgets table does not exist - skipping budget view rollback');
+        return;
+      }
+      
+      // Drop the view
+      await queryInterface.sequelize.query('DROP VIEW IF EXISTS budget_progress_view;');
+      
+      // Recreate original view without status filter
+      await queryInterface.sequelize.query(`
       CREATE VIEW budget_progress_view AS
       SELECT 
         b.id as budget_id,
@@ -126,5 +141,8 @@ module.exports = {
         b.id, b.category_id, b.amount, b.period, b.start_date, b.end_date, b.user_id,
         c.category_name, c.icon, c.category_type;
     `);
+    } catch (error) {
+      console.log('⚠️ Error rolling back budget view, but continuing:', error.message);
+    }
   }
 };

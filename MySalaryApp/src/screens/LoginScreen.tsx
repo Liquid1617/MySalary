@@ -32,22 +32,27 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   const validateUsername = (usernameValue: string): boolean => {
     if (!usernameValue) {
-      setUsernameError('Username is required');
+      setUsernameError('Username or email is required');
       return false;
     }
     if (usernameValue.length < 3) {
       setUsernameError('Username must be at least 3 characters');
       return false;
     }
-    if (usernameValue.length > 50) {
-      setUsernameError('Username must be no more than 50 characters');
+    if (usernameValue.length > 100) {
+      setUsernameError('Username must be no more than 100 characters');
       return false;
     }
+    
+    // Check if it's an email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const usernameRegex = /^[a-zA-Z0-9._]+$/;
-    if (!usernameRegex.test(usernameValue)) {
-      setUsernameError('Username can only contain letters, numbers, dots and underscores');
+    
+    if (!emailRegex.test(usernameValue) && !usernameRegex.test(usernameValue)) {
+      setUsernameError('Enter a valid username or email address');
       return false;
     }
+    
     setUsernameError('');
     return true;
   };
@@ -242,7 +247,7 @@ Error: ${capability.error || 'None'}`;
                       validateUsername(text);
                     }
                   }}
-                  placeholder="Username"
+                  placeholder="Username or Email"
                   placeholderTextColor="#999999"
                   keyboardType="default"
                   autoCapitalize="none"
