@@ -12,9 +12,19 @@
 		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
+		3E2FF7583B264B55948DBABA /* Commissioner-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B37B836176944D6C9AE42571 /* Commissioner-ExtraBold.ttf */; };
+		3F427888D485469DA8FB279A /* Commissioner-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 01EDC66A5BB0482994B88C51 /* Commissioner-Medium.ttf */; };
+		4048902C187D48EA984D7E40 /* Commissioner-Thin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2C258A7D8C2B4CC7909D78B2 /* Commissioner-Thin.ttf */; };
 		740D2F7D7279858800E5A2E2 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = C017E0F0FAF6B11C3F6EB91A /* PrivacyInfo.xcprivacy */; };
 		7699B88040F8A987B510C191 /* libPods-MySalaryApp-MySalaryAppTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 19F6CBCC0A4E27FBF8BF4A61 /* libPods-MySalaryApp-MySalaryAppTests.a */; };
+		79E7249EAFB64129AA282A96 /* Commissioner-ExtraLight.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0A8EF03541134468A0BCD8A9 /* Commissioner-ExtraLight.ttf */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		8AD141A9BE4B4A018D35FC89 /* Commissioner-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F88F06430502415F8B49BE61 /* Commissioner-Light.ttf */; };
+		BC00094AFD394C3EA056F56F /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 20BAFFD2B8FB41DFAD2595B2 /* README.md */; };
+		C5FEF05362064DCEAB742548 /* Commissioner-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = EA9F3A23A8F94B749A9C8BAF /* Commissioner-Black.ttf */; };
+		DC4DB9CDF4D14A08A6F1946D /* Commissioner-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 005445D40F3641F485024071 /* Commissioner-Bold.ttf */; };
+		EEAE81F23CB44B38944984F2 /* Commissioner-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BF3A1D38E7D94D5DB2A5ABE5 /* Commissioner-Regular.ttf */; };
+		F81F224735C04D1DB8E3B21B /* Commissioner-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B1A9E32334EE4F8DBAA177A9 /* Commissioner-SemiBold.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -28,9 +38,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		005445D40F3641F485024071 /* Commissioner-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Commissioner-Bold.ttf"; path = "../assets/fonts/Commissioner-Bold.ttf"; sourceTree = "<group>"; };
 		00E356EE1AD99517003FC87E /* MySalaryAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MySalaryAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		00E356F11AD99517003FC87E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		00E356F21AD99517003FC87E /* MySalaryAppTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MySalaryAppTests.m; sourceTree = "<group>"; };
+		01EDC66A5BB0482994B88C51 /* Commissioner-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Commissioner-Medium.ttf"; path = "../assets/fonts/Commissioner-Medium.ttf"; sourceTree = "<group>"; };
+		0A8EF03541134468A0BCD8A9 /* Commissioner-ExtraLight.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Commissioner-ExtraLight.ttf"; path = "../assets/fonts/Commissioner-ExtraLight.ttf"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* MySalaryApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MySalaryApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FAF1A68108700A75B9A /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = MySalaryApp/AppDelegate.h; sourceTree = "<group>"; };
 		13B07FB01A68108700A75B9A /* AppDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = AppDelegate.mm; path = MySalaryApp/AppDelegate.mm; sourceTree = "<group>"; };
@@ -39,14 +52,21 @@
 		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = MySalaryApp/main.m; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = MySalaryApp/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		19F6CBCC0A4E27FBF8BF4A61 /* libPods-MySalaryApp-MySalaryAppTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-MySalaryApp-MySalaryAppTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		20BAFFD2B8FB41DFAD2595B2 /* README.md */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = README.md; path = ../assets/fonts/README.md; sourceTree = "<group>"; };
+		2C258A7D8C2B4CC7909D78B2 /* Commissioner-Thin.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Commissioner-Thin.ttf"; path = "../assets/fonts/Commissioner-Thin.ttf"; sourceTree = "<group>"; };
 		3B4392A12AC88292D35C810B /* Pods-MySalaryApp.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MySalaryApp.debug.xcconfig"; path = "Target Support Files/Pods-MySalaryApp/Pods-MySalaryApp.debug.xcconfig"; sourceTree = "<group>"; };
 		5709B34CF0A7D63546082F79 /* Pods-MySalaryApp.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MySalaryApp.release.xcconfig"; path = "Target Support Files/Pods-MySalaryApp/Pods-MySalaryApp.release.xcconfig"; sourceTree = "<group>"; };
 		5B7EB9410499542E8C5724F5 /* Pods-MySalaryApp-MySalaryAppTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MySalaryApp-MySalaryAppTests.debug.xcconfig"; path = "Target Support Files/Pods-MySalaryApp-MySalaryAppTests/Pods-MySalaryApp-MySalaryAppTests.debug.xcconfig"; sourceTree = "<group>"; };
 		5DCACB8F33CDC322A6C60F78 /* libPods-MySalaryApp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-MySalaryApp.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = MySalaryApp/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		89C6BE57DB24E9ADA2F236DE /* Pods-MySalaryApp-MySalaryAppTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MySalaryApp-MySalaryAppTests.release.xcconfig"; path = "Target Support Files/Pods-MySalaryApp-MySalaryAppTests/Pods-MySalaryApp-MySalaryAppTests.release.xcconfig"; sourceTree = "<group>"; };
+		B1A9E32334EE4F8DBAA177A9 /* Commissioner-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Commissioner-SemiBold.ttf"; path = "../assets/fonts/Commissioner-SemiBold.ttf"; sourceTree = "<group>"; };
+		B37B836176944D6C9AE42571 /* Commissioner-ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Commissioner-ExtraBold.ttf"; path = "../assets/fonts/Commissioner-ExtraBold.ttf"; sourceTree = "<group>"; };
+		BF3A1D38E7D94D5DB2A5ABE5 /* Commissioner-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Commissioner-Regular.ttf"; path = "../assets/fonts/Commissioner-Regular.ttf"; sourceTree = "<group>"; };
 		C017E0F0FAF6B11C3F6EB91A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = MySalaryApp/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		EA9F3A23A8F94B749A9C8BAF /* Commissioner-Black.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Commissioner-Black.ttf"; path = "../assets/fonts/Commissioner-Black.ttf"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		F88F06430502415F8B49BE61 /* Commissioner-Light.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Commissioner-Light.ttf"; path = "../assets/fonts/Commissioner-Light.ttf"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -111,6 +131,24 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		7F323F9E52924A838F004491 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				EA9F3A23A8F94B749A9C8BAF /* Commissioner-Black.ttf */,
+				005445D40F3641F485024071 /* Commissioner-Bold.ttf */,
+				B37B836176944D6C9AE42571 /* Commissioner-ExtraBold.ttf */,
+				0A8EF03541134468A0BCD8A9 /* Commissioner-ExtraLight.ttf */,
+				F88F06430502415F8B49BE61 /* Commissioner-Light.ttf */,
+				01EDC66A5BB0482994B88C51 /* Commissioner-Medium.ttf */,
+				BF3A1D38E7D94D5DB2A5ABE5 /* Commissioner-Regular.ttf */,
+				B1A9E32334EE4F8DBAA177A9 /* Commissioner-SemiBold.ttf */,
+				2C258A7D8C2B4CC7909D78B2 /* Commissioner-Thin.ttf */,
+				20BAFFD2B8FB41DFAD2595B2 /* README.md */,
+			);
+			name = Resources;
+			path = "";
+			sourceTree = "<group>";
+		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
 			isa = PBXGroup;
 			children = (
@@ -127,6 +165,7 @@
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				BBD78D7AC51CEA395F1C20DB /* Pods */,
+				7F323F9E52924A838F004491 /* Resources */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -249,6 +288,16 @@
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				740D2F7D7279858800E5A2E2 /* PrivacyInfo.xcprivacy in Resources */,
+				C5FEF05362064DCEAB742548 /* Commissioner-Black.ttf in Resources */,
+				DC4DB9CDF4D14A08A6F1946D /* Commissioner-Bold.ttf in Resources */,
+				3E2FF7583B264B55948DBABA /* Commissioner-ExtraBold.ttf in Resources */,
+				79E7249EAFB64129AA282A96 /* Commissioner-ExtraLight.ttf in Resources */,
+				8AD141A9BE4B4A018D35FC89 /* Commissioner-Light.ttf in Resources */,
+				3F427888D485469DA8FB279A /* Commissioner-Medium.ttf in Resources */,
+				EEAE81F23CB44B38944984F2 /* Commissioner-Regular.ttf in Resources */,
+				F81F224735C04D1DB8E3B21B /* Commissioner-SemiBold.ttf in Resources */,
+				4048902C187D48EA984D7E40 /* Commissioner-Thin.ttf in Resources */,
+				BC00094AFD394C3EA056F56F /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

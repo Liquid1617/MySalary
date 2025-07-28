@@ -26,7 +26,6 @@
 	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
-	  <!-- Do not change NSAllowsArbitraryLoads to true, or you will risk app rejection! -->
 		<key>NSAllowsArbitraryLoads</key>
 		<false/>
 		<key>NSAllowsLocalNetworking</key>
@@ -46,7 +45,7 @@
 		</dict>
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>MySalary использует Face ID для быстрого и безопасного входа в приложение</string>
 	<key>UILaunchStoryboardName</key>
@@ -75,6 +74,12 @@
 		<string>Commissioner-Regular.ttf</string>
 		<string>Commissioner-SemiBold.ttf</string>
 		<string>Commissioner-Bold.ttf</string>
+		<string>Commissioner-Black.ttf</string>
+		<string>Commissioner-ExtraBold.ttf</string>
+		<string>Commissioner-ExtraLight.ttf</string>
+		<string>Commissioner-Light.ttf</string>
+		<string>Commissioner-Medium.ttf</string>
+		<string>Commissioner-Thin.ttf</string>
 	</array>
 </dict>
 </plist>

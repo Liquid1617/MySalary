@@ -1,0 +1,45 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "assets/fonts/Commissioner-Black.ttf",
+      "sha1": "6c1e5adc6e4500144e227b5feda9d35ed4229a71"
+    },
+    {
+      "path": "assets/fonts/Commissioner-Bold.ttf",
+      "sha1": "c414a5cf0956fd0fa32d105451a27de8cd8ea7dd"
+    },
+    {
+      "path": "assets/fonts/Commissioner-ExtraBold.ttf",
+      "sha1": "1e03298af490d05e85c5029cc9b278a08ad50fa7"
+    },
+    {
+      "path": "assets/fonts/Commissioner-ExtraLight.ttf",
+      "sha1": "87cc9856293229751545ac31c308c843f6256cb8"
+    },
+    {
+      "path": "assets/fonts/Commissioner-Light.ttf",
+      "sha1": "c923dcaafa1670f32950d20da066be1fa1b668ff"
+    },
+    {
+      "path": "assets/fonts/Commissioner-Medium.ttf",
+      "sha1": "abb49cfa00a20159a62bf78f6455a746b907ba96"
+    },
+    {
+      "path": "assets/fonts/Commissioner-Regular.ttf",
+      "sha1": "208c2f596f765db1b572edfdc86427337b99cfe5"
+    },
+    {
+      "path": "assets/fonts/Commissioner-SemiBold.ttf",
+      "sha1": "bcf80691fd27b7d0610a16b413edcfff127ae049"
+    },
+    {
+      "path": "assets/fonts/Commissioner-Thin.ttf",
+      "sha1": "983d455992ccfbfa602d507011acca4a210c29b3"
+    },
+    {
+      "path": "assets/fonts/README.md",
+      "sha1": "04bbde80beb40dcfbed5b2310210aa0ec5396be8"
+    }
+  ]
+}

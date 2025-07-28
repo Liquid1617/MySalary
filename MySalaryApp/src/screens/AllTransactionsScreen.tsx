@@ -19,6 +19,7 @@ import { SwipeableTransactionRow } from '../components/SwipeableTransactionRow';
 import { SnackBar } from '../components/SnackBar';
 import { EditTransactionModal } from '../components/EditTransactionModal';
 import { AddTransactionModal } from '../components/AddTransactionModal';
+import { CategoryFilterModal } from '../components/CategoryFilterModal';
 import { getAccountTypeIcon } from '../utils/accountTypeIcon';
 
 
@@ -34,6 +35,8 @@ export const AllTransactionsScreen: React.FC<{ navigation: any }> = ({
   const [showEditTransactionModal, setShowEditTransactionModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
+  const [showCategoryFilter, setShowCategoryFilter] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
 
   const loadTransactions = async () => {
     try {
@@ -183,6 +186,10 @@ export const AllTransactionsScreen: React.FC<{ navigation: any }> = ({
         return { icon: 'arrow-down', color: '#6B7280' };
     }
   };
+
+  const filteredTransactions = selectedCategories.length === 0
+    ? transactions
+    : transactions.filter(t => t.category && selectedCategories.includes(t.category.id));
 
   const handleTransactionPress = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
@@ -362,7 +369,16 @@ export const AllTransactionsScreen: React.FC<{ navigation: any }> = ({
           <FontAwesome5 name="arrow-left" size={20} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>All Transactions</Text>
-        <View style={styles.headerSpacer} />
+        <TouchableOpacity
+          style={styles.filterButton}
+          onPress={() => setShowCategoryFilter(true)}>
+          <FontAwesome5 name="filter" size={16} color={colors.primary} />
+          {selectedCategories.length > 0 && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>{selectedCategories.length}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
 
       {transactions.length === 0 ? (
@@ -379,13 +395,30 @@ export const AllTransactionsScreen: React.FC<{ navigation: any }> = ({
           </TouchableOpacity>
         </View>
       ) : (
-        <FlatList
-          data={transactions}
-          keyExtractor={item => item.id.toString()}
-          renderItem={renderTransaction}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContainer}
-        />
+        <>
+          {filteredTransactions.length === 0 && selectedCategories.length > 0 ? (
+            <View style={styles.emptyState}>
+              <FontAwesome5 name="filter" size={48} color={colors.textSecondary} />
+              <Text style={styles.emptyTitle}>No Transactions</Text>
+              <Text style={styles.emptySubtitle}>
+                No transactions found in selected categories
+              </Text>
+              <TouchableOpacity
+                style={styles.clearFilterButton}
+                onPress={() => setSelectedCategories([])}>
+                <Text style={styles.clearFilterButtonText}>Clear Filters</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <FlatList
+              data={filteredTransactions}
+              keyExtractor={item => item.id.toString()}
+              renderItem={renderTransaction}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.listContainer}
+            />
+          )}
+        </>
       )}
       
       <SnackBar
@@ -418,6 +451,15 @@ export const AllTransactionsScreen: React.FC<{ navigation: any }> = ({
         onSuccess={() => {
           loadTransactions();
           setShowAddTransactionModal(false);
+        }}
+      />
+      
+      <CategoryFilterModal
+        visible={showCategoryFilter}
+        selectedCategories={selectedCategories}
+        onClose={() => setShowCategoryFilter(false)}
+        onApply={(categoryIds) => {
+          setSelectedCategories(categoryIds);
         }}
       />
     </SafeAreaView>
@@ -453,6 +495,39 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     width: 36,
+  },
+  filterButton: {
+    padding: 8,
+    position: 'relative',
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  filterBadgeText: {
+    color: colors.white,
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  clearFilterButton: {
+    backgroundColor: colors.border,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 24,
+  },
+  clearFilterButtonText: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '600',
   },
   listContainer: {
     paddingVertical: 8,
