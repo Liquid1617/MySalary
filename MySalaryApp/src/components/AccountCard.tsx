@@ -29,12 +29,23 @@ const AccountCard: React.FC<AccountCardProps> = ({
 
   const formatBalance = (balance: number, currencySymbol: string) => {
     const absBalance = Math.abs(balance);
+    let formattedAmount;
+    
     if (absBalance >= 1000000) {
-      return `${currencySymbol}${(balance / 1000000).toFixed(1)}M`;
+      formattedAmount = `${currencySymbol}${(absBalance / 1000000).toFixed(1)}M`;
     } else if (absBalance >= 1000) {
-      return `${currencySymbol}${(balance / 1000).toFixed(1)}K`;
+      formattedAmount = `${currencySymbol}${(absBalance / 1000).toFixed(1)}K`;
+    } else {
+      formattedAmount = `${currencySymbol}${absBalance.toFixed(2)}`;
     }
-    return `${currencySymbol}${balance.toFixed(2)}`;
+    
+    // Для кредитных карт показываем знак минус, если баланс положительный (долг)
+    if (account.type === 'credit_card' && balance > 0) {
+      return `-${formattedAmount}`;
+    }
+    
+    // Для остальных счетов показываем как есть
+    return balance < 0 ? `-${formattedAmount}` : formattedAmount;
   };
 
   return (
@@ -62,7 +73,10 @@ const AccountCard: React.FC<AccountCardProps> = ({
         <Text style={styles.accountName} numberOfLines={1}>
           {account.name}
         </Text>
-        <Text style={styles.balance}>
+        <Text style={[
+          styles.balance,
+          account.type === 'credit_card' && account.balance > 0 && styles.debtBalance
+        ]}>
           {formatBalance(account.balance, account.currency_symbol)}
         </Text>
       </View>
@@ -111,6 +125,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textSecondary,
     textAlign: 'center',
+  },
+  debtBalance: {
+    color: '#EF4444', // Red color for debt
+    fontWeight: '600',
   },
 });
 

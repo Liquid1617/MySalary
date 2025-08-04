@@ -43,16 +43,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       setUsernameError('Username must be no more than 100 characters');
       return false;
     }
-    
+
     // Check if it's an email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const usernameRegex = /^[a-zA-Z0-9._]+$/;
-    
+
     if (!emailRegex.test(usernameValue) && !usernameRegex.test(usernameValue)) {
       setUsernameError('Enter a valid username or email address');
       return false;
     }
-    
+
     setUsernameError('');
     return true;
   };

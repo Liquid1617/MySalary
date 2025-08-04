@@ -206,8 +206,10 @@ router.post('/', auth, async (req, res) => {
       const transferAmount = parseFloat(amount);
       
       // Списываем с исходного счёта
+      // Для кредитных карт списание увеличивает баланс (долг)
+      const sourceBalanceChange = account.account_type === 'credit_card' ? transferAmount : -transferAmount;
       await account.update({
-        balance: parseFloat(account.balance) - transferAmount
+        balance: parseFloat(account.balance) + sourceBalanceChange
       });
 
       // Конвертируем валюту если нужно
@@ -229,18 +231,33 @@ router.post('/', auth, async (req, res) => {
       }
 
       // Зачисляем на целевой счёт
+      // Для кредитных карт зачисление уменьшает баланс (погашение долга)
+      const targetBalanceChange = targetAccount.account_type === 'credit_card' ? -targetAmount : targetAmount;
       await targetAccount.update({
-        balance: parseFloat(targetAccount.balance) + targetAmount
+        balance: parseFloat(targetAccount.balance) + targetBalanceChange
       });
 
       console.log(`Transfer completed: ${account.account_name} (-${transferAmount} ${account.currency.code}) -> ${targetAccount.account_name} (+${targetAmount} ${targetAccount.currency.code})`);
     } else if (shouldUpdateBalance) {
       // Для обычных транзакций обновляем один счёт
-      const balanceChange = transaction_type === 'income' ? amount : -amount;
+      let balanceChange;
+      
+      // Для кредитных карт логика инвертирована:
+      // - income (погашение долга) уменьшает баланс (долг)
+      // - expense (использование кредита) увеличивает баланс (долг)
+      if (account.account_type === 'credit_card') {
+        balanceChange = transaction_type === 'income' ? -amount : amount;
+      } else {
+        // Для остальных счетов стандартная логика:
+        // - income увеличивает баланс
+        // - expense уменьшает баланс
+        balanceChange = transaction_type === 'income' ? amount : -amount;
+      }
+      
       const oldBalance = parseFloat(account.balance);
       const newBalance = oldBalance + parseFloat(balanceChange);
       
-      console.log(`CREATING ${transaction_type.toUpperCase()}: Account ${account.account_name}`);
+      console.log(`CREATING ${transaction_type.toUpperCase()}: Account ${account.account_name} (${account.account_type})`);
       console.log(`  Balance before: ${oldBalance}`);
       console.log(`  Balance change: ${balanceChange}`);
       console.log(`  Balance after: ${newBalance}`);
@@ -360,7 +377,13 @@ router.put('/:id', auth, async (req, res) => {
     if (amount !== undefined || transaction_type !== undefined || transaction_date !== undefined) {
       // Откатываем старую транзакцию если она была активной
       if (oldWasActive) {
-        const oldBalanceChange = oldTransactionType === 'income' ? -oldAmount : oldAmount;
+        let oldBalanceChange;
+        // Для кредитных карт инвертируем логику
+        if (oldAccount.account_type === 'credit_card') {
+          oldBalanceChange = oldTransactionType === 'income' ? oldAmount : -oldAmount;
+        } else {
+          oldBalanceChange = oldTransactionType === 'income' ? -oldAmount : oldAmount;
+        }
         await oldAccount.update({
           balance: parseFloat(oldAccount.balance) + parseFloat(oldBalanceChange)
         });
@@ -368,8 +391,19 @@ router.put('/:id', auth, async (req, res) => {
 
       // Применяем новую транзакцию если она активна
       if (newWillBeActive) {
-        const newAccount = await Account.findByPk(account_id || transaction.account_id);
-        const newBalanceChange = transaction.transaction_type === 'income' ? transaction.amount : -transaction.amount;
+        const newAccount = await Account.findByPk(account_id || transaction.account_id, {
+          include: [{
+            model: Currency,
+            as: 'currency'
+          }]
+        });
+        let newBalanceChange;
+        // Для кредитных карт инвертируем логику
+        if (newAccount.account_type === 'credit_card') {
+          newBalanceChange = transaction.transaction_type === 'income' ? -transaction.amount : transaction.amount;
+        } else {
+          newBalanceChange = transaction.transaction_type === 'income' ? transaction.amount : -transaction.amount;
+        }
         await newAccount.update({
           balance: parseFloat(newAccount.balance) + parseFloat(newBalanceChange)
         });
@@ -415,7 +449,13 @@ router.delete('/account/:accountId/all', auth, async (req, res) => {
     // Откатываем все изменения баланса и удаляем транзакции
     let totalBalanceChange = 0;
     for (const transaction of transactions) {
-      const balanceChange = transaction.transaction_type === 'income' ? -transaction.amount : transaction.amount;
+      let balanceChange;
+      // Для кредитных карт инвертируем логику
+      if (account.account_type === 'credit_card') {
+        balanceChange = transaction.transaction_type === 'income' ? transaction.amount : -transaction.amount;
+      } else {
+        balanceChange = transaction.transaction_type === 'income' ? -transaction.amount : transaction.amount;
+      }
       totalBalanceChange += parseFloat(balanceChange);
       await transaction.destroy();
     }
@@ -456,7 +496,13 @@ router.delete('/:id', auth, async (req, res) => {
     }
 
     // Откатываем изменение баланса
-    const balanceChange = transaction.transaction_type === 'income' ? -transaction.amount : transaction.amount;
+    let balanceChange;
+    // Для кредитных карт инвертируем логику
+    if (transaction.account.account_type === 'credit_card') {
+      balanceChange = transaction.transaction_type === 'income' ? transaction.amount : -transaction.amount;
+    } else {
+      balanceChange = transaction.transaction_type === 'income' ? -transaction.amount : transaction.amount;
+    }
     await transaction.account.update({
       balance: parseFloat(transaction.account.balance) + parseFloat(balanceChange)
     });
@@ -579,17 +625,35 @@ router.patch('/:id/confirm', auth, async (req, res) => {
       
       console.log(`Transfer подтвержден: ${transaction.account.account_name} (-${transferAmount}) -> ${transaction.targetAccount?.account_name} (+${targetAmount})`);
     } else if (transaction.transaction_type === 'income') {
-      // Для income увеличиваем баланс
-      await transaction.account.update({
-        balance: parseFloat(transaction.account.balance) + parseFloat(transaction.amount)
-      });
-      console.log(`Income подтвержден: ${transaction.account.account_name} +${transaction.amount}`);
-    } else if (transaction.transaction_type === 'expense') {
-      // Для expense уменьшаем баланс
       const oldBalance = parseFloat(transaction.account.balance);
-      const newBalance = oldBalance - parseFloat(transaction.amount);
+      let newBalance;
       
-      console.log(`EXPENSE: Account ${transaction.account.account_name}`);
+      // Для кредитных карт income уменьшает баланс (погашение долга)
+      if (transaction.account.account_type === 'credit_card') {
+        newBalance = oldBalance - parseFloat(transaction.amount);
+        console.log(`Income подтвержден (кредитная карта): ${transaction.account.account_name} ${oldBalance} -> ${newBalance} (погашение долга)`);
+      } else {
+        newBalance = oldBalance + parseFloat(transaction.amount);
+        console.log(`Income подтвержден: ${transaction.account.account_name} +${transaction.amount}`);
+      }
+      
+      await transaction.account.update({
+        balance: newBalance
+      });
+    } else if (transaction.transaction_type === 'expense') {
+      const oldBalance = parseFloat(transaction.account.balance);
+      let newBalance;
+      
+      // Для кредитных карт expense увеличивает баланс (использование кредита)
+      if (transaction.account.account_type === 'credit_card') {
+        newBalance = oldBalance + parseFloat(transaction.amount);
+        console.log(`Expense подтвержден (кредитная карта): ${transaction.account.account_name} ${oldBalance} -> ${newBalance} (использование кредита)`);
+      } else {
+        newBalance = oldBalance - parseFloat(transaction.amount);
+        console.log(`Expense подтвержден: ${transaction.account.account_name} ${oldBalance} -> ${newBalance}`);
+      }
+      
+      console.log(`${transaction.transaction_type.toUpperCase()}: Account ${transaction.account.account_name} (${transaction.account.account_type})`);
       console.log(`  Balance before: ${oldBalance}`);
       console.log(`  Transaction amount: ${transaction.amount}`);
       console.log(`  Balance after: ${newBalance}`);
@@ -597,7 +661,6 @@ router.patch('/:id/confirm', auth, async (req, res) => {
       await transaction.account.update({
         balance: newBalance
       });
-      console.log(`Expense подтвержден: ${transaction.account.account_name} ${oldBalance} -> ${newBalance}`);
     }
 
     console.log(`=== CONFIRM TRANSACTION END ===\n`);
@@ -703,14 +766,30 @@ router.patch('/:id/unconfirm', auth, async (req, res) => {
         });
       }
     } else if (transaction.transaction_type === 'income') {
-      // Для income уменьшаем баланс
+      // Откатываем income
+      let balanceChange;
+      if (transaction.account.account_type === 'credit_card') {
+        // Для кредитных карт income уменьшал баланс, поэтому увеличиваем обратно
+        balanceChange = parseFloat(transaction.amount);
+      } else {
+        // Для остальных счетов income увеличивал баланс, поэтому уменьшаем обратно
+        balanceChange = -parseFloat(transaction.amount);
+      }
       await transaction.account.update({
-        balance: parseFloat(transaction.account.balance) - parseFloat(transaction.amount)
+        balance: parseFloat(transaction.account.balance) + balanceChange
       });
     } else if (transaction.transaction_type === 'expense') {
-      // Для expense увеличиваем баланс
+      // Откатываем expense
+      let balanceChange;
+      if (transaction.account.account_type === 'credit_card') {
+        // Для кредитных карт expense увеличивал баланс, поэтому уменьшаем обратно
+        balanceChange = -parseFloat(transaction.amount);
+      } else {
+        // Для остальных счетов expense уменьшал баланс, поэтому увеличиваем обратно
+        balanceChange = parseFloat(transaction.amount);
+      }
       await transaction.account.update({
-        balance: parseFloat(transaction.account.balance) + parseFloat(transaction.amount)
+        balance: parseFloat(transaction.account.balance) + balanceChange
       });
     }
 

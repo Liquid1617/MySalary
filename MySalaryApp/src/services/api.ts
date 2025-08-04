@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL, API_CONFIG } from '../config/api';
 
-// For iOS Simulator, use your machine's IP address  
-const API_BASE_URL = 'http://192.168.31.188:3001/api';
-// const API_BASE_URL = 'http://localhost:3002/api'; // Only works for Android emulator on same machine
+// API URL is now managed in config/api.ts
+// Current URL: http://192.168.31.188:3001/api (STATIC - DO NOT CHANGE)
 
 interface LoginRequest {
   username: string;
@@ -50,6 +50,30 @@ export interface Currency {
   symbol: string;
 }
 
+export interface Category {
+  id: number;
+  name: string;
+  type: 'income' | 'expense';
+  icon: string;
+  color: string;
+  is_system: boolean;
+  user_id?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCategoryRequest {
+  name: string;
+  type: 'income' | 'expense';
+  icon: string;
+  color?: string;
+}
+
+export interface IconsResponse {
+  income: string[];
+  expense: string[];
+}
+
 export interface CurrenciesResponse {
   currencies: Currency[];
 }
@@ -60,6 +84,12 @@ interface CheckResponse {
 }
 
 class ApiService {
+  constructor() {
+    console.log('🔧 API Service initialized');
+    console.log('📡 Base URL:', API_BASE_URL);
+    console.log('⚙️ Config:', API_CONFIG);
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},

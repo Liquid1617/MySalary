@@ -329,10 +329,19 @@ export const AccountDetailsScreen: React.FC<{
   };
 
   const formatBalance = (amount: string) => {
-    return new Intl.NumberFormat('en-US', {
+    const numericAmount = parseFloat(amount);
+    const formatted = new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(parseFloat(amount));
+    }).format(Math.abs(numericAmount));
+    
+    // Для кредитных карт показываем знак минус, если баланс положительный (долг)
+    if (account.account_type === 'credit_card' && numericAmount > 0) {
+      return `-${formatted}`;
+    }
+    
+    // Для остальных счетов показываем как есть
+    return numericAmount < 0 ? `-${formatted}` : formatted;
   };
 
   const formatTransactionDate = (dateString: string) => {
@@ -698,7 +707,7 @@ export const AccountDetailsScreen: React.FC<{
             style={{
               fontSize: 36,
               fontWeight: 'bold',
-              color: '#333',
+              color: account.account_type === 'credit_card' && parseFloat(account.balance) > 0 ? '#EF4444' : '#333',
             }}>
             {formatBalance(account.balance)} {account.currency?.symbol || '$'}
           </Text>

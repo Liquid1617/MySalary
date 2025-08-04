@@ -37,6 +37,7 @@ import {
   formatCurrencyAmount,
   formatCurrencyAmountShort,
   formatCurrencyCompact,
+  formatAccountBalance,
 } from '../utils/formatCurrency';
 import { getAccountTypeIcon } from '../utils/accountTypeIcon';
 import { Transaction } from '../types/transaction';
@@ -1233,14 +1234,15 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                             style={{
                               fontSize: 16,
                               fontWeight: '600',
-                              color: '#000',
+                              color: account.account_type === 'credit_card' && parseFloat(account.balance) > 0 ? '#EF4444' : '#000',
                             }}>
                             {account.balance
-                              ? formatCurrencyAmount(
+                              ? formatAccountBalance(
                                   parseFloat(account.balance),
                                   account.currency,
+                                  account.account_type,
                                 )
-                              : formatCurrencyAmount(0, account.currency)}
+                              : formatAccountBalance(0, account.currency, account.account_type)}
                           </Text>
                         </TouchableOpacity>
                         {index < accounts.length - 1 && (

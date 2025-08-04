@@ -14,12 +14,14 @@ export interface Account {
 
 export interface Category {
   id: number;
-  name?: string;
-  category_name?: string;
-  type?: string;
-  category_type?: string;
+  name: string;
+  type: 'income' | 'expense';
   icon: string;
-  color?: string;
+  color: string;
+  is_system: boolean;
+  user_id?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Transaction {
@@ -37,9 +39,10 @@ export interface Transaction {
   };
   category?: {
     id: number;
-    name?: string;
-    category_name?: string;
-    icon?: string;
+    name: string;
+    icon: string;
+    color: string;
+    is_system: boolean;
   };
   targetAccount?: {
     id: number;

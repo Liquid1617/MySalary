@@ -131,4 +131,33 @@ export function formatCurrencyCompact(
   return `${isNegative ? '-' : ''}${formatted}B${symbol}`;
 }
 
+/**
+ * Formats a currency amount with account type awareness (for credit cards)
+ * @param amount - The amount to format
+ * @param currency - The currency object containing symbol and formatting info
+ * @param accountType - The type of account (e.g., 'credit_card')
+ * @returns Formatted currency string with appropriate sign
+ */
+export function formatAccountBalance(
+  amount: number,
+  currency?: Currency,
+  accountType?: string,
+): string {
+  const absAmount = Math.abs(amount);
+  const formattedAmount = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(absAmount);
+
+  const symbol = currency?.symbol || '$';
+  
+  // For credit cards, positive balance = debt (show as negative)
+  if (accountType === 'credit_card' && amount > 0) {
+    return `-${formattedAmount} ${symbol}`;
+  }
+  
+  // For other accounts or negative amounts, show as is
+  return amount < 0 ? `-${formattedAmount} ${symbol}` : `${formattedAmount} ${symbol}`;
+}
+
 export default formatCurrencyAmount;

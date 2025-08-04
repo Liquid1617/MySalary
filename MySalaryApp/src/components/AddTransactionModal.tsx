@@ -18,6 +18,7 @@ import { colors } from '../styles';
 import { apiService } from '../services/api';
 import AccountCard from './AccountCard';
 import TransactionTypeTabs from './TransactionTypeTabs';
+import AddCategoryModal from './AddCategoryModal';
 import { Account, Category } from '../types/transaction';
 
 interface AccountForCard {
@@ -55,6 +56,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [transactionDate, setTransactionDate] = useState(
     new Date().toISOString().split('T')[0],
   );
@@ -88,6 +90,11 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
         }`,
       );
     }
+  };
+
+  const handleCategoryAdded = () => {
+    // Перезагружаем категории после добавления новой
+    loadData();
   };
 
   const resetForm = () => {
@@ -290,15 +297,23 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
               <TouchableOpacity
                 style={styles.selector}
                 onPress={() => setShowCategoryModal(true)}>
-                <Text
-                  style={[
-                    styles.selectorText,
-                    !selectedCategory && styles.selectorPlaceholder,
-                  ]}>
-                  {selectedCategory
-                    ? `${selectedCategory.icon} ${selectedCategory.name}`
-                    : 'Select Category'}
-                </Text>
+                {selectedCategory ? (
+                  <View style={styles.selectedCategoryDisplay}>
+                    <FontAwesome5
+                      name={selectedCategory.icon}
+                      size={16}
+                      color={selectedCategory.color}
+                      solid
+                    />
+                    <Text style={styles.selectorText}>
+                      {selectedCategory.name}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={[styles.selectorText, styles.selectorPlaceholder]}>
+                    Select Category
+                  </Text>
+                )}
                 <FontAwesome5
                   name="chevron-right"
                   size={16}
@@ -385,6 +400,21 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
               </TouchableOpacity>
             </View>
             <ScrollView>
+              {/* Add Category Button */}
+              <TouchableOpacity
+                style={styles.addCategoryButton}
+                onPress={() => {
+                  console.log('Add Category button pressed');
+                  setShowCategoryModal(false);
+                  setShowAddCategoryModal(true);
+                }}>
+                <FontAwesome5 name="plus" size={16} color={colors.primary} />
+                <Text style={styles.addCategoryText}>
+                  Add New Category
+                </Text>
+              </TouchableOpacity>
+
+              {/* Existing Categories */}
               {filteredCategories.map(category => (
                 <TouchableOpacity
                   key={category.id}
@@ -393,9 +423,20 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                     setSelectedCategory(category);
                     setShowCategoryModal(false);
                   }}>
-                  <Text style={styles.listItemTitle}>
-                    {category.icon} {category.name}
-                  </Text>
+                  <View style={styles.categoryItem}>
+                    <FontAwesome5
+                      name={category.icon}
+                      size={20}
+                      color={category.color}
+                      solid
+                    />
+                    <Text style={styles.listItemTitle}>
+                      {category.name}
+                    </Text>
+                    {!category.is_system && (
+                      <Text style={styles.customBadge}>Custom</Text>
+                    )}
+                  </View>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -442,6 +483,14 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             </TouchableOpacity>
           </Modal>
         )}
+
+        {/* Add Category Modal */}
+        <AddCategoryModal
+          visible={showAddCategoryModal}
+          onClose={() => setShowAddCategoryModal(false)}
+          onCategoryAdded={handleCategoryAdded}
+          categoryType={transactionType === 'transfer' ? 'expense' : transactionType}
+        />
       </SafeAreaView>
     </Modal>
   );
@@ -599,5 +648,47 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: colors.text,
+  },
+  addCategoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderStyle: 'dashed',
+  },
+  addCategoryText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: colors.primary,
+    marginLeft: 8,
+  },
+  categoryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
+  },
+  customBadge: {
+    fontSize: 12,
+    color: '#8B5CF6',
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    marginLeft: 'auto',
+    fontWeight: '500',
+  },
+  selectedCategoryDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
   },
 });
