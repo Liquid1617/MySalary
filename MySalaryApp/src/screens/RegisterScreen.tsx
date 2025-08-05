@@ -54,7 +54,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
   // Get screen height and calculate proportional distances
   const screenHeight = Dimensions.get('window').height;
   // Subtract safe area insets from positions since we're inside SafeAreaView
-  const tempoTopDistance = (145 / 932) * screenHeight - insets.top; // 252px on 932px screen
+  const tempoTopDistance = (200 / 932) * screenHeight - insets.top; // 252px on 932px screen
 
   // Reset errors when leaving the screen
   useFocusEffect(
@@ -226,9 +226,18 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
     }
     if (confirmPass !== password) {
       setConfirmPasswordError('Passwords do not match');
+      setPasswordError('Passwords do not match');
       return false;
     }
     setConfirmPasswordError('');
+    // Clear password error only if passwords match and there's no other password validation error
+    if (
+      password &&
+      password.length >= 6 &&
+      /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)
+    ) {
+      setPasswordError('');
+    }
     return true;
   };
 
@@ -374,7 +383,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
             {/* Form */}
             <View style={{ marginBottom: 32 }}>
               {/* Name Input */}
-              <View style={{ marginBottom: 20 }}>
+              <View style={{ marginBottom: 12 }}>
                 <TextInput
                   style={{
                     borderWidth: 1,
@@ -422,7 +431,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
               </View>
 
               {/* Login Input */}
-              <View style={{ marginBottom: 20 }}>
+              <View style={{ marginBottom: 12 }}>
                 <TextInput
                   style={{
                     borderWidth: 1,
@@ -475,7 +484,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
               </View>
 
               {/* Email Input */}
-              <View style={{ marginBottom: 20 }}>
+              <View style={{ marginBottom: 12 }}>
                 <TextInput
                   style={{
                     borderWidth: 1,
@@ -528,7 +537,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
               </View>
 
               {/* Password Input */}
-              <View style={{ marginBottom: 20 }}>
+              <View style={{ marginBottom: 12 }}>
                 <View
                   style={{
                     borderWidth: 1,
@@ -556,12 +565,18 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
                       if (passwordError) {
                         validatePassword(text);
                       }
-                      if (confirmPassword && confirmPasswordError) {
+                      // Also validate confirm password if it has value to check if passwords match
+                      if (confirmPassword) {
                         validateConfirmPassword(confirmPassword);
                       }
                     }}
                     onFocus={() => setPasswordFocused(true)}
-                    onBlur={() => setPasswordFocused(false)}
+                    onBlur={() => {
+                      setPasswordFocused(false);
+                      if (confirmPassword.trim()) {
+                        validateConfirmPassword(confirmPassword);
+                      }
+                    }}
                     placeholder="Password"
                     placeholderTextColor="#999999"
                     selectionColor="#53EFAE"
@@ -668,9 +683,27 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
                       if (confirmPasswordError) {
                         validateConfirmPassword(text);
                       }
+                      // Clear password error if passwords now match and password has "Passwords do not match" error
+                      if (
+                        text === password &&
+                        passwordError === 'Passwords do not match'
+                      ) {
+                        if (
+                          password &&
+                          password.length >= 6 &&
+                          /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)
+                        ) {
+                          setPasswordError('');
+                        }
+                      }
                     }}
                     onFocus={() => setConfirmPasswordFocused(true)}
-                    onBlur={() => setConfirmPasswordFocused(false)}
+                    onBlur={() => {
+                      setConfirmPasswordFocused(false);
+                      if (confirmPassword.trim()) {
+                        validateConfirmPassword(confirmPassword);
+                      }
+                    }}
                     placeholder="Confirm Password"
                     placeholderTextColor="#999999"
                     selectionColor="#53EFAE"
@@ -768,7 +801,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
                   borderRadius: 16,
                   paddingVertical: 18,
                   alignItems: 'center',
-                  marginBottom: 24,
+                  marginBottom: 20,
                   opacity:
                     loading || !acceptTerms || loginChecking || emailChecking
                       ? 0.7
@@ -794,7 +827,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
             <View style={{ flex: 1 }} />
 
             {/* Footer */}
-            <View style={{ alignItems: 'center', paddingBottom: 50 }}>
+            <View style={{ alignItems: 'center', paddingBottom: 80 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Text
                   style={{

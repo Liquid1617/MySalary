@@ -265,7 +265,7 @@ Error: ${capability.error || 'None'}`;
               {/* Form */}
               <View style={{ marginBottom: 32 }}>
                 {/* Username Input */}
-                <View style={{ marginBottom: 20 }}>
+                <View style={{ marginBottom: 12 }}>
                   <TextInput
                     style={{
                       borderWidth: 1,
