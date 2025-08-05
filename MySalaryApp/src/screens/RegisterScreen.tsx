@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,18 +7,14 @@ import {
   Platform,
   TouchableOpacity,
   Alert,
-  SafeAreaView,
+  TextInput,
+  Dimensions,
 } from 'react-native';
-import {
-  registerScreenStyles,
-  layoutStyles,
-  typographyStyles,
-} from '../styles';
-import { CustomInput } from '../components/CustomInput';
-import { CustomButton } from '../components/CustomButton';
-import { CustomSelect } from '../components/CustomSelect';
-import CountryCodeSelector from '../components/CountryCodeSelector';
-import { apiService, type Country } from '../services/api';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import { WelcomeBackground } from '../components/WelcomeBackground';
+import { apiService } from '../services/api';
 
 interface RegisterScreenProps {
   navigation: any;
@@ -27,51 +23,73 @@ interface RegisterScreenProps {
 export const RegisterScreen: React.FC<RegisterScreenProps> = ({
   navigation,
 }) => {
+  const [name, setName] = useState('');
   const [login, setLogin] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [phone, setPhone] = useState('');
-  const [selectedCountryCode, setSelectedCountryCode] = useState('+7');
-  const [_selectedCountryIso, setSelectedCountryIso] = useState('RU');
-  const [selectedCountry, setSelectedCountry] = useState<number | undefined>();
   const [acceptTerms, setAcceptTerms] = useState(false);
 
+  const [nameError, setNameError] = useState('');
   const [loginError, setLoginError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
-  const [phoneError, setPhoneError] = useState('');
-  const [phoneInputHint, setPhoneInputHint] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [loginChecking, setLoginChecking] = useState(false);
   const [emailChecking, setEmailChecking] = useState(false);
-  const [phoneChecking, setPhoneChecking] = useState(false);
-  const [countries, setCountries] = useState<Country[]>([]);
-  const [countriesLoading, setCountriesLoading] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Загружаем страны при монтировании компонента
-  useEffect(() => {
-    loadCountries();
-  }, []);
+  // Focus states for inputs
+  const [nameFocused, setNameFocused] = useState(false);
+  const [loginFocused, setLoginFocused] = useState(false);
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
 
-  const loadCountries = async () => {
-    try {
-      setCountriesLoading(true);
-      const response = await apiService.getCountries();
-      setCountries(response.countries);
-    } catch (error) {
-      console.error('Error loading countries:', error);
-      Alert.alert('Error', 'Failed to load countries list');
-    } finally {
-      setCountriesLoading(false);
+  const insets = useSafeAreaInsets();
+
+  // Get screen height and calculate proportional distances
+  const screenHeight = Dimensions.get('window').height;
+  // Subtract safe area insets from positions since we're inside SafeAreaView
+  const tempoTopDistance = (145 / 932) * screenHeight - insets.top; // 252px on 932px screen
+
+  // Reset errors when leaving the screen
+  useFocusEffect(
+    React.useCallback(() => {
+      return () => {
+        setNameError('');
+        setLoginError('');
+        setEmailError('');
+        setPasswordError('');
+        setConfirmPasswordError('');
+      };
+    }, []),
+  );
+
+  const validateName = (nameValue: string): boolean => {
+    if (!nameValue.trim()) {
+      setNameError('Required field');
+      return false;
     }
+    if (nameValue.trim().length < 2) {
+      setNameError('Name must be at least 2 characters');
+      return false;
+    }
+    if (nameValue.trim().length > 50) {
+      setNameError('Name must be no more than 50 characters');
+      return false;
+    }
+
+    setNameError('');
+    return true;
   };
 
   const validateLogin = (loginValue: string): boolean => {
     if (!loginValue.trim()) {
-      setLoginError('Username is required');
+      setLoginError('Required field');
       return false;
     }
     if (loginValue.trim().length < 3) {
@@ -103,12 +121,22 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
     try {
       setLoginChecking(true);
       await apiService.checkLoginAvailability(loginValue.trim());
-      setLoginError(''); // Username available
+      setLoginError('');
     } catch (error) {
       if (error instanceof Error) {
-        setLoginError(error.message);
+        // Translate Russian server errors to English
+        let errorMessage = error.message;
+        if (
+          errorMessage.includes('уже существует') ||
+          errorMessage.includes('уже зарегистрирован')
+        ) {
+          errorMessage = 'User with this login already exists';
+        } else if (errorMessage.includes('недоступен')) {
+          errorMessage = 'This login is not available';
+        }
+        setLoginError(errorMessage);
       } else {
-        setLoginError('Error checking username');
+        setLoginError('Error checking login');
       }
     } finally {
       setLoginChecking(false);
@@ -126,7 +154,17 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
       setEmailError(''); // Email available
     } catch (error) {
       if (error instanceof Error) {
-        setEmailError(error.message);
+        // Translate Russian server errors to English
+        let errorMessage = error.message;
+        if (
+          errorMessage.includes('уже существует') ||
+          errorMessage.includes('уже зарегистрирован')
+        ) {
+          errorMessage = 'User with this email already exists';
+        } else if (errorMessage.includes('недоступен')) {
+          errorMessage = 'This email is not available';
+        }
+        setEmailError(errorMessage);
       } else {
         setEmailError('Error checking email');
       }
@@ -138,7 +176,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
   const validateEmail = (mail: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!mail) {
-      setEmailError('Email is required');
+      setEmailError('Required field');
       return false;
     }
     if (!emailRegex.test(mail)) {
@@ -149,83 +187,22 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
     return true;
   };
 
-  const checkPhoneAvailability = async (phoneValue: string) => {
-    if (!validatePhone(phoneValue)) {
-      return;
-    }
-
-    // If field is empty, don't check (phone is optional)
-    if (!phoneValue.trim()) {
-      return;
-    }
-
-    try {
-      setPhoneChecking(true);
-      const fullPhoneNumber = `${selectedCountryCode}${phoneValue.trim()}`;
-      await apiService.checkPhoneAvailability(fullPhoneNumber);
-      setPhoneError(''); // Phone available
-    } catch (error) {
-      if (error instanceof Error) {
-        setPhoneError(error.message);
-      } else {
-        setPhoneError('Error checking phone number');
-      }
-    } finally {
-      setPhoneChecking(false);
-    }
-  };
-
-  const handlePhoneInput = (text: string): string => {
-    // Filter only digits
-    const numbersOnly = text.replace(/[^0-9]/g, '');
-
-    // If user tried to enter non-digit character, show hint
-    if (text !== numbersOnly) {
-      setPhoneInputHint('Only digits are allowed');
-      // Hide hint after 2 seconds
-      setTimeout(() => {
-        setPhoneInputHint('');
-      }, 2000);
-    }
-
-    return numbersOnly;
-  };
-
-  const validatePhone = (phoneNumber: string): boolean => {
-    if (!phoneNumber.trim()) {
-      setPhoneError('');
-      return true; // Phone is optional
-    }
-
-    // Check local number format (without country code)
-    const phoneRegex = /^[0-9]{6,15}$/;
-    if (!phoneRegex.test(phoneNumber.trim())) {
-      setPhoneError(
-        'Enter a valid phone number (digits only, 6-15 characters)',
-      );
-      return false;
-    }
-
-    setPhoneError('');
-    return true;
-  };
-
   const getPasswordStrength = (pass: string) => {
     if (pass.length === 0) {
       return { strength: 'none', color: '', width: 0 };
     }
     if (pass.length < 6) {
-      return { strength: 'weak', color: 'red', width: 33 };
+      return { strength: 'weak', color: '#FCA1A2', width: 33 };
     }
     if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(pass)) {
       return { strength: 'medium', color: 'orange', width: 66 };
     }
-    return { strength: 'strong', color: 'green', width: 100 };
+    return { strength: 'strong', color: '#53EFAE', width: 100 };
   };
 
   const validatePassword = (pass: string): boolean => {
     if (!pass) {
-      setPasswordError('Password is required');
+      setPasswordError('Required field');
       return false;
     }
     if (pass.length < 6) {
@@ -244,7 +221,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
 
   const validateConfirmPassword = (confirmPass: string): boolean => {
     if (!confirmPass) {
-      setConfirmPasswordError('Password confirmation is required');
+      setConfirmPasswordError('Required field');
       return false;
     }
     if (confirmPass !== password) {
@@ -256,11 +233,11 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
   };
 
   const handleRegister = async () => {
+    const isNameValid = validateName(name);
     const isLoginValid = validateLogin(login);
     const isEmailValid = validateEmail(email);
     const isPasswordValid = validatePassword(password);
     const isConfirmPasswordValid = validateConfirmPassword(confirmPassword);
-    const isPhoneValid = validatePhone(phone);
 
     if (!acceptTerms) {
       Alert.alert('Error', 'You must accept the terms of service');
@@ -268,11 +245,11 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
     }
 
     if (
+      !isNameValid ||
       !isLoginValid ||
       !isEmailValid ||
       !isPasswordValid ||
-      !isConfirmPasswordValid ||
-      !isPhoneValid
+      !isConfirmPasswordValid
     ) {
       return;
     }
@@ -280,29 +257,41 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
     setLoading(true);
 
     try {
-      const fullPhoneNumber = phone.trim()
-        ? `${selectedCountryCode}${phone.trim()}`
-        : '';
       const registerData = {
+        name: name.trim(),
         login: login.trim(),
-        email,
+        email: email.trim(),
         password,
-        ...(fullPhoneNumber && { phone: fullPhoneNumber }),
-        ...(selectedCountry && { country_id: selectedCountry }),
       };
 
       await apiService.register(registerData);
 
-      // Redirect to main screen immediately after successful registration
       navigation.reset({
         index: 0,
         routes: [{ name: 'MainTabs' }],
       });
     } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Failed to create account. Please try again later.';
+      let errorMessage = 'Failed to create account. Please try again later.';
+
+      if (error instanceof Error) {
+        // Translate Russian server errors to English
+        if (
+          error.message.includes('уже существует') ||
+          error.message.includes('уже зарегистрирован')
+        ) {
+          errorMessage = 'User with this email or login already exists';
+        } else if (error.message.includes('недоступен')) {
+          errorMessage = 'Email or login is not available';
+        } else if (
+          error.message.includes('неверный') ||
+          error.message.includes('неправильный')
+        ) {
+          errorMessage = 'Invalid data provided';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
       Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
@@ -313,34 +302,10 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
     navigation.navigate('Login');
   };
 
-  const getPasswordStrengthStyle = () => {
-    let colorStyle;
-    if (passwordStrength.strength === 'weak') {
-      colorStyle = registerScreenStyles.strengthWeak;
-    } else if (passwordStrength.strength === 'medium') {
-      colorStyle = registerScreenStyles.strengthMedium;
-    } else {
-      colorStyle = registerScreenStyles.strengthStrong;
-    }
-
-    return [
-      registerScreenStyles.strengthFill,
-      { width: `${passwordStrength.width}%` as any },
-      colorStyle,
-    ];
-  };
-
-  const getPasswordStrengthTextStyle = () => {
-    let colorStyle;
-    if (passwordStrength.strength === 'weak') {
-      colorStyle = registerScreenStyles.weak;
-    } else if (passwordStrength.strength === 'medium') {
-      colorStyle = registerScreenStyles.medium;
-    } else {
-      colorStyle = registerScreenStyles.strong;
-    }
-
-    return [registerScreenStyles.passwordStrengthText, colorStyle];
+  const getBorderColor = (hasError: boolean, isFocused: boolean) => {
+    if (hasError) return '#FCA1A2';
+    if (isFocused) return '#53EFAE';
+    return '#E5E5EA';
   };
 
   const getPasswordStrengthLabel = () => {
@@ -356,232 +321,500 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
   const passwordStrength = getPasswordStrength(password);
 
   return (
-    <SafeAreaView style={registerScreenStyles.container}>
+    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <WelcomeBackground />
       <KeyboardAvoidingView
-        style={layoutStyles.flex1}
+        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView
-          contentContainerStyle={registerScreenStyles.scrollView}
+          contentContainerStyle={{ flexGrow: 1 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
-          <View style={registerScreenStyles.content}>
-            <View style={registerScreenStyles.header}>
-              <Text style={[typographyStyles.h1, registerScreenStyles.title]}>
+          <View
+            style={{
+              flex: 1,
+              paddingHorizontal: 32,
+              paddingTop: tempoTopDistance,
+            }}>
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: '700',
+                color: '#252233',
+                textAlign: 'center',
+                marginBottom: 40,
+              }}>
+              tempo
+            </Text>
+            {/* Logo */}
+            <View style={{ alignItems: 'center', marginBottom: 40 }}>
+              <Text
+                style={{
+                  fontSize: 24,
+                  fontWeight: 'bold',
+                  fontFamily: 'Commissioner-Bold',
+                  color: '#333333',
+                  marginBottom: 8,
+                  textAlign: 'center',
+                }}>
                 Create Account
               </Text>
+
               <Text
-                style={[typographyStyles.body1, registerScreenStyles.subtitle]}>
-                Join MySalary and manage your finances
+                style={{
+                  fontSize: 14,
+                  fontFamily: 'Commissioner-Regular',
+                  color: '#666666',
+                  textAlign: 'center',
+                }}>
+                Achieve financial wellness with AI
               </Text>
             </View>
 
-            <View style={registerScreenStyles.form}>
-              <CustomInput
-                label="Username"
-                value={login}
-                onChangeText={text => {
-                  setLogin(text);
-                  if (loginError && !loginChecking) {
-                    validateLogin(text);
-                  }
-                }}
-                onBlur={() => {
-                  if (login.trim()) {
-                    checkLoginAvailability(login);
-                  }
-                }}
-                error={loginError}
-                placeholder="Enter username"
-                loading={loginChecking}
-              />
-
-              <CustomInput
-                label="Email"
-                value={email}
-                onChangeText={text => {
-                  setEmail(text);
-                  if (emailError && !emailChecking) {
-                    validateEmail(text);
-                  }
-                }}
-                onBlur={() => {
-                  if (email.trim()) {
-                    checkEmailAvailability(email);
-                  }
-                }}
-                error={emailError}
-                placeholder="Enter your email"
-                keyboardType="email-address"
-                loading={emailChecking}
-              />
-
-              <View>
-                <Text style={registerScreenStyles.phoneLabel}>
-                  Phone (optional)
-                </Text>
-                <View style={registerScreenStyles.phoneContainer}>
-                  <CountryCodeSelector
-                    selectedCountryCode={selectedCountryCode}
-                    onCountryCodeChange={(dialCode, isoCode) => {
-                      setSelectedCountryCode(dialCode);
-                      setSelectedCountryIso(isoCode);
-                    }}
-                  />
-                  <CustomInput
-                    label=""
-                    value={phone}
-                    onChangeText={text => {
-                      const filteredText = handlePhoneInput(text);
-                      setPhone(filteredText);
-                      if (phoneError && !phoneChecking) {
-                        validatePhone(filteredText);
-                      }
-                    }}
-                    onBlur={() => {
-                      if (phone.trim()) {
-                        checkPhoneAvailability(phone);
-                      }
-                    }}
-                    error={phoneError}
-                    placeholder="Enter phone number"
-                    keyboardType="phone-pad"
-                    loading={phoneChecking}
-                    style={registerScreenStyles.phoneInput}
-                  />
-                </View>
-                <View style={registerScreenStyles.phoneHintContainer}>
-                  <Text style={registerScreenStyles.phoneHint}>
-                    {phoneInputHint}
-                  </Text>
-                </View>
-              </View>
-
-              <CustomSelect
-                label="Country (optional)"
-                value={selectedCountry}
-                options={countries.map(country => ({
-                  id: country.id,
-                  name: country.name,
-                  code: country.code,
-                }))}
-                onSelect={option => setSelectedCountry(option.id as number)}
-                placeholder="Select country"
-                disabled={countriesLoading}
-              />
-
-              <View>
-                <CustomInput
-                  label="Password"
-                  value={password}
+            {/* Form */}
+            <View style={{ marginBottom: 32 }}>
+              {/* Name Input */}
+              <View style={{ marginBottom: 20 }}>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: getBorderColor(!!nameError, nameFocused),
+                    borderRadius: 8,
+                    paddingHorizontal: 20,
+                    paddingVertical: 18,
+                    fontSize: 16,
+                    fontFamily: 'Commissioner-Regular',
+                    backgroundColor: '#FFFFFF',
+                    color: nameError ? '#FCA1A2' : '#252234',
+                  }}
+                  value={name}
                   onChangeText={text => {
-                    setPassword(text);
-                    if (passwordError) {
-                      validatePassword(text);
-                    }
-                    if (confirmPassword && confirmPasswordError) {
-                      validateConfirmPassword(confirmPassword);
+                    setName(text);
+                    if (nameError) {
+                      validateName(text);
                     }
                   }}
-                  error={passwordError}
-                  placeholder="Create password"
-                  isPassword
+                  onFocus={() => setNameFocused(true)}
+                  onBlur={() => setNameFocused(false)}
+                  placeholder="Name"
+                  placeholderTextColor="#999999"
+                  keyboardType="default"
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                  textContentType="name"
                 />
+                {nameError ? (
+                  <Text
+                    style={{
+                      color: '#FCA1A2',
+                      fontSize: 11,
+                      fontFamily: 'Commissioner',
+                      fontWeight: '400',
+                      lineHeight: 11,
+                      letterSpacing: 0,
+                      marginTop: 8,
+                      marginLeft: 4,
+                    }}>
+                    {nameError}
+                  </Text>
+                ) : null}
+              </View>
+
+              {/* Login Input */}
+              <View style={{ marginBottom: 20 }}>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: getBorderColor(!!loginError, loginFocused),
+                    borderRadius: 8,
+                    paddingHorizontal: 20,
+                    paddingVertical: 18,
+                    fontSize: 16,
+                    fontFamily: 'Commissioner-Regular',
+                    backgroundColor: '#FFFFFF',
+                    color: loginError ? '#FCA1A2' : '#252234',
+                  }}
+                  value={login}
+                  onChangeText={text => {
+                    setLogin(text);
+                    if (loginError && !loginChecking) {
+                      validateLogin(text);
+                    }
+                  }}
+                  onFocus={() => setLoginFocused(true)}
+                  onBlur={() => {
+                    setLoginFocused(false);
+                    if (login.trim()) {
+                      checkLoginAvailability(login);
+                    }
+                  }}
+                  placeholder="Login"
+                  placeholderTextColor="#999999"
+                  keyboardType="default"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="username"
+                />
+                {loginError ? (
+                  <Text
+                    style={{
+                      color: '#FCA1A2',
+                      fontSize: 11,
+                      fontFamily: 'Commissioner',
+                      fontWeight: '400',
+                      lineHeight: 11,
+                      letterSpacing: 0,
+                      marginTop: 8,
+                      marginLeft: 4,
+                    }}>
+                    {loginError}
+                  </Text>
+                ) : null}
+              </View>
+
+              {/* Email Input */}
+              <View style={{ marginBottom: 20 }}>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: getBorderColor(!!emailError, emailFocused),
+                    borderRadius: 8,
+                    paddingHorizontal: 20,
+                    paddingVertical: 18,
+                    fontSize: 16,
+                    fontFamily: 'Commissioner-Regular',
+                    backgroundColor: '#FFFFFF',
+                    color: emailError ? '#FCA1A2' : '#252234',
+                  }}
+                  value={email}
+                  onChangeText={text => {
+                    setEmail(text);
+                    if (emailError && !emailChecking) {
+                      validateEmail(text);
+                    }
+                  }}
+                  onFocus={() => setEmailFocused(true)}
+                  onBlur={() => {
+                    setEmailFocused(false);
+                    if (email.trim()) {
+                      checkEmailAvailability(email);
+                    }
+                  }}
+                  placeholder="Email"
+                  placeholderTextColor="#999999"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="emailAddress"
+                />
+                {emailError ? (
+                  <Text
+                    style={{
+                      color: '#FCA1A2',
+                      fontSize: 11,
+                      fontFamily: 'Commissioner',
+                      fontWeight: '400',
+                      lineHeight: 11,
+                      letterSpacing: 0,
+                      marginTop: 8,
+                      marginLeft: 4,
+                    }}>
+                    {emailError}
+                  </Text>
+                ) : null}
+              </View>
+
+              {/* Password Input */}
+              <View style={{ marginBottom: 20 }}>
+                <View
+                  style={{
+                    borderWidth: 1,
+                    borderColor: getBorderColor(
+                      !!passwordError,
+                      passwordFocused,
+                    ),
+                    borderRadius: 8,
+                    backgroundColor: '#FFFFFF',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }}>
+                  <TextInput
+                    style={{
+                      flex: 1,
+                      paddingHorizontal: 20,
+                      paddingVertical: 18,
+                      fontSize: 16,
+                      fontFamily: 'Commissioner-Regular',
+                      color: passwordError ? '#FCA1A2' : '#252234',
+                    }}
+                    value={password}
+                    onChangeText={text => {
+                      setPassword(text);
+                      if (passwordError) {
+                        validatePassword(text);
+                      }
+                      if (confirmPassword && confirmPasswordError) {
+                        validateConfirmPassword(confirmPassword);
+                      }
+                    }}
+                    onFocus={() => setPasswordFocused(true)}
+                    onBlur={() => setPasswordFocused(false)}
+                    placeholder="Password"
+                    placeholderTextColor="#999999"
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    textContentType="password"
+                  />
+                  <TouchableOpacity
+                    style={{
+                      paddingHorizontal: 20,
+                      paddingVertical: 18,
+                    }}
+                    onPress={() => setShowPassword(!showPassword)}>
+                    <FontAwesome5
+                      name={showPassword ? 'eye-slash' : 'eye'}
+                      size={20}
+                      color="#999999"
+                    />
+                  </TouchableOpacity>
+                </View>
+                {passwordError ? (
+                  <Text
+                    style={{
+                      color: '#FCA1A2',
+                      fontSize: 11,
+                      fontFamily: 'Commissioner',
+                      fontWeight: '400',
+                      lineHeight: 11,
+                      letterSpacing: 0,
+                      marginTop: 8,
+                      marginLeft: 4,
+                    }}>
+                    {passwordError}
+                  </Text>
+                ) : null}
                 {password.length > 0 && (
-                  <View style={registerScreenStyles.passwordStrengthContainer}>
-                    <Text style={getPasswordStrengthTextStyle()}>
+                  <View style={{ marginTop: 8, marginLeft: 4 }}>
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        fontFamily: 'Commissioner',
+                        fontWeight: '400',
+                        color:
+                          passwordStrength.strength === 'weak'
+                            ? '#FCA1A2'
+                            : passwordStrength.strength === 'medium'
+                              ? '#FFA500'
+                              : '#53EFAE',
+                      }}>
                       Strength: {getPasswordStrengthLabel()}
                     </Text>
-                    <View style={registerScreenStyles.strengthIndicator}>
-                      <View style={getPasswordStrengthStyle()} />
+                    <View
+                      style={{
+                        height: 4,
+                        backgroundColor: '#E5E5EA',
+                        borderRadius: 2,
+                        marginTop: 4,
+                      }}>
+                      <View
+                        style={{
+                          height: 4,
+                          width: `${passwordStrength.width}%`,
+                          backgroundColor:
+                            passwordStrength.strength === 'weak'
+                              ? '#FCA1A2'
+                              : passwordStrength.strength === 'medium'
+                                ? '#FFA500'
+                                : '#53EFAE',
+                          borderRadius: 2,
+                        }}
+                      />
                     </View>
                   </View>
                 )}
               </View>
 
-              <CustomInput
-                label="Confirm Password"
-                value={confirmPassword}
-                onChangeText={text => {
-                  setConfirmPassword(text);
-                  if (confirmPasswordError) {
-                    validateConfirmPassword(text);
-                  }
-                }}
-                error={confirmPasswordError}
-                placeholder="Repeat password"
-                isPassword
-              />
-            </View>
-
-            <View style={registerScreenStyles.termsContainer}>
-              <TouchableOpacity
-                style={[
-                  registerScreenStyles.checkbox,
-                  acceptTerms && registerScreenStyles.checkboxChecked,
-                ]}
-                onPress={() => setAcceptTerms(!acceptTerms)}>
-                {acceptTerms && (
-                  <Text style={registerScreenStyles.checkboxText}>✓</Text>
-                )}
-              </TouchableOpacity>
-              <Text
-                style={[
-                  typographyStyles.body2,
-                  registerScreenStyles.termsText,
-                ]}>
-                I accept the{' '}
-                <Text style={registerScreenStyles.termsLink}>
-                  Terms of Service
-                </Text>{' '}
-                and{' '}
-                <Text style={registerScreenStyles.termsLink}>
-                  Privacy Policy
-                </Text>
-              </Text>
-            </View>
-
-            <View style={registerScreenStyles.buttonSpacing}>
-              <CustomButton
-                title="Create Account"
-                onPress={handleRegister}
-                loading={loading}
-                disabled={
-                  !acceptTerms ||
-                  countriesLoading ||
-                  loginChecking ||
-                  emailChecking ||
-                  phoneChecking
-                }
-              />
-            </View>
-
-            <CustomButton
-              title="Already have an account? Sign In"
-              variant="secondary"
-              onPress={navigateToLogin}
-            />
-
-            <View style={registerScreenStyles.footer}>
-              <Text
-                style={[
-                  typographyStyles.body2,
-                  registerScreenStyles.footerText,
-                ]}>
-                Already have an account?
-              </Text>
-              <TouchableOpacity onPress={navigateToLogin}>
+              {/* Confirm Password Input */}
+              <View style={{ marginBottom: 32 }}>
+                <View
+                  style={{
+                    borderWidth: 1,
+                    borderColor: getBorderColor(
+                      !!confirmPasswordError,
+                      confirmPasswordFocused,
+                    ),
+                    borderRadius: 8,
+                    backgroundColor: '#FFFFFF',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }}>
+                  <TextInput
+                    style={{
+                      flex: 1,
+                      paddingHorizontal: 20,
+                      paddingVertical: 18,
+                      fontSize: 16,
+                      fontFamily: 'Commissioner-Regular',
+                      color: confirmPasswordError ? '#FCA1A2' : '#252234',
+                    }}
+                    value={confirmPassword}
+                    onChangeText={text => {
+                      setConfirmPassword(text);
+                      if (confirmPasswordError) {
+                        validateConfirmPassword(text);
+                      }
+                    }}
+                    onFocus={() => setConfirmPasswordFocused(true)}
+                    onBlur={() => setConfirmPasswordFocused(false)}
+                    placeholder="Confirm Password"
+                    placeholderTextColor="#999999"
+                    secureTextEntry={!showConfirmPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    textContentType="password"
+                  />
+                  <TouchableOpacity
+                    style={{
+                      paddingHorizontal: 20,
+                      paddingVertical: 18,
+                    }}
+                    onPress={() =>
+                      setShowConfirmPassword(!showConfirmPassword)
+                    }>
+                    <FontAwesome5
+                      name={showConfirmPassword ? 'eye-slash' : 'eye'}
+                      size={20}
+                      color="#999999"
+                    />
+                  </TouchableOpacity>
+                </View>
+                {confirmPasswordError ? (
+                  <Text
+                    style={{
+                      color: '#FCA1A2',
+                      fontSize: 11,
+                      fontFamily: 'Commissioner',
+                      fontWeight: '400',
+                      lineHeight: 11,
+                      letterSpacing: 0,
+                      marginTop: 8,
+                      marginLeft: 4,
+                    }}>
+                    {confirmPasswordError}
+                  </Text>
+                ) : null}
+              </View>
+              {/* Terms checkbox */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'flex-start',
+                  marginBottom: 32,
+                }}>
+                <TouchableOpacity
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderWidth: 1,
+                    borderColor: acceptTerms ? '#252234' : '#E5E5EA',
+                    borderRadius: 4,
+                    backgroundColor: acceptTerms ? '#252234' : '#FFFFFF',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 12,
+                    marginTop: 2,
+                  }}
+                  onPress={() => setAcceptTerms(!acceptTerms)}>
+                  {acceptTerms && (
+                    <Text
+                      style={{
+                        color: '#FFFFFF',
+                        fontSize: 12,
+                        fontWeight: 'bold',
+                      }}>
+                      ✓
+                    </Text>
+                  )}
+                </TouchableOpacity>
                 <Text
-                  style={[
-                    typographyStyles.body2,
-                    registerScreenStyles.loginLink,
-                  ]}>
-                  Sign In
+                  style={{
+                    fontSize: 14,
+                    fontFamily: 'Commissioner-Regular',
+                    color: '#666666',
+                    flex: 1,
+                    lineHeight: 20,
+                  }}>
+                  I accept the{' '}
+                  <Text style={{ color: '#252234', fontWeight: '600' }}>
+                    Terms of Service
+                  </Text>{' '}
+                  and{' '}
+                  <Text style={{ color: '#252234', fontWeight: '600' }}>
+                    Privacy Policy
+                  </Text>
+                </Text>
+              </View>
+
+              {/* Create Account Button */}
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#252234',
+                  borderRadius: 16,
+                  paddingVertical: 18,
+                  alignItems: 'center',
+                  marginBottom: 24,
+                  opacity:
+                    loading || !acceptTerms || loginChecking || emailChecking
+                      ? 0.7
+                      : 1,
+                }}
+                onPress={handleRegister}
+                disabled={
+                  loading || !acceptTerms || loginChecking || emailChecking
+                }>
+                <Text
+                  style={{
+                    color: '#FFFFFF',
+                    fontSize: 18,
+                    fontWeight: '600',
+                    fontFamily: 'Commissioner-SemiBold',
+                  }}>
+                  {loading ? 'Creating Account...' : 'Create Account'}
                 </Text>
               </TouchableOpacity>
+            </View>
+
+            {/* Spacer to push footer to bottom */}
+            <View style={{ flex: 1 }} />
+
+            {/* Footer */}
+            <View style={{ alignItems: 'center', paddingBottom: 50 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    color: '#666666',
+                    marginRight: 8,
+                  }}>
+                  Already have an account?
+                </Text>
+                <TouchableOpacity onPress={navigateToLogin}>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      color: '#252234',
+                      fontWeight: '600',
+                      fontFamily: 'Commissioner-SemiBold',
+                    }}>
+                    Sign In
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 };

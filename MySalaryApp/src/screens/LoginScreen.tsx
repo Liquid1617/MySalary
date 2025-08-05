@@ -29,6 +29,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [loginError, setLoginError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Focus states for inputs
+  const [usernameFocused, setUsernameFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
 
   const insets = useSafeAreaInsets();
 
@@ -195,6 +199,12 @@ Error: ${capability.error || 'None'}`;
     navigation.navigate('Register');
   };
 
+  const getBorderColor = (hasError: boolean, isFocused: boolean) => {
+    if (hasError) return '#FCA1A2';
+    if (isFocused) return '#53EFAE';
+    return '#E5E5EA';
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
       <WelcomeBackground />
@@ -219,7 +229,8 @@ Error: ${capability.error || 'None'}`;
           <ScrollView
             contentContainerStyle={{ flexGrow: 1 }}
             keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}>
+            showsVerticalScrollIndicator={false}
+            scrollEnabled={false}>
             <View
               style={{
                 flex: 1,
@@ -258,7 +269,7 @@ Error: ${capability.error || 'None'}`;
                   <TextInput
                     style={{
                       borderWidth: 1,
-                      borderColor: usernameError || loginError ? '#FCA1A2' : '#E5E5EA',
+                      borderColor: getBorderColor(usernameError || loginError, usernameFocused),
                       borderRadius: 8,
                       paddingHorizontal: 20,
                       paddingVertical: 18,
@@ -277,6 +288,8 @@ Error: ${capability.error || 'None'}`;
                         setLoginError('');
                       }
                     }}
+                    onFocus={() => setUsernameFocused(true)}
+                    onBlur={() => setUsernameFocused(false)}
                     placeholder="Username or Email"
                     placeholderTextColor="#999999"
                     keyboardType="default"
@@ -306,7 +319,7 @@ Error: ${capability.error || 'None'}`;
                   <View
                     style={{
                       borderWidth: 1,
-                      borderColor: passwordError || loginError ? '#FCA1A2' : '#E5E5EA',
+                      borderColor: getBorderColor(passwordError || loginError, passwordFocused),
                       borderRadius: 8,
                       backgroundColor: '#FFFFFF',
                       flexDirection: 'row',
@@ -331,6 +344,8 @@ Error: ${capability.error || 'None'}`;
                           setLoginError('');
                         }
                       }}
+                      onFocus={() => setPasswordFocused(true)}
+                      onBlur={() => setPasswordFocused(false)}
                       placeholder="Password"
                       placeholderTextColor="#999999"
                       secureTextEntry={!showPassword}

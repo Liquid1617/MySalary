@@ -292,8 +292,7 @@ export const AppNavigator: React.FC = () => {
           component={RegisterScreen}
           options={{
             title: 'Register',
-            headerShown: true,
-            headerBackTitle: 'Back',
+            headerShown: false,
           }}
         />
         <Stack.Screen
