@@ -398,6 +398,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
                   onBlur={() => setNameFocused(false)}
                   placeholder="Name"
                   placeholderTextColor="#999999"
+                  selectionColor="#53EFAE"
                   keyboardType="default"
                   autoCapitalize="words"
                   autoCorrect={false}
@@ -450,6 +451,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
                   }}
                   placeholder="Login"
                   placeholderTextColor="#999999"
+                  selectionColor="#53EFAE"
                   keyboardType="default"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -502,6 +504,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
                   }}
                   placeholder="Email"
                   placeholderTextColor="#999999"
+                  selectionColor="#53EFAE"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -561,6 +564,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
                     onBlur={() => setPasswordFocused(false)}
                     placeholder="Password"
                     placeholderTextColor="#999999"
+                    selectionColor="#53EFAE"
                     secureTextEntry={!showPassword}
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -669,6 +673,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
                     onBlur={() => setConfirmPasswordFocused(false)}
                     placeholder="Confirm Password"
                     placeholderTextColor="#999999"
+                    selectionColor="#53EFAE"
                     secureTextEntry={!showConfirmPassword}
                     autoCapitalize="none"
                     autoCorrect={false}

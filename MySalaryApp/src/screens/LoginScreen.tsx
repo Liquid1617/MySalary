@@ -292,6 +292,7 @@ Error: ${capability.error || 'None'}`;
                     onBlur={() => setUsernameFocused(false)}
                     placeholder="Username or Email"
                     placeholderTextColor="#999999"
+                    selectionColor="#53EFAE"
                     keyboardType="default"
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -348,6 +349,7 @@ Error: ${capability.error || 'None'}`;
                       onBlur={() => setPasswordFocused(false)}
                       placeholder="Password"
                       placeholderTextColor="#999999"
+                      selectionColor="#53EFAE"
                       secureTextEntry={!showPassword}
                       autoCapitalize="none"
                       autoCorrect={false}
