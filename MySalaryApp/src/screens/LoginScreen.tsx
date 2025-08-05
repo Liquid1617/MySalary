@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { WelcomeBackground } from '../components/WelcomeBackground';
 import { apiService } from '../services/api';
 import { biometricService } from '../services/biometric';
@@ -25,6 +26,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [usernameError, setUsernameError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [loginError, setLoginError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -36,9 +38,20 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const tempoTopDistance = (252 / 932) * screenHeight - insets.top; // 252px on 932px screen
   const contentTopDistance = (338 / 932) * screenHeight - insets.top; // 338px on 932px screen
 
+  // Reset errors when leaving the screen
+  useFocusEffect(
+    React.useCallback(() => {
+      return () => {
+        setUsernameError('');
+        setPasswordError('');
+        setLoginError('');
+      };
+    }, [])
+  );
+
   const validateUsername = (usernameValue: string): boolean => {
     if (!usernameValue) {
-      setUsernameError('Username or email is required');
+      setUsernameError('Required field');
       return false;
     }
     if (usernameValue.length < 3) {
@@ -65,7 +78,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   const validatePassword = (passwordValue: string): boolean => {
     if (!passwordValue) {
-      setPasswordError('Password is required');
+      setPasswordError('Required field');
       return false;
     }
     if (passwordValue.length < 6) {
@@ -85,6 +98,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     }
 
     setLoading(true);
+    setLoginError('');
 
     try {
       await apiService.login({
@@ -170,9 +184,8 @@ Error: ${capability.error || 'None'}`;
         });
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Authentication error';
-      Alert.alert('Error', errorMessage);
+      // Show validation error for any login failure
+      setLoginError('Incorrect password or email');
     } finally {
       setLoading(false);
     }
@@ -245,20 +258,23 @@ Error: ${capability.error || 'None'}`;
                   <TextInput
                     style={{
                       borderWidth: 1,
-                      borderColor: usernameError ? '#EF4444' : '#E5E5EA',
+                      borderColor: usernameError || loginError ? '#FCA1A2' : '#E5E5EA',
                       borderRadius: 8,
                       paddingHorizontal: 20,
                       paddingVertical: 18,
                       fontSize: 16,
                       fontFamily: 'Commissioner-Regular',
                       backgroundColor: '#FFFFFF',
-                      color: '#252234',
+                      color: loginError ? '#FCA1A2' : '#252234',
                     }}
                     value={username}
                     onChangeText={text => {
                       setUsername(text);
                       if (usernameError) {
                         validateUsername(text);
+                      }
+                      if (loginError) {
+                        setLoginError('');
                       }
                     }}
                     placeholder="Username or Email"
@@ -271,9 +287,12 @@ Error: ${capability.error || 'None'}`;
                   {usernameError ? (
                     <Text
                       style={{
-                        color: '#EF4444',
-                        fontSize: 14,
-                        fontFamily: 'Commissioner-Regular',
+                        color: '#FCA1A2',
+                        fontSize: 11,
+                        fontFamily: 'Commissioner',
+                        fontWeight: '400',
+                        lineHeight: 11,
+                        letterSpacing: 0,
                         marginTop: 8,
                         marginLeft: 4,
                       }}>
@@ -287,7 +306,7 @@ Error: ${capability.error || 'None'}`;
                   <View
                     style={{
                       borderWidth: 1,
-                      borderColor: passwordError ? '#EF4444' : '#E5E5EA',
+                      borderColor: passwordError || loginError ? '#FCA1A2' : '#E5E5EA',
                       borderRadius: 8,
                       backgroundColor: '#FFFFFF',
                       flexDirection: 'row',
@@ -300,13 +319,16 @@ Error: ${capability.error || 'None'}`;
                         paddingVertical: 18,
                         fontSize: 16,
                         fontFamily: 'Commissioner-Regular',
-                        color: '#252234',
+                        color: loginError ? '#FCA1A2' : '#252234',
                       }}
                       value={password}
                       onChangeText={text => {
                         setPassword(text);
                         if (passwordError) {
                           validatePassword(text);
+                        }
+                        if (loginError) {
+                          setLoginError('');
                         }
                       }}
                       placeholder="Password"
@@ -332,13 +354,31 @@ Error: ${capability.error || 'None'}`;
                   {passwordError ? (
                     <Text
                       style={{
-                        color: '#EF4444',
-                        fontSize: 14,
-                        fontFamily: 'Commissioner-Regular',
+                        color: '#FCA1A2',
+                        fontSize: 11,
+                        fontFamily: 'Commissioner',
+                        fontWeight: '400',
+                        lineHeight: 11,
+                        letterSpacing: 0,
                         marginTop: 8,
                         marginLeft: 4,
                       }}>
                       {passwordError}
+                    </Text>
+                  ) : null}
+                  {loginError ? (
+                    <Text
+                      style={{
+                        color: '#FCA1A2',
+                        fontSize: 11,
+                        fontFamily: 'Commissioner',
+                        fontWeight: '400',
+                        lineHeight: 11,
+                        letterSpacing: 0,
+                        marginTop: 8,
+                        marginLeft: 4,
+                      }}>
+                      {loginError}
                     </Text>
                   ) : null}
                 </View>
