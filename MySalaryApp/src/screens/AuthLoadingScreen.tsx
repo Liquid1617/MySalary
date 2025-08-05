@@ -26,12 +26,12 @@ export const AuthLoadingScreen: React.FC<AuthLoadingScreenProps> = ({
       console.log('Is authenticated:', isAuthenticated);
 
       if (!isAuthenticated) {
-        // Если пользователь не авторизован, переходим на логин
-        console.log('User not authenticated, navigating to Login');
+        // Если пользователь не авторизован, переходим на экран приветствия
+        console.log('User not authenticated, navigating to Welcome');
         setTimeout(() => {
           navigation.reset({
             index: 0,
-            routes: [{ name: 'Login' }],
+            routes: [{ name: 'Welcome' }],
           });
         }, 1000);
         return;
@@ -53,10 +53,10 @@ export const AuthLoadingScreen: React.FC<AuthLoadingScreenProps> = ({
               routes: [{ name: 'MainTabs' }],
             });
           } else {
-            // Биометрия неуспешна - переходим на логин
+            // Биометрия неуспешна - переходим на экран приветствия
             navigation.reset({
               index: 0,
-              routes: [{ name: 'Login' }],
+              routes: [{ name: 'Welcome' }],
             });
           }
         }, 1500);
@@ -72,11 +72,11 @@ export const AuthLoadingScreen: React.FC<AuthLoadingScreenProps> = ({
     } catch (error) {
       console.error('=== AuthLoadingScreen: Auth check error ===');
       console.error('Error details:', error);
-      console.log('Navigating to Login due to error');
+      console.log('Navigating to Welcome due to error');
       setTimeout(() => {
         navigation.reset({
           index: 0,
-          routes: [{ name: 'Login' }],
+          routes: [{ name: 'Welcome' }],
         });
       }, 1000);
     }

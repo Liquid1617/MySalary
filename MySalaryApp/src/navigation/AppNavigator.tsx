@@ -6,6 +6,7 @@ import { StatusBar, TouchableOpacity, Text, View, Alert } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+import { WelcomeScreen } from '../screens/WelcomeScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
 import { FinancesScreen } from '../screens/FinancesScreen';
@@ -29,6 +30,7 @@ import { Colors } from '../styles/colors';
 
 export type RootStackParamList = {
   AuthLoading: undefined;
+  Welcome: undefined;
   Login: undefined;
   Register: undefined;
   Home: undefined;
@@ -266,6 +268,13 @@ export const AppNavigator: React.FC = () => {
         <Stack.Screen
           name="AuthLoading"
           component={AuthLoadingScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="Welcome"
+          component={WelcomeScreen}
           options={{
             headerShown: false,
           }}

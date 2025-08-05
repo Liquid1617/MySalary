@@ -7,14 +7,12 @@ import {
   Platform,
   TouchableOpacity,
   Alert,
-  SafeAreaView,
   TextInput,
+  Dimensions,
 } from 'react-native';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
-import { loginScreenStyles, layoutStyles, typographyStyles } from '../styles';
-import { CustomInput } from '../components/CustomInput';
-import { CustomButton } from '../components/CustomButton';
-import { BackgroundCurve } from '../components/BackgroundCurve';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { WelcomeBackground } from '../components/WelcomeBackground';
 import { apiService } from '../services/api';
 import { biometricService } from '../services/biometric';
 
@@ -29,6 +27,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [passwordError, setPasswordError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const insets = useSafeAreaInsets();
+
+  // Get screen height and calculate proportional distances
+  const screenHeight = Dimensions.get('window').height;
+  // Subtract safe area insets from positions since we're inside SafeAreaView
+  const tempoTopDistance = (252 / 932) * screenHeight - insets.top; // 252px on 932px screen
+  const contentTopDistance = (338 / 932) * screenHeight - insets.top; // 338px on 932px screen
 
   const validateUsername = (usernameValue: string): boolean => {
     if (!usernameValue) {
@@ -177,209 +183,248 @@ Error: ${capability.error || 'None'}`;
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-      <BackgroundCurve />
+    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <WelcomeBackground />
+      <View style={{ flex: 1, position: 'relative' }}>
+        <Text
+          style={{
+            fontSize: 20,
+            fontWeight: '700',
+            color: '#252233',
+            position: 'absolute',
+            top: tempoTopDistance,
+            left: 0,
+            right: 0,
+            textAlign: 'center',
+          }}>
+          tempo
+        </Text>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}>
-          <View style={{ paddingHorizontal: 32, paddingVertical: 40 }}>
-            {/* Logo */}
-            <View style={{ alignItems: 'center', marginBottom: 60 }}>
-              <Text
-                style={{
-                  fontSize: 24,
-                  fontWeight: 'bold',
-                  fontFamily: 'Commissioner-Bold',
-                  color: '#252234',
-                  marginBottom: 32,
-                }}>
-                tempo
-              </Text>
-
-              <Text
-                style={{
-                  fontSize: 28,
-                  fontWeight: 'bold',
-                  fontFamily: 'Commissioner-Bold',
-                  color: '#333333',
-                  marginBottom: 8,
-                  textAlign: 'center',
-                }}>
-                Sign in to your account
-              </Text>
-
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontFamily: 'Commissioner-Regular',
-                  color: '#666666',
-                  textAlign: 'center',
-                }}>
-                Achieve financial wellness with AI
-              </Text>
-            </View>
-
-            {/* Form */}
-            <View style={{ marginBottom: 32 }}>
-              {/* Username Input */}
-              <View style={{ marginBottom: 20 }}>
-                <TextInput
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}>
+            <View
+              style={{
+                flex: 1,
+                paddingHorizontal: 32,
+                paddingTop: contentTopDistance,
+              }}>
+              {/* Logo */}
+              <View style={{ alignItems: 'center', marginBottom: 60 }}>
+                <Text
                   style={{
-                    borderWidth: 1,
-                    borderColor: usernameError ? '#EF4444' : '#E5E5EA',
-                    borderRadius: 16,
-                    paddingHorizontal: 20,
-                    paddingVertical: 18,
-                    fontSize: 16,
+                    fontSize: 24,
+                    fontWeight: 'bold',
+                    fontFamily: 'Commissioner-Bold',
+                    color: '#333333',
+                    marginBottom: 8,
+                    textAlign: 'center',
+                  }}>
+                  Sign in to your account
+                </Text>
+
+                <Text
+                  style={{
+                    fontSize: 14,
                     fontFamily: 'Commissioner-Regular',
-                    backgroundColor: '#FFFFFF',
-                    color: '#252234',
-                  }}
-                  value={username}
-                  onChangeText={text => {
-                    setUsername(text);
-                    if (usernameError) {
-                      validateUsername(text);
-                    }
-                  }}
-                  placeholder="Username or Email"
-                  placeholderTextColor="#999999"
-                  keyboardType="default"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  textContentType="username"
-                />
-                {usernameError ? (
-                  <Text
-                    style={{
-                      color: '#EF4444',
-                      fontSize: 14,
-                      fontFamily: 'Commissioner-Regular',
-                      marginTop: 8,
-                      marginLeft: 4,
-                    }}>
-                    {usernameError}
-                  </Text>
-                ) : null}
+                    color: '#666666',
+                    textAlign: 'center',
+                  }}>
+                  Achieve financial wellness with AI
+                </Text>
               </View>
 
-              {/* Password Input */}
+              {/* Form */}
               <View style={{ marginBottom: 32 }}>
-                <View
-                  style={{
-                    borderWidth: 1,
-                    borderColor: passwordError ? '#EF4444' : '#E5E5EA',
-                    borderRadius: 16,
-                    backgroundColor: '#FFFFFF',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                  }}>
+                {/* Username Input */}
+                <View style={{ marginBottom: 20 }}>
                   <TextInput
                     style={{
-                      flex: 1,
+                      borderWidth: 1,
+                      borderColor: usernameError ? '#EF4444' : '#E5E5EA',
+                      borderRadius: 8,
                       paddingHorizontal: 20,
                       paddingVertical: 18,
                       fontSize: 16,
                       fontFamily: 'Commissioner-Regular',
+                      backgroundColor: '#FFFFFF',
                       color: '#252234',
                     }}
-                    value={password}
+                    value={username}
                     onChangeText={text => {
-                      setPassword(text);
-                      if (passwordError) {
-                        validatePassword(text);
+                      setUsername(text);
+                      if (usernameError) {
+                        validateUsername(text);
                       }
                     }}
-                    placeholder="Password"
+                    placeholder="Username or Email"
                     placeholderTextColor="#999999"
-                    secureTextEntry={!showPassword}
+                    keyboardType="default"
                     autoCapitalize="none"
                     autoCorrect={false}
-                    textContentType="password"
+                    textContentType="username"
                   />
-                  <TouchableOpacity
-                    style={{
-                      paddingHorizontal: 20,
-                      paddingVertical: 18,
-                    }}
-                    onPress={() => setShowPassword(!showPassword)}>
-                    <FontAwesome5
-                      name={showPassword ? 'eye-slash' : 'eye'}
-                      size={20}
-                      color="#999999"
-                    />
-                  </TouchableOpacity>
+                  {usernameError ? (
+                    <Text
+                      style={{
+                        color: '#EF4444',
+                        fontSize: 14,
+                        fontFamily: 'Commissioner-Regular',
+                        marginTop: 8,
+                        marginLeft: 4,
+                      }}>
+                      {usernameError}
+                    </Text>
+                  ) : null}
                 </View>
-                {passwordError ? (
-                  <Text
+
+                {/* Password Input */}
+                <View style={{ marginBottom: 32 }}>
+                  <View
                     style={{
-                      color: '#EF4444',
-                      fontSize: 14,
-                      fontFamily: 'Commissioner-Regular',
-                      marginTop: 8,
-                      marginLeft: 4,
+                      borderWidth: 1,
+                      borderColor: passwordError ? '#EF4444' : '#E5E5EA',
+                      borderRadius: 8,
+                      backgroundColor: '#FFFFFF',
+                      flexDirection: 'row',
+                      alignItems: 'center',
                     }}>
-                    {passwordError}
-                  </Text>
-                ) : null}
-              </View>
+                    <TextInput
+                      style={{
+                        flex: 1,
+                        paddingHorizontal: 20,
+                        paddingVertical: 18,
+                        fontSize: 16,
+                        fontFamily: 'Commissioner-Regular',
+                        color: '#252234',
+                      }}
+                      value={password}
+                      onChangeText={text => {
+                        setPassword(text);
+                        if (passwordError) {
+                          validatePassword(text);
+                        }
+                      }}
+                      placeholder="Password"
+                      placeholderTextColor="#999999"
+                      secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      textContentType="password"
+                    />
+                    <TouchableOpacity
+                      style={{
+                        paddingHorizontal: 20,
+                        paddingVertical: 18,
+                      }}
+                      onPress={() => setShowPassword(!showPassword)}>
+                      <FontAwesome5
+                        name={showPassword ? 'eye-slash' : 'eye'}
+                        size={20}
+                        color="#999999"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  {passwordError ? (
+                    <Text
+                      style={{
+                        color: '#EF4444',
+                        fontSize: 14,
+                        fontFamily: 'Commissioner-Regular',
+                        marginTop: 8,
+                        marginLeft: 4,
+                      }}>
+                      {passwordError}
+                    </Text>
+                  ) : null}
+                </View>
 
-              {/* Sign In Button */}
-              <TouchableOpacity
-                style={{
-                  backgroundColor: '#252234',
-                  borderRadius: 16,
-                  paddingVertical: 18,
-                  alignItems: 'center',
-                  marginBottom: 24,
-                  opacity: loading ? 0.7 : 1,
-                }}
-                onPress={handleLogin}
-                disabled={loading}>
-                <Text
+                {/* Sign In Button */}
+                <TouchableOpacity
                   style={{
-                    color: '#FFFFFF',
-                    fontSize: 18,
-                    fontWeight: '600',
-                    fontFamily: 'Commissioner-SemiBold',
-                  }}>
-                  {loading ? 'Signing In...' : 'Sign In'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Footer */}
-            <View style={{ alignItems: 'center' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text
-                  style={{
-                    fontSize: 16,
-                    color: '#666666',
-                    marginRight: 8,
-                  }}>
-                  Don't have an account?
-                </Text>
-                <TouchableOpacity onPress={navigateToRegister}>
+                    backgroundColor: '#252234',
+                    borderRadius: 16,
+                    paddingVertical: 18,
+                    alignItems: 'center',
+                    marginBottom: 24,
+                    opacity: loading ? 0.7 : 1,
+                  }}
+                  onPress={handleLogin}
+                  disabled={loading}>
                   <Text
                     style={{
-                      fontSize: 16,
-                      color: '#252234',
+                      color: '#FFFFFF',
+                      fontSize: 18,
                       fontWeight: '600',
                       fontFamily: 'Commissioner-SemiBold',
                     }}>
-                    Sign up
+                    {loading ? 'Signing In...' : 'Sign In'}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Forgot Password Link */}
+                <TouchableOpacity
+                  style={{
+                    alignItems: 'center',
+                    marginTop: 20,
+                  }}
+                  onPress={() => {
+                    // Заглушка
+                    Alert.alert(
+                      'Forgot Password',
+                      'This feature is coming soon!',
+                    );
+                  }}>
+                  <Text
+                    style={{
+                      fontFamily: 'Commissioner-Regular',
+                      fontWeight: '400',
+                      fontSize: 14,
+                      lineHeight: 14,
+                      letterSpacing: 0,
+                      textAlign: 'center',
+                      color: '#7A7E85',
+                    }}>
+                    Forgot your password?
                   </Text>
                 </TouchableOpacity>
               </View>
+
+              {/* Spacer to push footer to bottom */}
+              <View style={{ flex: 1 }} />
+
+              {/* Footer */}
+              <View style={{ alignItems: 'center', paddingBottom: 32 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      color: '#666666',
+                      marginRight: 8,
+                    }}>
+                    Don't have an account?
+                  </Text>
+                  <TouchableOpacity onPress={navigateToRegister}>
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        color: '#252234',
+                        fontWeight: '600',
+                        fontFamily: 'Commissioner-SemiBold',
+                      }}>
+                      Sign up
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
+    </View>
   );
 };
