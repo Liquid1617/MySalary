@@ -13,7 +13,7 @@ router.post('/check-login', async (req, res) => {
 
     if (!login || !login.trim()) {
       return res.status(400).json({ 
-        error: 'Логин не может быть пустым' 
+        error: 'Login cannot be empty' 
       });
     }
 
@@ -22,13 +22,13 @@ router.post('/check-login', async (req, res) => {
     // Проверяем длину логина
     if (trimmedLogin.length < 3) {
       return res.status(400).json({ 
-        error: 'Логин должен быть не менее 3 символов' 
+        error: 'Login must be at least 3 characters' 
       });
     }
 
     if (trimmedLogin.length > 50) {
       return res.status(400).json({ 
-        error: 'Логин должен быть не более 50 символов' 
+        error: 'Login must be no more than 50 characters' 
       });
     }
 
@@ -36,7 +36,7 @@ router.post('/check-login', async (req, res) => {
     const loginRegex = /^[a-zA-Z0-9._]+$/;
     if (!loginRegex.test(trimmedLogin)) {
       return res.status(400).json({ 
-        error: 'Логин может содержать только буквы, цифры, точки и подчеркивания' 
+        error: 'Login can only contain letters, numbers, dots and underscores' 
       });
     }
 
@@ -45,18 +45,18 @@ router.post('/check-login', async (req, res) => {
     
     if (existingUser) {
       return res.status(409).json({ 
-        error: 'Логин уже занят' 
+        error: 'Login is already taken' 
       });
     }
 
     res.json({ 
-      message: 'Логин доступен',
+      message: 'Login is available',
       available: true 
     });
 
   } catch (error) {
-    console.error('Ошибка проверки логина:', error);
-    res.status(500).json({ error: 'Ошибка сервера при проверке логина' });
+    console.error('Login check error:', error);
+    res.status(500).json({ error: 'Server error while checking login' });
   }
 });
 
@@ -67,7 +67,7 @@ router.post('/check-email', async (req, res) => {
 
     if (!email || !email.trim()) {
       return res.status(400).json({ 
-        error: 'Email не может быть пустым' 
+        error: 'Email cannot be empty' 
       });
     }
 
@@ -77,7 +77,7 @@ router.post('/check-email', async (req, res) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmedEmail)) {
       return res.status(400).json({ 
-        error: 'Введите корректный email' 
+        error: 'Please enter a valid email' 
       });
     }
 
@@ -86,18 +86,18 @@ router.post('/check-email', async (req, res) => {
     
     if (existingUser) {
       return res.status(409).json({ 
-        error: 'Пользователь с таким email уже существует' 
+        error: 'User with this email already exists' 
       });
     }
 
     res.json({ 
-      message: 'Email доступен',
+      message: 'Email is available',
       available: true 
     });
 
   } catch (error) {
-    console.error('Ошибка проверки email:', error);
-    res.status(500).json({ error: 'Ошибка сервера при проверке email' });
+    console.error('Email check error:', error);
+    res.status(500).json({ error: 'Server error while checking email' });
   }
 });
 
@@ -108,7 +108,7 @@ router.post('/check-phone', async (req, res) => {
 
     if (!phone || !phone.trim()) {
       return res.status(400).json({ 
-        error: 'Номер телефона не может быть пустым' 
+        error: 'Phone number cannot be empty' 
       });
     }
 
@@ -118,7 +118,7 @@ router.post('/check-phone', async (req, res) => {
     const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
     if (!phoneRegex.test(trimmedPhone)) {
       return res.status(400).json({ 
-        error: 'Введите корректный номер телефона' 
+        error: 'Please enter a valid phone number' 
       });
     }
 
@@ -127,18 +127,18 @@ router.post('/check-phone', async (req, res) => {
     
     if (existingUser) {
       return res.status(409).json({ 
-        error: 'Пользователь с таким номером телефона уже существует' 
+        error: 'User with this phone number already exists' 
       });
     }
 
     res.json({ 
-      message: 'Номер телефона доступен',
+      message: 'Phone number is available',
       available: true 
     });
 
   } catch (error) {
-    console.error('Ошибка проверки телефона:', error);
-    res.status(500).json({ error: 'Ошибка сервера при проверке телефона' });
+    console.error('Phone check error:', error);
+    res.status(500).json({ error: 'Server error while checking phone' });
   }
 });
 
@@ -150,7 +150,7 @@ router.post('/register', async (req, res) => {
     // Проверка обязательных полей
     if (!login || !email || !password) {
       return res.status(400).json({ 
-        error: 'Логин, email и пароль обязательны для заполнения' 
+        error: 'Login, email and password are required' 
       });
     }
 
@@ -159,14 +159,14 @@ router.post('/register', async (req, res) => {
     // Валидация логина
     if (trimmedLogin.length < 3 || trimmedLogin.length > 50) {
       return res.status(400).json({ 
-        error: 'Логин должен быть от 3 до 50 символов' 
+        error: 'Login must be between 3 and 50 characters' 
       });
     }
 
     const loginRegex = /^[a-zA-Z0-9._]+$/;
     if (!loginRegex.test(trimmedLogin)) {
       return res.status(400).json({ 
-        error: 'Логин может содержать только буквы, цифры, точки и подчеркивания' 
+        error: 'Login can only contain letters, numbers, dots and underscores' 
       });
     }
 
@@ -174,7 +174,7 @@ router.post('/register', async (req, res) => {
     const existingUserByEmail = await User.findOne({ where: { email } });
     if (existingUserByEmail) {
       return res.status(400).json({ 
-        error: 'Пользователь с таким email уже существует' 
+        error: 'User with this email already exists' 
       });
     }
 
@@ -182,7 +182,7 @@ router.post('/register', async (req, res) => {
     const existingUserByLogin = await User.findOne({ where: { login: trimmedLogin } });
     if (existingUserByLogin) {
       return res.status(400).json({ 
-        error: 'Пользователь с таким логином уже существует' 
+        error: 'User with this login already exists' 
       });
     }
 
@@ -233,7 +233,7 @@ router.post('/register', async (req, res) => {
     );
 
     res.status(201).json({
-      message: 'Пользователь успешно зарегистрирован',
+      message: 'User successfully registered',
       user: {
         id: userWithCurrency.id,
         name: userWithCurrency.name,
@@ -248,7 +248,7 @@ router.post('/register', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Ошибка регистрации:', error);
+    console.error('Registration error:', error);
     
     // Обработка специфических ошибок
     if (error.name === 'SequelizeUniqueConstraintError') {
@@ -260,7 +260,7 @@ router.post('/register', async (req, res) => {
       }
     }
     
-    res.status(500).json({ error: 'Ошибка сервера при регистрации' });
+    res.status(500).json({ error: 'Server error during registration' });
   }
 });
 
@@ -272,7 +272,7 @@ router.post('/login', async (req, res) => {
     // Проверка обязательных полей
     if (!username || !password) {
       return res.status(400).json({ 
-        error: 'Username и пароль обязательны' 
+        error: 'Username and password are required' 
       });
     }
 
@@ -288,7 +288,7 @@ router.post('/login', async (req, res) => {
     });
     if (!user) {
       return res.status(401).json({ 
-        error: 'Неверный username или пароль' 
+        error: 'Invalid username or password' 
       });
     }
 
@@ -296,7 +296,7 @@ router.post('/login', async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({ 
-        error: 'Неверный username или пароль' 
+        error: 'Invalid username or password' 
       });
     }
 
@@ -317,7 +317,7 @@ router.post('/login', async (req, res) => {
     );
 
     res.json({
-      message: 'Авторизация прошла успешно',
+      message: 'Successfully logged in',
       user: {
         id: userWithCurrency.id,
         name: userWithCurrency.name,
@@ -332,8 +332,8 @@ router.post('/login', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Ошибка авторизации:', error);
-    res.status(500).json({ error: 'Ошибка сервера при авторизации' });
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Server error during login' });
   }
 });
 
@@ -349,7 +349,7 @@ router.get('/me', authMiddleware, async (req, res) => {
     });
 
     if (!user) {
-      return res.status(404).json({ error: 'Пользователь не найден' });
+      return res.status(404).json({ error: 'User not found' });
     }
 
     res.json({
@@ -365,8 +365,8 @@ router.get('/me', authMiddleware, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Ошибка получения профиля:', error);
-    res.status(500).json({ error: 'Ошибка сервера' });
+    console.error('Profile fetch error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -382,7 +382,7 @@ router.patch('/profile', authMiddleware, async (req, res) => {
       });
       if (!currency) {
         return res.status(400).json({ 
-          error: 'Указанная валюта не найдена или неактивна' 
+          error: 'Specified currency not found or inactive' 
         });
       }
     }
@@ -403,7 +403,7 @@ router.patch('/profile', authMiddleware, async (req, res) => {
     });
 
     res.json({
-      message: 'Профиль успешно обновлен',
+      message: 'Profile successfully updated',
       user: {
         id: updatedUser.id,
         name: updatedUser.name,
@@ -416,8 +416,8 @@ router.patch('/profile', authMiddleware, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Ошибка обновления профиля:', error);
-    res.status(500).json({ error: 'Ошибка сервера при обновлении профиля' });
+    console.error('Profile update error:', error);
+    res.status(500).json({ error: 'Server error while updating profile' });
   }
 });
 

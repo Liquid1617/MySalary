@@ -624,7 +624,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
                           passwordStrength.strength === 'weak'
                             ? '#FCA1A2'
                             : passwordStrength.strength === 'medium'
-                              ? '#FFA500'
+                              ? '#F0BF54'
                               : '#53EFAE',
                       }}>
                       Strength: {getPasswordStrengthLabel()}
@@ -644,7 +644,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
                             passwordStrength.strength === 'weak'
                               ? '#FCA1A2'
                               : passwordStrength.strength === 'medium'
-                                ? '#FFA500'
+                                ? '#F0BF54'
                                 : '#53EFAE',
                           borderRadius: 2,
                         }}

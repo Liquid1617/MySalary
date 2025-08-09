@@ -21,70 +21,56 @@ interface BudgetCardProps {
   onDelete: (budget: BudgetResponse) => void;
 }
 
-export const BudgetCard: React.FC<BudgetCardProps> = ({ 
-  budget, 
-  onPress, 
-  onEdit, 
-  onDelete 
+export const BudgetCard: React.FC<BudgetCardProps> = ({
+  budget,
+  onPress,
+  onEdit,
+  onDelete,
 }) => {
   const actualPercent = budget.percent || 0;
   const progress = Math.min(actualPercent, 100); // Cap visual progress at 100%
   const isOverBudget = actualPercent > 100;
-  
-  // Progress colors based on percentage
-  const getProgressColor = (percent: number) => {
-    if (percent > 100) return '#FF4C4C'; // Red for over budget
-    if (percent >= 80) return '#FFBD2F'; // Yellow for 80-100%
-    return '#3FD777'; // Green for 0-80%
+
+  // Progress colors - always use #53EFAE
+  const getProgressColor = () => {
+    return '#53EFAE'; // Always green color
   };
 
-  const progressColor = getProgressColor(actualPercent);
-  
-  // Large donut calculations (72pt diameter)
-  const donutSize = 72;
-  const strokeWidth = 7;
-  const radius = (donutSize - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDasharray = circumference;
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
+  const progressColor = getProgressColor();
 
   const handlePress = () => {
     onPress(budget);
   };
 
   const handleLongPress = () => {
-    Alert.alert(
-      budget.name,
-      'Choose an action',
-      [
-        {
-          text: 'Edit',
-          onPress: () => onEdit(budget),
+    Alert.alert(budget.name, 'Choose an action', [
+      {
+        text: 'Edit',
+        onPress: () => onEdit(budget),
+      },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          Alert.alert(
+            'Delete Budget',
+            'Are you sure you want to delete this budget?',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: () => onDelete(budget),
+              },
+            ],
+          );
         },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert(
-              'Delete Budget',
-              'Are you sure you want to delete this budget?',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Delete',
-                  style: 'destructive',
-                  onPress: () => onDelete(budget),
-                },
-              ]
-            );
-          },
-        },
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-      ]
-    );
+      },
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+    ]);
   };
 
   const { formatCurrency } = useUserCurrency();
@@ -96,7 +82,7 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
 
   const formatBudgetAmountOnly = (amount: number) => {
     const absAmount = Math.abs(amount);
-    
+
     if (absAmount >= 1000000000) {
       // Billions: 1.2B, 10B, 100B
       const billions = absAmount / 1000000000;
@@ -140,14 +126,29 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
       return formatted.replace(/[\d.,]/g, '').trim();
     }
     // Extract symbol from budget currency formatter
-    const formatted = formatBudgetCurrencyUtil(100, budget.currency, formatCurrency);
+    const formatted = formatBudgetCurrencyUtil(
+      100,
+      budget.currency,
+      formatCurrency,
+    );
     return formatted.replace(/[\d.,]/g, '').trim();
   };
 
-  const displayProgress = isOverBudget ? Math.round(budget.percent || 0) : Math.round(progress);
+  const displayProgress = isOverBudget
+    ? Math.round(budget.percent || 0)
+    : Math.round(progress);
 
-  // Calculate card width: (screen width - padding - gaps) / 3
-  const cardWidth = (screenWidth - 48 - 24) / 3; // 24px padding on each side, 12px gap between cards
+  // Calculate card width with maximum of 202px
+  const cardWidth = Math.min(202, screenWidth - 48);
+
+  // Smaller donut for horizontal layout
+  const horizontalDonutSize = 30;
+  const horizontalStrokeWidth = 3;
+  const horizontalRadius = (horizontalDonutSize - horizontalStrokeWidth) / 2;
+  const horizontalCircumference = 2 * Math.PI * horizontalRadius;
+  const horizontalStrokeDasharray = horizontalCircumference;
+  const horizontalStrokeDashoffset =
+    horizontalCircumference - (progress / 100) * horizontalCircumference;
 
   return (
     <TouchableOpacity
@@ -156,51 +157,57 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
       onLongPress={handleLongPress}
       activeOpacity={0.8}
       accessibilityRole="button"
-      accessibilityLabel={`${budget.name}. Spent ${formatBudgetCurrency(budget.spent || 0)} of ${formatBudgetCurrency(budget.limit_amount)}. ${displayProgress}%`}
-    >
-      {/* Title */}
-      <Text style={styles.title} numberOfLines={1}>
-        {budget.name}
-      </Text>
-      
-      {/* Large Donut Chart with percentage inside */}
-      <View style={styles.donutContainer}>
-        <Svg width={donutSize} height={donutSize}>
-          {/* Background circle */}
-          <Circle
-            cx={donutSize / 2}
-            cy={donutSize / 2}
-            r={radius}
-            stroke="#E5E5EA"
-            strokeWidth={strokeWidth}
-            fill="none"
-          />
-          {/* Progress circle */}
-          <Circle
-            cx={donutSize / 2}
-            cy={donutSize / 2}
-            r={radius}
-            stroke={progressColor}
-            strokeWidth={strokeWidth}
-            strokeDasharray={strokeDasharray}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-            fill="none"
-            transform={`rotate(-90 ${donutSize / 2} ${donutSize / 2})`}
-          />
-        </Svg>
-        {/* Percentage Text Inside Circle */}
-        <View style={styles.percentageContainer}>
-          <Text style={[styles.percentageText, { color: progressColor }]}>
-            {displayProgress}%
-          </Text>
-        </View>
+      accessibilityLabel={`${budget.name}. Spent ${formatBudgetCurrency(
+        budget.spent || 0,
+      )} of ${formatBudgetCurrency(budget.limit_amount)}. ${displayProgress}%`}>
+      {/* Left side - Text content */}
+      <View style={styles.leftContent}>
+        {/* Title */}
+        <Text style={styles.title} numberOfLines={1}>
+          {budget.name}
+        </Text>
+
+        {/* Amount Text */}
+        <Text style={styles.amountText} numberOfLines={1}>
+          {formatBudgetAmountOnly(budget.spent || 0)}{getCurrencySymbol()} / {formatBudgetAmountOnly(budget.limit_amount)}{getCurrencySymbol()}
+        </Text>
       </View>
 
-      {/* Amount Text */}
-      <Text style={styles.amountText} numberOfLines={1}>
-        {formatBudgetAmountOnly(budget.spent || 0)} / {formatBudgetAmountOnly(budget.limit_amount)} {getCurrencySymbol()}
-      </Text>
+      {/* Right side - Circular progress */}
+      <View style={styles.rightContent}>
+        <View style={styles.horizontalDonutContainer}>
+          <Svg width={horizontalDonutSize} height={horizontalDonutSize}>
+            {/* Background circle */}
+            <Circle
+              cx={horizontalDonutSize / 2}
+              cy={horizontalDonutSize / 2}
+              r={horizontalRadius}
+              stroke="#E5E5EA"
+              strokeWidth={horizontalStrokeWidth}
+              fill="none"
+            />
+            {/* Progress circle */}
+            <Circle
+              cx={horizontalDonutSize / 2}
+              cy={horizontalDonutSize / 2}
+              r={horizontalRadius}
+              stroke={progressColor}
+              strokeWidth={horizontalStrokeWidth}
+              strokeDasharray={horizontalStrokeDasharray}
+              strokeDashoffset={horizontalStrokeDashoffset}
+              strokeLinecap="round"
+              fill="none"
+              transform={`rotate(-90 ${horizontalDonutSize / 2} ${horizontalDonutSize / 2
+                })`}
+            />
+          </Svg>
+        </View>
+        {/* Percentage Text Below Circle */}
+        <Text
+          style={[styles.horizontalPercentageText, { color: progressColor }]}>
+          {displayProgress}%
+        </Text>
+      </View>
     </TouchableOpacity>
   );
 };
@@ -209,23 +216,64 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    elevation: 4,
-    minHeight: 140,
+    padding: 20,
+    shadowColor: '#000000',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F7F7F8',
+    maxHeight: 73,
+    flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  leftContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  rightContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'column',
   },
   title: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '500',
     color: '#000',
-    textAlign: 'center',
-    marginBottom: 12,
+    textAlign: 'left',
+    marginBottom: 4,
   },
+  amountText: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#666',
+    textAlign: 'left',
+  },
+  horizontalDonutContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  horizontalPercentageContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  horizontalPercentageText: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  // Keep old styles for backward compatibility if needed
   donutContainer: {
     position: 'relative',
     alignItems: 'center',
@@ -244,11 +292,5 @@ const styles = StyleSheet.create({
   percentageText: {
     fontSize: 18,
     fontWeight: '700',
-  },
-  amountText: {
-    fontSize: 12,
-    fontWeight: '400',
-    color: '#666',
-    textAlign: 'center',
   },
 });

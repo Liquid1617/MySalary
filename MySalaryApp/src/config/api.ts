@@ -3,7 +3,7 @@
 
 export const API_CONFIG = {
   // Main server URL - UPDATED TO CURRENT IP ADDRESS
-  BASE_URL: 'http://192.168.31.188:3001/api',
+  BASE_URL: 'http://192.168.31.132:3001/api',
 
   // Alternative URLs for different environments
   LOCALHOST_URL: 'http://localhost:3001/api', // For Android emulator

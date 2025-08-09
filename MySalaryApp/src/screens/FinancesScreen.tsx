@@ -11,14 +11,9 @@ import {
   Animated,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import {
-  homeScreenStyles,
-  layoutStyles,
-  typographyStyles,
-  profileScreenStyles,
-} from '../styles';
+import { homeScreenStyles } from '../styles';
 import { biometricService, BiometricCapability } from '../services/biometric';
 import { apiService, type Currency } from '../services/api';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
@@ -34,7 +29,6 @@ import { BudgetResponse } from '../types/budget';
 import { useBudgets, useBudgetActions } from '../hooks/useBudgets';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  formatCurrencyAmount,
   formatCurrencyAmountShort,
   formatCurrencyCompact,
   formatAccountBalance,
@@ -42,27 +36,15 @@ import {
 import { getAccountTypeIcon } from '../utils/accountTypeIcon';
 import { Transaction } from '../types/transaction';
 
-// Helper functions for greeting and date
-const getTimeBasedGreeting = () => {
-  const currentHour = new Date().getHours();
-
-  if (currentHour >= 5 && currentHour < 12) {
-    return 'Good morning,';
-  } else if (currentHour >= 12 && currentHour < 18) {
-    return 'Good afternoon,';
-  } else if (currentHour >= 18 && currentHour < 22) {
-    return 'Good evening,';
-  } else {
-    return 'Good night,';
-  }
-};
-
 const getCurrentDate = () => {
   const today = new Date();
-  return today.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  });
+  let month = today.toLocaleDateString('en-US', { month: 'long' });
+  // Truncate month name to 3 characters if longer than 4
+  if (month.length > 4) {
+    month = month.substring(0, 3);
+  }
+  const day = today.getDate();
+  return { month, day };
 };
 
 // Function to convert amount from one currency to another
@@ -285,7 +267,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
   const [snackBarVisible, setSnackBarVisible] = useState(false);
   const [snackBarMessage, setSnackBarMessage] = useState('');
   const [undoAction, setUndoAction] = useState<(() => void) | null>(null);
-  
+
   // Budget data
   const { data: budgets = [], isLoading: budgetsLoading } = useBudgets();
   const { deleteBudget } = useBudgetActions();
@@ -294,7 +276,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
     undefined,
   );
   const [user, setUser] = useState<any>(null);
-  
+
   // Animation for floating button
   const buttonScale = useRef(new Animated.Value(1)).current;
 
@@ -303,7 +285,25 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
     transactions,
     userCurrency,
   );
-  
+  const { previousMonthIncome, previousMonthExpenses } =
+    calculatePreviousMonthTotals(transactions, userCurrency);
+
+  // Calculate percentage changes
+  const incomePercentChange =
+    previousMonthIncome === 0
+      ? monthlyIncome > 0
+        ? 100
+        : 0
+      : ((monthlyIncome - previousMonthIncome) / previousMonthIncome) * 100;
+
+  const expensesPercentChange =
+    previousMonthExpenses === 0
+      ? monthlyExpenses > 0
+        ? 100
+        : 0
+      : ((monthlyExpenses - previousMonthExpenses) / previousMonthExpenses) *
+      100;
+
   // Calculate absolute change as income - expenses
   const monthlyNetChange = monthlyIncome - monthlyExpenses;
   const isNetChangePositive = monthlyNetChange >= 0;
@@ -372,7 +372,9 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
   const loadTransactions = async () => {
     try {
       setTransactionsLoading(true);
-      const transactionsData = await apiService.get<Transaction[]>('/transactions');
+      const transactionsData = await apiService.get<Transaction[]>(
+        '/transactions',
+      );
       setTransactions(transactionsData || []);
     } catch (error) {
       // Тихо обрабатываем ошибку без вывода в консоль
@@ -459,7 +461,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
         month: 'short',
         day: 'numeric',
       });
-      return `📅 ${formatted}`;  // Добавляем иконку календаря для будущих дат
+      return `📅 ${formatted}`; // Добавляем иконку календаря для будущих дат
     } else {
       return transactionDate.toLocaleDateString('en-US', {
         month: 'short',
@@ -472,7 +474,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
   const isTransactionFuture = (dateString: string) => {
     const transactionDate = new Date(dateString);
     const today = new Date();
-    
+
     const transactionDateOnly = new Date(
       transactionDate.getFullYear(),
       transactionDate.getMonth(),
@@ -483,7 +485,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
       today.getMonth(),
       today.getDate(),
     );
-    
+
     return transactionDateOnly.getTime() > todayOnly.getTime();
   };
 
@@ -601,36 +603,36 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
     try {
       // Store original transaction for undo
       const originalTransaction = { ...transaction };
-      
+
       // Optimistically update UI - remove from scheduled list
-      setTransactions(prev => 
-        prev.filter(t => t.id !== transaction.id)
-      );
-      
+      setTransactions(prev => prev.filter(t => t.id !== transaction.id));
+
       // Confirm on server
       await apiService.confirmTransaction(transaction.id, 'scheduledDate');
-      
+
       // Invalidate budget cache to refresh spending totals
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
-      
+
       // Show success message with undo
-      const dateStr = new Date(transaction.transaction_date).toLocaleDateString('en-US', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric'
-      });
-      
+      const dateStr = new Date(transaction.transaction_date).toLocaleDateString(
+        'en-US',
+        {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        },
+      );
+
       setSnackBarMessage(`Transaction confirmed for ${dateStr}`);
       setUndoAction(() => () => undoConfirmation(originalTransaction));
       setSnackBarVisible(true);
-      
+
       // Reload transactions after a delay
       setTimeout(() => {
         loadTransactions();
         loadNetWorth();
         loadAccounts();
       }, 500);
-      
     } catch (error) {
       console.error('Error confirming transaction:', error);
       Alert.alert('Error', 'Failed to confirm transaction');
@@ -643,17 +645,19 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
     try {
       // Call API to revert transaction status on server
       await apiService.unconfirmTransaction(originalTransaction.id);
-      
+
       // Invalidate budget cache
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
-      
+
       // Reload all data
       loadTransactions();
       loadNetWorth();
       loadAccounts();
-      
-      console.log('Successfully undid confirmation for transaction:', originalTransaction.id);
-      
+
+      console.log(
+        'Successfully undid confirmation for transaction:',
+        originalTransaction.id,
+      );
     } catch (error) {
       console.error('Error undoing confirmation:', error);
       Alert.alert('Error', 'Failed to undo transaction confirmation');
@@ -685,7 +689,6 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
     }
   };
 
-
   return (
     <>
       {/* Устанавливаем светлый статус-бар */}
@@ -707,6 +710,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
           useAngle={true}
           angle={30}
           style={{
+            height: 296,
             paddingTop: insets.top, // Отступ для статус-бара
             paddingBottom: 20,
             borderBottomLeftRadius: 30,
@@ -726,15 +730,15 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
             <View>
               <Text
                 style={{
-                  fontSize: 18,
+                  fontSize: 14,
                   color: 'rgba(0, 0, 0, 0.7)',
                   marginBottom: 4,
                 }}>
-                {getTimeBasedGreeting()}
+                Hello,
               </Text>
               <Text
                 style={{
-                  fontSize: 32,
+                  fontSize: 24,
                   fontWeight: 'bold',
                   color: '#000',
                 }}>
@@ -744,22 +748,49 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
 
             {/* Right side - Date */}
             <View style={{ alignItems: 'flex-end' }}>
-              <Text
+              <View
                 style={{
-                  fontSize: 16,
-                  color: 'rgba(0, 0, 0, 0.7)',
-                  marginBottom: 4,
+                  width: 60,
+                  height: 60,
+                  borderRadius: 8,
+                  backgroundColor: '#252233',
+                  paddingVertical: 8,
+                  paddingHorizontal: 8,
+                  shadowColor: '#000',
+                  shadowOffset: {
+                    width: 2,
+                    height: 2,
+                  },
+                  shadowOpacity: 0.17,
+                  shadowRadius: 12,
+                  elevation: 5,
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}>
-                Today
-              </Text>
-              <Text
-                style={{
-                  fontSize: 18,
-                  fontWeight: '600',
-                  color: '#000',
-                }}>
-                {getCurrentDate()}
-              </Text>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: '#A0F5A0',
+                    fontWeight: '500',
+                    fontFamily: 'Commissioner-Medium',
+                    lineHeight: 14,
+                    textAlign: 'center',
+                  }}>
+                  {getCurrentDate().month}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    color: '#A0F5A0',
+                    fontWeight: '600',
+                    fontFamily: 'Commissioner-SemiBold',
+                    lineHeight: 18,
+                    textAlign: 'center',
+                    marginTop: 2,
+                  }}>
+                  {getCurrentDate().day}
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -767,18 +798,19 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
           <View
             style={{
               paddingHorizontal: 24,
-              marginBottom: 24,
+              marginTop: 10,
+              marginBottom: 12,
             }}>
             <View
               style={{
                 flexDirection: 'row',
                 justifyContent: 'flex-start',
                 alignItems: 'center',
-                marginBottom: 12,
+                marginBottom: 6,
               }}>
               <Text
                 style={{
-                  fontSize: 16,
+                  fontSize: 14,
                   color: 'rgba(0, 0, 0, 0.7)',
                   fontWeight: '500',
                 }}>
@@ -826,12 +858,16 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                   />
                   <Text
                     style={{
-                      fontSize: 16,
+                      fontSize: 14,
                       color: isNetChangePositive ? '#22C55E' : '#EF4444',
-                      fontWeight: '500',
+                      fontWeight: '400',
                     }}>
                     {isNetChangePositive ? '+' : ''}
-                    {formatCurrencyCompact(Math.abs(monthlyNetChange), userCurrency)} this month
+                    {formatCurrencyCompact(
+                      Math.abs(monthlyNetChange),
+                      userCurrency,
+                    )}{' '}
+                    this month
                   </Text>
                 </View>
               </View>
@@ -865,7 +901,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
         {/* Income/Expenses widgets and Transaction History секция НА БЕЛОМ ФОНЕ */}
         <View
           style={{
-            backgroundColor: '#F6F7F8',
+            backgroundColor: '#FDFDFE',
             paddingBottom: 24,
             paddingHorizontal: 24,
           }}>
@@ -885,60 +921,99 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                 backgroundColor: 'white',
                 borderRadius: 16,
                 padding: 20,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.05,
-                shadowRadius: 2,
-                elevation: 1,
+                shadowColor: '#000000',
+                shadowOffset: { width: 2, height: 2 },
+                shadowOpacity: 0.04,
+                shadowRadius: 6,
+                elevation: 3,
+                borderWidth: 1,
+                borderColor: '#F7F7F8',
               }}>
               <View
                 style={{
                   flexDirection: 'row',
-                  alignItems: 'center',
-                  marginBottom: 12,
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  marginBottom: 16,
                 }}>
                 <View
                   style={{
-                    width: 40,
-                    height: 40,
+                    width: 28,
+                    height: 28,
                     borderRadius: 20,
-                    backgroundColor: '#E8F5E8',
+                    backgroundColor: '#53EFAE33',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    marginRight: 12,
+                    padding: 4,
                   }}>
                   <FontAwesome6
                     name="arrow-trend-up"
-                    size={16}
-                    color="#22C55E"
+                    size={14}
+                    color="#53EFAE"
                     solid
                   />
                 </View>
-                <Text
+                <View
                   style={{
-                    fontSize: 16,
-                    fontWeight: '500',
-                    color: '#333',
+                    width: 47,
+                    height: 23,
+                    borderRadius: 12,
+                    backgroundColor: '#FAFAFA',
+                    padding: 4,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 2,
                   }}>
-                  Income
-                </Text>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      fontWeight: '500',
+                      fontFamily: 'Commissioner-Medium',
+                      color: '#53EFAE',
+                      lineHeight: 10,
+                    }}>
+                    {incomePercentChange >= 0 ? '+' : ''}
+                    {Math.abs(incomePercentChange).toFixed(0)}%
+                  </Text>
+                  <View
+                    style={{
+                      width: 10,
+                      height: 6,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginTop: -3,
+                    }}>
+                    <FontAwesome6
+                      name="arrow-trend-up"
+                      size={8}
+                      color="#53EFAE"
+                      solid
+                    />
+                  </View>
+                </View>
               </View>
               <Text
                 style={{
-                  fontSize: 24,
-                  fontWeight: 'bold',
-                  color: '#000',
-                  marginBottom: 4,
+                  fontSize: 12,
+                  fontWeight: '400',
+                  fontFamily: 'Commissioner-Regular',
+                  color: '#333',
+                  lineHeight: 12,
+                  marginBottom: 8,
                 }}>
-                {formatCurrencyCompact(monthlyIncome, userCurrency)}
+                Income
               </Text>
               <Text
                 style={{
-                  fontSize: 14,
-                  color: '#22C55E',
-                  fontWeight: '500',
+                  fontSize: 20,
+                  fontWeight: '700',
+                  fontFamily: 'Commissioner-Bold',
+                  color: '#000',
+                  lineHeight: 20,
                 }}>
-                This month
+                {incomePercentChange >= 0 ? '+' : '-'}
+                {formatCurrencyCompact(monthlyIncome, userCurrency)}
               </Text>
             </View>
 
@@ -949,60 +1024,98 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                 backgroundColor: 'white',
                 borderRadius: 16,
                 padding: 20,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.05,
-                shadowRadius: 2,
-                elevation: 1,
+                shadowColor: '#000000',
+                shadowOffset: { width: 2, height: 2 },
+                shadowOpacity: 0.04,
+                shadowRadius: 6,
+                elevation: 3,
+                borderWidth: 1,
+                borderColor: '#F7F7F8',
               }}>
               <View
                 style={{
                   flexDirection: 'row',
-                  alignItems: 'center',
-                  marginBottom: 12,
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  marginBottom: 16,
                 }}>
                 <View
                   style={{
-                    width: 40,
-                    height: 40,
+                    width: 28,
+                    height: 28,
                     borderRadius: 20,
-                    backgroundColor: '#FEE8E8',
+                    backgroundColor: '#FCA1A233',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    marginRight: 12,
+                    padding: 4,
                   }}>
                   <FontAwesome6
                     name="arrow-trend-down"
-                    size={16}
-                    color="#EF4444"
+                    size={14}
+                    color="#FCA1A2"
                     solid
                   />
                 </View>
-                <Text
+                <View
                   style={{
-                    fontSize: 16,
-                    fontWeight: '500',
-                    color: '#333',
+                    width: 47,
+                    height: 23,
+                    borderRadius: 12,
+                    backgroundColor: '#FAFAFA',
+                    padding: 4,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 2,
                   }}>
-                  Expenses
-                </Text>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      fontWeight: '500',
+                      fontFamily: 'Commissioner-Medium',
+                      color: '#FCA1A2',
+                      lineHeight: 10,
+                    }}>
+                    {expensesPercentChange >= 0 ? '+' : ''}
+                    {Math.abs(expensesPercentChange).toFixed(0)}%
+                  </Text>
+                  <View
+                    style={{
+                      width: 10,
+                      height: 6,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginTop: -3,
+                    }}>
+                    <FontAwesome6
+                      name="arrow-trend-down"
+                      size={8}
+                      color="#FCA1A2"
+                      solid
+                    />
+                  </View>
+                </View>
               </View>
               <Text
                 style={{
-                  fontSize: 24,
-                  fontWeight: 'bold',
-                  color: '#000',
-                  marginBottom: 4,
+                  fontSize: 12,
+                  fontWeight: '400',
+                  fontFamily: 'Commissioner-Regular',
+                  color: '#333',
+                  lineHeight: 12,
+                  marginBottom: 8,
                 }}>
-                {formatCurrencyCompact(monthlyExpenses, userCurrency)}
+                Expenses
               </Text>
               <Text
                 style={{
-                  fontSize: 14,
-                  color: '#EF4444',
-                  fontWeight: '500',
+                  fontSize: 20,
+                  fontWeight: '700',
+                  fontFamily: 'Commissioner-Bold',
+                  color: '#000',
+                  lineHeight: 20,
                 }}>
-                This month
+                -{formatCurrencyCompact(monthlyExpenses, userCurrency)}
               </Text>
             </View>
           </View>
@@ -1045,40 +1158,63 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                 </Text>
               </TouchableOpacity>
             </View>
-            
+
             {budgetsLoading ? (
-              <View style={{
-                height: 140,
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: 'white',
-                borderRadius: 16,
-              }}>
-                <Text style={{ fontSize: 16, color: '#666' }}>Loading budgets...</Text>
+              <View
+                style={{
+                  height: 140,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  backgroundColor: 'white',
+                  borderRadius: 16,
+                  shadowColor: '#000000',
+                  shadowOffset: { width: 2, height: 2 },
+                  shadowOpacity: 0.04,
+                  shadowRadius: 6,
+                  elevation: 3,
+                  borderWidth: 1,
+                  borderColor: '#F7F7F8',
+                }}>
+                <Text style={{ fontSize: 16, color: '#666' }}>
+                  Loading budgets...
+                </Text>
               </View>
             ) : budgets.length === 0 ? (
-              <View style={{
-                height: 140,
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: 'white',
-                borderRadius: 16,
-              }}>
-                <Text style={{ fontSize: 16, color: '#666' }}>No budgets yet</Text>
-                <Text style={{ fontSize: 14, color: '#999', marginTop: 4 }}>
+              <View
+                style={{
+                  height: 140,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  backgroundColor: 'white',
+                  borderRadius: 16,
+                  shadowColor: '#000000',
+                  shadowOffset: { width: 2, height: 2 },
+                  shadowOpacity: 0.04,
+                  shadowRadius: 6,
+                  elevation: 3,
+                  borderWidth: 1,
+                  borderColor: '#F7F7F8',
+                }}>
+                <Text
+                  style={{ fontSize: 14, fontWeight: '500', color: '#7A7E85' }}>
+                  No budgets yet
+                </Text>
+                <Text style={{ fontSize: 12, color: '#D3D6D7', marginTop: 4 }}>
                   Create your first budget to get started
                 </Text>
               </View>
             ) : (
-              <View 
-                style={{
-                  flexDirection: 'row',
-                  flexWrap: 'wrap',
-                  justifyContent: 'flex-start',
-                  gap: 12,
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{
+                  paddingRight: 24,
                 }}
-              >
-                {budgets.map((budget) => (
+                style={{
+                  marginLeft: -24,
+                  paddingLeft: 24,
+                }}>
+                {budgets.map(budget => (
                   <BudgetCard
                     key={budget.id}
                     budget={budget}
@@ -1087,13 +1223,12 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                     onDelete={handleDeleteBudget}
                   />
                 ))}
-              </View>
+              </ScrollView>
             )}
           </View>
 
           <View
             style={[homeScreenStyles.mainContent, { marginTop: 0, gap: 10 }]}>
-
             {/* Accounts Section */}
             <View
               style={{
@@ -1234,15 +1369,23 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                             style={{
                               fontSize: 16,
                               fontWeight: '600',
-                              color: account.account_type === 'credit_card' && parseFloat(account.balance) > 0 ? '#EF4444' : '#000',
+                              color:
+                                account.account_type === 'credit_card' &&
+                                  parseFloat(account.balance) > 0
+                                  ? '#EF4444'
+                                  : '#000',
                             }}>
                             {account.balance
                               ? formatAccountBalance(
-                                  parseFloat(account.balance),
-                                  account.currency,
-                                  account.account_type,
-                                )
-                              : formatAccountBalance(0, account.currency, account.account_type)}
+                                parseFloat(account.balance),
+                                account.currency,
+                                account.account_type,
+                              )
+                              : formatAccountBalance(
+                                0,
+                                account.currency,
+                                account.account_type,
+                              )}
                           </Text>
                         </TouchableOpacity>
                         {index < accounts.length - 1 && (
@@ -1319,7 +1462,8 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                     Loading transactions...
                   </Text>
                 </View>
-              ) : transactions.filter(t => t.status === 'scheduled').length === 0 ? (
+              ) : transactions.filter(t => t.status === 'scheduled').length ===
+                0 ? (
                 <View
                   style={{
                     backgroundColor: 'white',
@@ -1354,52 +1498,52 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                     .filter(t => t.status === 'scheduled')
                     .slice(0, 10)
                     .map((transaction, index) => {
-                    const isTransfer =
-                      transaction.transaction_type === 'transfer';
+                      const isTransfer =
+                        transaction.transaction_type === 'transfer';
 
-                    // Get icon and color based on transaction type
-                    const iconData = isTransfer
-                      ? { icon: 'exchange-alt', color: '#6B7280' }
-                      : getCategoryIcon(
+                      // Get icon and color based on transaction type
+                      const iconData = isTransfer
+                        ? { icon: 'exchange-alt', color: '#6B7280' }
+                        : getCategoryIcon(
                           transaction.category?.category_name || '',
                           transaction.category?.category_type || '',
                         );
 
-                    const accountIcon = getAccountTypeIcon(
-                      transaction.account?.account_type || '',
-                    );
+                      const accountIcon = getAccountTypeIcon(
+                        transaction.account?.account_type || '',
+                      );
 
-                    // Функция для извлечения информации о конвертации
-                    const getTransferDisplayInfo = (transaction: any) => {
-                      if (transaction.transaction_type !== 'transfer')
-                        return null;
+                      // Функция для извлечения информации о конвертации
+                      const getTransferDisplayInfo = (transaction: any) => {
+                        if (transaction.transaction_type !== 'transfer')
+                          return null;
 
-                      if (transaction.description) {
-                        const convertMatch = transaction.description.match(
-                          /\[Converted: (.+) ([A-Z]{3}) = (.+) ([A-Z]{3})\]/,
-                        );
-                        if (convertMatch) {
-                          return {
-                            fromAmount: parseFloat(convertMatch[1]),
-                            fromCurrency: convertMatch[2],
-                            toAmount: parseFloat(convertMatch[3]),
-                            toCurrency: convertMatch[4],
-                          };
+                        if (transaction.description) {
+                          const convertMatch = transaction.description.match(
+                            /\[Converted: (.+) ([A-Z]{3}) = (.+) ([A-Z]{3})\]/,
+                          );
+                          if (convertMatch) {
+                            return {
+                              fromAmount: parseFloat(convertMatch[1]),
+                              fromCurrency: convertMatch[2],
+                              toAmount: parseFloat(convertMatch[3]),
+                              toCurrency: convertMatch[4],
+                            };
+                          }
                         }
-                      }
-                      return null;
-                    };
+                        return null;
+                      };
 
-                    const transferInfo = getTransferDisplayInfo(transaction);
+                      const transferInfo = getTransferDisplayInfo(transaction);
 
-                    // Check if account is deactivated
-                    const isAccountDeactivated =
-                      !transaction.account?.is_active;
-                    const opacity = isAccountDeactivated ? 0.5 : 1.0;
-                    const isScheduled = transaction.status === 'scheduled';
+                      // Check if account is deactivated
+                      const isAccountDeactivated =
+                        !transaction.account?.is_active;
+                      const opacity = isAccountDeactivated ? 0.5 : 1.0;
+                      const isScheduled = transaction.status === 'scheduled';
 
-                    const transactionRow = (
-                      <TouchableOpacity
+                      const transactionRow = (
+                        <TouchableOpacity
                           style={{
                             flexDirection: 'row',
                             alignItems: 'center',
@@ -1437,7 +1581,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                               {isTransfer
                                 ? 'Transfer'
                                 : transaction.category?.category_name ||
-                                  'Category'}
+                                'Category'}
                             </Text>
                             <View
                               style={{
@@ -1456,12 +1600,11 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                                       paddingHorizontal: 8,
                                       paddingVertical: 3,
                                       borderRadius: 12,
-                                      backgroundColor: `${
-                                        getAccountTypeIcon(
-                                          transaction.account?.account_type ||
-                                            '',
-                                        ).color
-                                      }20`,
+                                      backgroundColor: `${getAccountTypeIcon(
+                                        transaction.account?.account_type ||
+                                        '',
+                                      ).color
+                                        }20`,
                                       marginBottom: 4,
                                     }}>
                                     <Text
@@ -1469,7 +1612,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                                         fontSize: 11,
                                         color: getAccountTypeIcon(
                                           transaction.account?.account_type ||
-                                            '',
+                                          '',
                                         ).color,
                                         fontWeight: '600',
                                       }}>
@@ -1496,12 +1639,11 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                                         paddingHorizontal: 8,
                                         paddingVertical: 3,
                                         borderRadius: 12,
-                                        backgroundColor: `${
-                                          getAccountTypeIcon(
-                                            transaction.targetAccount
-                                              ?.account_type || '',
-                                          ).color
-                                        }20`,
+                                        backgroundColor: `${getAccountTypeIcon(
+                                          transaction.targetAccount
+                                            ?.account_type || '',
+                                        ).color
+                                          }20`,
                                       }}>
                                       <Text
                                         style={{
@@ -1571,24 +1713,21 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                                 color: isTransfer
                                   ? '#F59E0B'
                                   : transaction.transaction_type === 'income'
-                                  ? '#10B981'
-                                  : '#EF4444',
+                                    ? '#10B981'
+                                    : '#EF4444',
                                 marginBottom: 2,
                               }}>
                               {isTransfer
                                 ? transferInfo
                                   ? `${transferInfo.toAmount} ${transferInfo.toCurrency}`
-                                  : `${transaction.amount} ${
-                                      transaction.targetAccount?.currency
-                                        ?.symbol || '$'
-                                    }`
-                                : `${
-                                    transaction.transaction_type === 'income'
-                                      ? '+'
-                                      : '-'
-                                  }${transaction.amount} ${
-                                    transaction.account.currency?.symbol || '$'
-                                  }`}
+                                  : `${transaction.amount} ${transaction.targetAccount?.currency
+                                    ?.symbol || '$'
+                                  }`
+                                : `${transaction.transaction_type === 'income'
+                                  ? '+'
+                                  : '-'
+                                }${transaction.amount} ${transaction.account.currency?.symbol || '$'
+                                }`}
                             </Text>
                             <Text
                               style={{
@@ -1601,35 +1740,38 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                             </Text>
                           </View>
                         </TouchableOpacity>
-                    );
+                      );
 
-                    return (
-                      <View 
-                        key={transaction.id} 
-                        style={{ 
-                          opacity,
-                        }}
-                      >
-                        <SwipeableTransactionRow
-                          transaction={transaction}
-                          onConfirm={handleConfirmTransaction}
-                          isScheduled={isScheduled}>
-                          {transactionRow}
-                        </SwipeableTransactionRow>
+                      return (
+                        <View
+                          key={transaction.id}
+                          style={{
+                            opacity,
+                          }}>
+                          <SwipeableTransactionRow
+                            transaction={transaction}
+                            onConfirm={handleConfirmTransaction}
+                            isScheduled={isScheduled}>
+                            {transactionRow}
+                          </SwipeableTransactionRow>
 
-                        {index < transactions.filter(t => t.status === 'scheduled').slice(0, 10).length - 1 && (
-                          <View
-                            style={{
-                              height: 1,
-                              backgroundColor: '#E5E5EA',
-                              marginLeft: 0,
-                              marginRight: 0,
-                            }}
-                          />
-                        )}
-                      </View>
-                    );
-                  })}
+                          {index <
+                            transactions
+                              .filter(t => t.status === 'scheduled')
+                              .slice(0, 10).length -
+                            1 && (
+                              <View
+                                style={{
+                                  height: 1,
+                                  backgroundColor: '#E5E5EA',
+                                  marginLeft: 0,
+                                  marginRight: 0,
+                                }}
+                              />
+                            )}
+                        </View>
+                      );
+                    })}
                 </View>
               )}
             </View>
@@ -1755,32 +1897,31 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
               useNativeDriver: true,
             }).start();
           }}>
-        <LinearGradient
-          colors={['#D1CCFF', '#8CE6F3', '#7AF0C4', '#C7FB33']}
-          start={{ x: 0, y: 1 }}
-          end={{ x: 1, y: 0 }}
-          useAngle={true}
-          angle={30}
-          style={{
-            width: 45,
-            height: 45,
-            borderRadius: 22.5,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-          <Text
+          <LinearGradient
+            colors={['#D1CCFF', '#8CE6F3', '#7AF0C4', '#C7FB33']}
+            start={{ x: 0, y: 1 }}
+            end={{ x: 1, y: 0 }}
+            useAngle={true}
+            angle={30}
             style={{
-              fontSize: 28,
-              fontWeight: 'bold',
-              color: '#000',
-              lineHeight: 28,
+              width: 45,
+              height: 45,
+              borderRadius: 22.5,
+              alignItems: 'center',
+              justifyContent: 'center',
             }}>
-            +
-          </Text>
-        </LinearGradient>
+            <Text
+              style={{
+                fontSize: 28,
+                fontWeight: 'bold',
+                color: '#000',
+                lineHeight: 28,
+              }}>
+              +
+            </Text>
+          </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
-
     </>
   );
 };
