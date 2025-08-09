@@ -257,12 +257,10 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
   const transactionsData = useTransactions();
   const accountsData = useAccounts();
 
-  // Add logging for Redux state changes
-  console.log('🔍 FinancesScreen: Redux state:', {
-    netWorth: { loading: netWorthData.loading, data: !!netWorthData.data, error: netWorthData.error },
-    transactions: { loading: transactionsData.loading, count: transactionsData.transactions.length, error: transactionsData.error },
-    accounts: { loading: accountsData.loading, count: accountsData.accounts.length, error: accountsData.error }
-  });
+  // Redux state is ready
+  const hasNetWorthData = !!netWorthData.data;
+  const hasTransactionsData = transactionsData.transactions.length > 0;
+  const hasAccountsData = accountsData.accounts.length > 0;
 
   const [biometricCapability, setBiometricCapability] =
     useState<BiometricCapability | null>(null);
@@ -331,10 +329,20 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
   useFocusEffect(
     useCallback(() => {
       loadUserProfile();
-      dispatch(fetchTransactions({ forceRefresh: true }));
-      dispatch(fetchNetWorth(true));
-      dispatch(fetchAccounts(true));
-    }, [dispatch]),
+      // Only fetch if we don't have data or if there are errors
+      if (!netWorthData.data && !netWorthData.loading) {
+        console.log('📡 useFocusEffect: Fetching net worth (no data)');
+        dispatch(fetchNetWorth(false));
+      }
+      if (transactionsData.transactions.length === 0 && !transactionsData.loading) {
+        console.log('📡 useFocusEffect: Fetching transactions (no data)');
+        dispatch(fetchTransactions({}));
+      }
+      if (accountsData.accounts.length === 0 && !accountsData.loading) {
+        console.log('📡 useFocusEffect: Fetching accounts (no data)');
+        dispatch(fetchAccounts(false));
+      }
+    }, [dispatch, netWorthData.data, netWorthData.loading, transactionsData.transactions.length, transactionsData.loading, accountsData.accounts.length, accountsData.loading]),
   );
 
   const initializeBiometric = async () => {

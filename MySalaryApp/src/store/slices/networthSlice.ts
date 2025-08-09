@@ -70,9 +70,12 @@ export const fetchNetWorth = createAsyncThunk(
 
       if (!forceRefresh && data && lastFetch) {
         const now = Date.now();
+        const cacheAge = Math.round((now - lastFetch) / 1000); // seconds
         if (now - lastFetch < CACHE_DURATION) {
-          console.log('📦 Redux: Using cached net worth data');
+          console.log(`📦 Redux: Using cached net worth data (${cacheAge}s old)`);
           return data; // Return cached data
+        } else {
+          console.log(`⏰ Redux: Net worth cache expired (${cacheAge}s old), fetching fresh data`);
         }
       }
 
