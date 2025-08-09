@@ -1140,19 +1140,17 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
               </Text>
               <TouchableOpacity
                 style={{
-                  paddingHorizontal: 12,
+                  paddingHorizontal: 14,
                   paddingVertical: 6,
-                  borderRadius: 8,
-                  backgroundColor: 'transparent',
-                  borderWidth: 1,
-                  borderColor: '#E5E5EA',
+                  borderRadius: 22,
+                  backgroundColor: '#EEF1F2',
                 }}
                 onPress={handleCreateBudget}>
                 <Text
                   style={{
-                    fontSize: 14,
-                    fontWeight: '500',
-                    color: 'rgba(0, 0, 0, 0.7)',
+                    fontSize: 12,
+                    fontWeight: '400',
+                    color: '#7A7E85',
                   }}>
                   Add
                 </Text>

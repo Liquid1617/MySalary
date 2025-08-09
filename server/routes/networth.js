@@ -274,7 +274,14 @@ router.get('/', authMiddleware, async (req, res) => {
     }
 
     // Получаем курсы валют для основной валюты пользователя
-    const exchangeRates = await exchangeRateService.getExchangeRates(primaryCurrency.code);
+    let exchangeRates = {};
+    try {
+      exchangeRates = await exchangeRateService.getExchangeRates(primaryCurrency.code);
+    } catch (exchangeError) {
+      console.error('Failed to fetch exchange rates, using fallback:', exchangeError.message);
+      // Используем fallback курсы если API недоступен
+      exchangeRates = exchangeRateService.getFallbackRates(primaryCurrency.code);
+    }
 
     let totalNetWorth = 0;
     const accountsData = [];
@@ -430,6 +437,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
   } catch (error) {
     console.error('Error calculating Net Worth:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ 
       error: 'Server error calculating total balance',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
