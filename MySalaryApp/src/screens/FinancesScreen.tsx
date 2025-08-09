@@ -34,7 +34,11 @@ import {
   formatAccountBalance,
 } from '../utils/formatCurrency';
 import { getAccountTypeIcon } from '../utils/accountTypeIcon';
-import { Transaction } from '../types/transaction';
+import { Transaction } from '../store/slices/transactionsSlice';
+import { useAppDispatch, useNetWorth, useTransactions, useAccounts } from '../store/hooks';
+import { fetchNetWorth } from '../store/slices/networthSlice';
+import { fetchTransactions } from '../store/slices/transactionsSlice';
+import { fetchAccounts } from '../store/slices/accountsSlice';
 
 const getCurrentDate = () => {
   const today = new Date();
@@ -248,15 +252,21 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
   const insets = useSafeAreaInsets();
   const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
+  const dispatch = useAppDispatch();
+  const netWorthData = useNetWorth();
+  const transactionsData = useTransactions();
+  const accountsData = useAccounts();
+
+  // Add logging for Redux state changes
+  console.log('🔍 FinancesScreen: Redux state:', {
+    netWorth: { loading: netWorthData.loading, data: !!netWorthData.data, error: netWorthData.error },
+    transactions: { loading: transactionsData.loading, count: transactionsData.transactions.length, error: transactionsData.error },
+    accounts: { loading: accountsData.loading, count: accountsData.accounts.length, error: accountsData.error }
+  });
+
   const [biometricCapability, setBiometricCapability] =
     useState<BiometricCapability | null>(null);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [transactionsLoading, setTransactionsLoading] = useState(false);
-  const [netWorth, setNetWorth] = useState<any>(null);
-  const [netWorthLoading, setNetWorthLoading] = useState(false);
-  const [accounts, setAccounts] = useState<any[]>([]);
-  const [accountsLoading, setAccountsLoading] = useState(false);
   const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
   const [showEditTransactionModal, setShowEditTransactionModal] =
     useState(false);
@@ -282,11 +292,11 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
 
   // Calculate monthly totals and net worth change
   const { monthlyIncome, monthlyExpenses } = calculateMonthlyTotals(
-    transactions,
+    transactionsData.transactions,
     userCurrency,
   );
   const { previousMonthIncome, previousMonthExpenses } =
-    calculatePreviousMonthTotals(transactions, userCurrency);
+    calculatePreviousMonthTotals(transactionsData.transactions, userCurrency);
 
   // Calculate percentage changes
   const incomePercentChange =
@@ -309,20 +319,22 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
   const isNetChangePositive = monthlyNetChange >= 0;
 
   useEffect(() => {
+    console.log('🚀 FinancesScreen: useEffect triggered');
     initializeBiometric();
     loadUserProfile();
-    loadTransactions();
-    loadNetWorth();
-    loadAccounts();
-  }, []);
+    console.log('📡 FinancesScreen: Dispatching Redux actions');
+    dispatch(fetchTransactions({}));
+    dispatch(fetchNetWorth(false));
+    dispatch(fetchAccounts(false));
+  }, [dispatch]);
 
   useFocusEffect(
     useCallback(() => {
       loadUserProfile();
-      loadTransactions();
-      loadNetWorth();
-      loadAccounts();
-    }, []),
+      dispatch(fetchTransactions({ forceRefresh: true }));
+      dispatch(fetchNetWorth(true));
+      dispatch(fetchAccounts(true));
+    }, [dispatch]),
   );
 
   const initializeBiometric = async () => {
@@ -369,60 +381,6 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
     }
   };
 
-  const loadTransactions = async () => {
-    try {
-      setTransactionsLoading(true);
-      const transactionsData = await apiService.get<Transaction[]>(
-        '/transactions',
-      );
-      setTransactions(transactionsData || []);
-    } catch (error) {
-      // Тихо обрабатываем ошибку без вывода в консоль
-      setTransactions([]);
-    } finally {
-      setTransactionsLoading(false);
-    }
-  };
-
-  const loadNetWorth = async () => {
-    try {
-      setNetWorthLoading(true);
-      const netWorthData = await apiService.get<any>('/networth');
-      setNetWorth(netWorthData);
-    } catch (error) {
-      // Тихо обрабатываем ошибку без вывода в консоль
-      setNetWorth(null);
-    } finally {
-      setNetWorthLoading(false);
-    }
-  };
-
-  const loadAccounts = async () => {
-    try {
-      setAccountsLoading(true);
-      const accountsData = await apiService.get<any[]>('/accounts');
-      // Sort accounts by balance in USD equivalent (highest to lowest)
-      const sortedAccounts = (accountsData || []).sort((a, b) => {
-        const balanceAInUSD = convertCurrency(
-          parseFloat(a.balance) || 0,
-          a.currency?.code || 'USD',
-          'USD',
-        );
-        const balanceBInUSD = convertCurrency(
-          parseFloat(b.balance) || 0,
-          b.currency?.code || 'USD',
-          'USD',
-        );
-        return balanceBInUSD - balanceAInUSD;
-      });
-      setAccounts(sortedAccounts);
-    } catch (error) {
-      // Тихо обрабатываем ошибку без вывода в консоль
-      setAccounts([]);
-    } finally {
-      setAccountsLoading(false);
-    }
-  };
 
   // Remove the old formatNetWorth function - we'll use formatCurrencyAmount instead
 
@@ -604,8 +562,8 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
       // Store original transaction for undo
       const originalTransaction = { ...transaction };
 
-      // Optimistically update UI - remove from scheduled list
-      setTransactions(prev => prev.filter(t => t.id !== transaction.id));
+      // Refresh transactions from Redux after confirmation
+      dispatch(fetchTransactions({ forceRefresh: true }));
 
       // Confirm on server
       await apiService.confirmTransaction(transaction.id, 'scheduledDate');
@@ -627,17 +585,17 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
       setUndoAction(() => () => undoConfirmation(originalTransaction));
       setSnackBarVisible(true);
 
-      // Reload transactions after a delay
+      // Reload data after a delay
       setTimeout(() => {
-        loadTransactions();
-        loadNetWorth();
-        loadAccounts();
+        dispatch(fetchTransactions({ forceRefresh: true }));
+        dispatch(fetchNetWorth(true));
+        dispatch(fetchAccounts(true));
       }, 500);
     } catch (error) {
       console.error('Error confirming transaction:', error);
       Alert.alert('Error', 'Failed to confirm transaction');
       // Reload to restore correct state
-      loadTransactions();
+      dispatch(fetchTransactions({ forceRefresh: true }));
     }
   };
 
@@ -650,9 +608,9 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
 
       // Reload all data
-      loadTransactions();
-      loadNetWorth();
-      loadAccounts();
+      dispatch(fetchTransactions({ forceRefresh: true }));
+      dispatch(fetchNetWorth(true));
+      dispatch(fetchAccounts(true));
 
       console.log(
         'Successfully undid confirmation for transaction:',
@@ -662,7 +620,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
       console.error('Error undoing confirmation:', error);
       Alert.alert('Error', 'Failed to undo transaction confirmation');
       // Reload to get correct state from server
-      loadTransactions();
+      dispatch(fetchTransactions({ forceRefresh: true }));
     }
   };
 
@@ -818,7 +776,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
               </Text>
             </View>
 
-            {netWorthLoading ? (
+            {netWorthData.loading ? (
               <View>
                 <Text
                   style={{
@@ -829,7 +787,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                   Loading...
                 </Text>
               </View>
-            ) : netWorth ? (
+            ) : netWorthData.data ? (
               <View>
                 <Text
                   style={{
@@ -838,7 +796,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                     color: '#000',
                     marginBottom: 8,
                   }}>
-                  {formatCurrencyAmountShort(netWorth.netWorth, userCurrency)}
+                  {formatCurrencyAmountShort(netWorthData.data.netWorth, userCurrency)}
                 </Text>
                 <View
                   style={{
@@ -883,7 +841,10 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                   Failed to load
                 </Text>
                 <TouchableOpacity
-                  onPress={loadNetWorth}
+                  onPress={() => {
+                    console.log('🔄 FinancesScreen: Retry button pressed');
+                    dispatch(fetchNetWorth(true));
+                  }}
                   style={{
                     paddingHorizontal: 16,
                     paddingVertical: 8,
@@ -1268,7 +1229,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                 </TouchableOpacity>
               </View>
 
-              {accountsLoading ? (
+              {accountsData.loading ? (
                 <View
                   style={{
                     backgroundColor: 'white',
@@ -1284,7 +1245,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                     Loading accounts...
                   </Text>
                 </View>
-              ) : accounts.length === 0 ? (
+              ) : accountsData.accounts.length === 0 ? (
                 <View
                   style={{
                     backgroundColor: 'white',
@@ -1315,9 +1276,9 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                     shadowRadius: 2,
                     elevation: 1,
                   }}>
-                  {accounts.map((account, index) => {
+                  {accountsData.accounts.map((account, index) => {
                     const accountIcon = getAccountTypeIcon(
-                      account.account_type,
+                      (account as any).account_type || 'checking',
                     );
                     return (
                       <View key={account.id}>
@@ -1386,7 +1347,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                               )}
                           </Text>
                         </TouchableOpacity>
-                        {index < accounts.length - 1 && (
+                        {index < accountsData.accounts.length - 1 && (
                           <View
                             style={{
                               height: 1,
@@ -1444,7 +1405,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                 </TouchableOpacity>
               </View>
 
-              {transactionsLoading ? (
+              {transactionsData.loading ? (
                 <View
                   style={{
                     backgroundColor: 'white',
@@ -1460,7 +1421,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                     Loading transactions...
                   </Text>
                 </View>
-              ) : transactions.filter(t => t.status === 'scheduled').length ===
+              ) : transactionsData.transactions.filter(t => t.status === 'scheduled').length ===
                 0 ? (
                 <View
                   style={{
@@ -1492,7 +1453,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                     shadowRadius: 2,
                     elevation: 1,
                   }}>
-                  {transactions
+                  {transactionsData.transactions
                     .filter(t => t.status === 'scheduled')
                     .slice(0, 10)
                     .map((transaction, index) => {
@@ -1508,7 +1469,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                         );
 
                       const accountIcon = getAccountTypeIcon(
-                        transaction.account?.account_type || '',
+                        (transaction.account as any)?.account_type || 'checking',
                       );
 
                       // Функция для извлечения информации о конвертации
@@ -1536,7 +1497,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
 
                       // Check if account is deactivated
                       const isAccountDeactivated =
-                        !transaction.account?.is_active;
+                        !(transaction.account as any)?.is_active;
                       const opacity = isAccountDeactivated ? 0.5 : 1.0;
                       const isScheduled = transaction.status === 'scheduled';
 
@@ -1599,7 +1560,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                                       paddingVertical: 3,
                                       borderRadius: 12,
                                       backgroundColor: `${getAccountTypeIcon(
-                                        transaction.account?.account_type ||
+                                        (transaction.account as any)?.account_type ||
                                         '',
                                       ).color
                                         }20`,
@@ -1609,7 +1570,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                                       style={{
                                         fontSize: 11,
                                         color: getAccountTypeIcon(
-                                          transaction.account?.account_type ||
+                                          (transaction.account as any)?.account_type ||
                                           '',
                                         ).color,
                                         fontWeight: '600',
@@ -1638,8 +1599,8 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                                         paddingVertical: 3,
                                         borderRadius: 12,
                                         backgroundColor: `${getAccountTypeIcon(
-                                          transaction.targetAccount
-                                            ?.account_type || '',
+                                          (transaction.targetAccount as any)
+                                            ?.account_type || 'checking',
                                         ).color
                                           }20`,
                                       }}>
@@ -1647,8 +1608,8 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                                         style={{
                                           fontSize: 11,
                                           color: getAccountTypeIcon(
-                                            transaction.targetAccount
-                                              ?.account_type || '',
+                                            (transaction.targetAccount as any)
+                                              ?.account_type || 'checking',
                                           ).color,
                                           fontWeight: '600',
                                         }}>
@@ -1754,7 +1715,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                           </SwipeableTransactionRow>
 
                           {index <
-                            transactions
+                            transactionsData.transactions
                               .filter(t => t.status === 'scheduled')
                               .slice(0, 10).length -
                             1 && (
@@ -1810,9 +1771,9 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
         visible={showAddTransactionModal}
         onClose={() => setShowAddTransactionModal(false)}
         onSuccess={() => {
-          loadTransactions();
-          loadNetWorth();
-          loadAccounts();
+          dispatch(fetchTransactions({ forceRefresh: true }));
+          dispatch(fetchNetWorth(true));
+          dispatch(fetchAccounts(true));
           // Инвалидируем кэш бюджетов при создании транзакции
           queryClient.invalidateQueries({ queryKey: ['budgets'] });
         }}
@@ -1826,9 +1787,9 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
           setSelectedTransaction(null);
         }}
         onSuccess={() => {
-          loadTransactions();
-          loadNetWorth();
-          loadAccounts();
+          dispatch(fetchTransactions({ forceRefresh: true }));
+          dispatch(fetchNetWorth(true));
+          dispatch(fetchAccounts(true));
           // Инвалидируем кэш бюджетов при редактировании транзакции
           queryClient.invalidateQueries({ queryKey: ['budgets'] });
         }}
@@ -1849,7 +1810,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
         onClose={() => setShowAddAccountModal(false)}
         onAccountAdded={() => {
           setShowAddAccountModal(false);
-          loadAccounts(); // Refresh accounts list
+          dispatch(fetchAccounts(true)); // Refresh accounts list
           setTimeout(() => setShowAccountsManagementModal(true), 100); // Return to accounts management
         }}
       />
@@ -1858,7 +1819,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
         visible={snackBarVisible}
         message={snackBarMessage}
         onDismiss={() => setSnackBarVisible(false)}
-        onUndo={undoAction}
+        onUndo={undoAction || undefined}
       />
 
       {/* Floating Add Transaction Button */}

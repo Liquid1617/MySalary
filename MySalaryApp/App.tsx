@@ -2,6 +2,8 @@ import React from 'react';
 import { StatusBar } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Provider } from 'react-redux';
+import { store } from './src/store/store';
 import { AppNavigator } from './src/navigation/AppNavigator';
 
 const queryClient = new QueryClient({
@@ -15,12 +17,14 @@ const queryClient = new QueryClient({
 
 const App: React.FC = () => {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <QueryClientProvider client={queryClient}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-        <AppNavigator />
-      </QueryClientProvider>
-    </GestureHandlerRootView>
+    <Provider store={store}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <QueryClientProvider client={queryClient}>
+          <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+          <AppNavigator />
+        </QueryClientProvider>
+      </GestureHandlerRootView>
+    </Provider>
   );
 };
 

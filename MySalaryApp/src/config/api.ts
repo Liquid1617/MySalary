@@ -2,11 +2,11 @@
 // This file contains static API configuration that should not change
 
 export const API_CONFIG = {
-  // Main server URL - UPDATED TO CURRENT IP ADDRESS
-  BASE_URL: 'http://192.168.31.132:3001/api',
+  // Main server URL - For iOS Simulator use localhost
+  BASE_URL: 'http://localhost:3001/api',
 
   // Alternative URLs for different environments
-  LOCALHOST_URL: 'http://localhost:3001/api', // For Android emulator
+  NETWORK_URL: 'http://192.168.100.24:3001/api', // For real device
 
   // Request timeout in milliseconds
   TIMEOUT: 10000,
