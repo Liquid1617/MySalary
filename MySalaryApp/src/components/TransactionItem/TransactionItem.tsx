@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { FontAwesome5 } from '@expo/vector-icons';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { formatCurrencyAmountShort } from '../../utils/formatCurrency';
 import { formatTransactionDate } from '../../utils/dateUtils';
 import { SwipeableTransactionRow } from '../SwipeableTransactionRow';
@@ -212,7 +212,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
     <View>
       {onConfirm ? (
         <SwipeableTransactionRow
-          transaction={transaction}
+          transaction={transaction as any}
           onConfirm={onConfirm}
           isScheduled={isScheduled}>
           {renderTransactionContent()}

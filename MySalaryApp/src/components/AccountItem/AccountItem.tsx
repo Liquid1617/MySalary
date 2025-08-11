@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { FontAwesome5 } from '@expo/vector-icons';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { formatCurrencyAmount } from '../../utils/formatCurrency';
 import { styles } from './styles';
 

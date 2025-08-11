@@ -5,10 +5,11 @@ import { styles } from './styles';
 export type ActionButtonVariant = 'add' | 'manage' | 'view' | 'primary' | 'secondary';
 
 interface ActionButtonProps {
-  title: string;
+  title?: string;
   variant: ActionButtonVariant;
   onPress: () => void;
   disabled?: boolean;
+  size?: 'small' | 'medium' | 'large';
 }
 
 export const ActionButton: React.FC<ActionButtonProps> = ({
@@ -16,7 +17,26 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
   variant,
   onPress,
   disabled = false,
+  size = 'medium',
 }) => {
+  const getDefaultTitle = () => {
+    switch (variant) {
+      case 'add':
+        return 'Add';
+      case 'manage':
+        return 'Manage';
+      case 'view':
+        return 'View All';
+      case 'primary':
+        return 'OK';
+      case 'secondary':
+        return 'Cancel';
+      default:
+        return 'Button';
+    }
+  };
+
+  const actualTitle = title || getDefaultTitle();
   const getButtonStyle = () => {
     switch (variant) {
       case 'add':
@@ -64,7 +84,7 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
         getTextStyle(),
         disabled && styles.disabledButtonText,
       ]}>
-        {title}
+        {actualTitle}
       </Text>
     </TouchableOpacity>
   );

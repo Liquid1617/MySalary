@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import { FontAwesome5 } from '@expo/vector-icons';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { styles } from './styles';
 
 interface BalanceCardData {
@@ -11,8 +11,11 @@ interface BalanceCardData {
 }
 
 interface BalanceCardsProps {
-  incomeData: BalanceCardData;
-  expenseData: BalanceCardData;
+  monthlyIncome: number;
+  monthlyExpenses: number;
+  incomePercentChange: number;
+  expensesPercentChange: number;
+  userCurrency: any;
 }
 
 const BalanceCard: React.FC<{ data: BalanceCardData }> = ({ data }) => {
@@ -48,9 +51,26 @@ const BalanceCard: React.FC<{ data: BalanceCardData }> = ({ data }) => {
 };
 
 export const BalanceCards: React.FC<BalanceCardsProps> = ({
-  incomeData,
-  expenseData,
+  monthlyIncome,
+  monthlyExpenses,
+  incomePercentChange,
+  expensesPercentChange,
+  userCurrency,
 }) => {
+  const incomeData: BalanceCardData = {
+    type: 'income',
+    amount: `+${monthlyIncome.toLocaleString()}`,
+    change: Math.abs(incomePercentChange),
+    isPositive: incomePercentChange >= 0,
+  };
+
+  const expenseData: BalanceCardData = {
+    type: 'expense',
+    amount: `-${monthlyExpenses.toLocaleString()}`,
+    change: Math.abs(expensesPercentChange),
+    isPositive: expensesPercentChange >= 0,
+  };
+
   return (
     <View style={styles.container}>
       <BalanceCard data={incomeData} />
