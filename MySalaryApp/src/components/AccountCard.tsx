@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { getAccountTypeIcon } from '../utils/accountTypeIcon';
 import { colors } from '../styles';
+import { getAccountIcon } from './icons/getAccountIcon';
 
 interface Account {
   id: string;
@@ -61,12 +61,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
       onPress={onPress}
       disabled={disabled}>
       <View style={styles.iconContainer}>
-        <FontAwesome5
-          name={iconData.icon}
-          size={16}
-          color={iconData.color}
-          solid
-        />
+        {getAccountIcon({ accountType: account.type, size: 16, color: iconData.color })}
       </View>
 
       <View style={styles.content}>

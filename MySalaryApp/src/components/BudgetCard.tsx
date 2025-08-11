@@ -229,6 +229,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginRight: 12,
+    marginBottom: 8, // Add margin bottom to prevent shadow clipping
   },
   leftContent: {
     flex: 1,

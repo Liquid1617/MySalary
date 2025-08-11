@@ -22,5 +22,12 @@ export { BudgetChip } from './BudgetChip';
 export { AddBudgetChip } from './AddBudgetChip';
 export { TotalBudgetDonut } from './TotalBudgetDonut';
 
+// Icons
+export { BankIcon } from './icons/BankIcon';
+export { CashIcon } from './icons/CashIcon';
+export { CreditCardIcon } from './icons/CreditCardIcon';
+export { DebitCardIcon } from './icons/DebitCardIcon';
+export { getAccountIcon } from './icons/getAccountIcon';
+
 // Hooks
 export { useUserCurrency } from '../hooks/useUserCurrency';

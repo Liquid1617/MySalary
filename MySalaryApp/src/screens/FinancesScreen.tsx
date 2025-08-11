@@ -35,7 +35,13 @@ import {
 } from '../utils/formatCurrency';
 import { getAccountTypeIcon } from '../utils/accountTypeIcon';
 import { Transaction } from '../store/slices/transactionsSlice';
-import { useAppDispatch, useNetWorth, useTransactions, useAccounts } from '../store/hooks';
+import { getAccountIcon } from '../components/icons/getAccountIcon';
+import {
+  useAppDispatch,
+  useNetWorth,
+  useTransactions,
+  useAccounts,
+} from '../store/hooks';
 import { fetchNetWorth } from '../store/slices/networthSlice';
 import { fetchTransactions } from '../store/slices/transactionsSlice';
 import { fetchAccounts } from '../store/slices/accountsSlice';
@@ -334,7 +340,10 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
         console.log('📡 useFocusEffect: Fetching net worth (no data)');
         dispatch(fetchNetWorth(false));
       }
-      if (transactionsData.transactions.length === 0 && !transactionsData.loading) {
+      if (
+        transactionsData.transactions.length === 0 &&
+        !transactionsData.loading
+      ) {
         console.log('📡 useFocusEffect: Fetching transactions (no data)');
         dispatch(fetchTransactions({}));
       }
@@ -342,7 +351,15 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
         console.log('📡 useFocusEffect: Fetching accounts (no data)');
         dispatch(fetchAccounts(false));
       }
-    }, [dispatch, netWorthData.data, netWorthData.loading, transactionsData.transactions.length, transactionsData.loading, accountsData.accounts.length, accountsData.loading]),
+    }, [
+      dispatch,
+      netWorthData.data,
+      netWorthData.loading,
+      transactionsData.transactions.length,
+      transactionsData.loading,
+      accountsData.accounts.length,
+      accountsData.loading,
+    ]),
   );
 
   const initializeBiometric = async () => {
@@ -388,7 +405,6 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
       // Continue without currency, will fallback to USD
     }
   };
-
 
   // Remove the old formatNetWorth function - we'll use formatCurrencyAmount instead
 
@@ -804,7 +820,10 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                     color: '#000',
                     marginBottom: 8,
                   }}>
-                  {formatCurrencyAmountShort(netWorthData.data.netWorth, userCurrency)}
+                  {formatCurrencyAmountShort(
+                    netWorthData.data.netWorth,
+                    userCurrency,
+                  )}
                 </Text>
                 <View
                   style={{
@@ -880,7 +899,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
               flexDirection: 'row',
               justifyContent: 'space-between',
               marginTop: 24,
-              marginBottom: 16,
+              marginBottom: 24,
               gap: 12,
             }}>
             {/* Income Widget */}
@@ -1176,6 +1195,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{
                   paddingRight: 24,
+                  paddingBottom: 8, // Add bottom padding for shadow
                 }}
                 style={{
                   marginLeft: -24,
@@ -1218,19 +1238,17 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                 </Text>
                 <TouchableOpacity
                   style={{
-                    paddingHorizontal: 12,
+                    paddingHorizontal: 14,
                     paddingVertical: 6,
-                    borderRadius: 8,
-                    backgroundColor: 'transparent',
-                    borderWidth: 1,
-                    borderColor: '#E5E5EA',
+                    borderRadius: 22,
+                    backgroundColor: '#EEF1F2',
                   }}
                   onPress={() => setShowAccountsManagementModal(true)}>
                   <Text
                     style={{
-                      fontSize: 14,
-                      fontWeight: '500',
-                      color: 'rgba(0, 0, 0, 0.7)', // Same color as "Total Net Worth" text
+                      fontSize: 12,
+                      fontWeight: '400',
+                      color: '#7A7E85',
                     }}>
                     Manage
                   </Text>
@@ -1307,18 +1325,19 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                               alignItems: 'center',
                               marginRight: 12,
                             }}>
-                            <FontAwesome5
-                              name={accountIcon.icon}
-                              size={32}
-                              color={accountIcon.color}
-                            />
+                            {getAccountIcon({
+                              accountType:
+                                (account as any).account_type || 'checking',
+                              size: 32,
+                              color: accountIcon.color,
+                            })}
                           </View>
                           <View style={{ flex: 1 }}>
                             <Text
                               style={{
-                                fontSize: 16,
+                                fontSize: 14,
                                 fontWeight: '500',
-                                color: '#000',
+                                color: '#252233',
                                 marginBottom: 2,
                               }}>
                               {account.account_name}
@@ -1334,13 +1353,13 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                           </View>
                           <Text
                             style={{
-                              fontSize: 16,
-                              fontWeight: '600',
+                              fontSize: 14,
+                              fontWeight: '700',
                               color:
                                 account.account_type === 'credit_card' &&
                                   parseFloat(account.balance) > 0
                                   ? '#EF4444'
-                                  : '#000',
+                                  : '#252233',
                             }}>
                             {account.balance
                               ? formatAccountBalance(
@@ -1394,19 +1413,17 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                 </Text>
                 <TouchableOpacity
                   style={{
-                    paddingHorizontal: 12,
+                    paddingHorizontal: 14,
                     paddingVertical: 6,
-                    borderRadius: 8,
-                    backgroundColor: 'transparent',
-                    borderWidth: 1,
-                    borderColor: '#E5E5EA',
+                    borderRadius: 22,
+                    backgroundColor: '#EEF1F2',
                   }}
                   onPress={() => navigation.navigate('AllTransactions')}>
                   <Text
                     style={{
-                      fontSize: 14,
-                      fontWeight: '500',
-                      color: 'rgba(0, 0, 0, 0.7)',
+                      fontSize: 12,
+                      fontWeight: '400',
+                      color: '#7A7E85',
                     }}>
                     View All
                   </Text>
@@ -1429,8 +1446,9 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                     Loading transactions...
                   </Text>
                 </View>
-              ) : transactionsData.transactions.filter(t => t.status === 'scheduled').length ===
-                0 ? (
+              ) : transactionsData.transactions.filter(
+                t => t.status === 'scheduled',
+              ).length === 0 ? (
                 <View
                   style={{
                     backgroundColor: 'white',
@@ -1477,7 +1495,8 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                         );
 
                       const accountIcon = getAccountTypeIcon(
-                        (transaction.account as any)?.account_type || 'checking',
+                        (transaction.account as any)?.account_type ||
+                        'checking',
                       );
 
                       // Функция для извлечения информации о конвертации
@@ -1504,8 +1523,8 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                       const transferInfo = getTransferDisplayInfo(transaction);
 
                       // Check if account is deactivated
-                      const isAccountDeactivated =
-                        !(transaction.account as any)?.is_active;
+                      const isAccountDeactivated = !(transaction.account as any)
+                        ?.is_active;
                       const opacity = isAccountDeactivated ? 0.5 : 1.0;
                       const isScheduled = transaction.status === 'scheduled';
 
@@ -1568,8 +1587,8 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                                       paddingVertical: 3,
                                       borderRadius: 12,
                                       backgroundColor: `${getAccountTypeIcon(
-                                        (transaction.account as any)?.account_type ||
-                                        '',
+                                        (transaction.account as any)
+                                          ?.account_type || '',
                                       ).color
                                         }20`,
                                       marginBottom: 4,
@@ -1578,8 +1597,8 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                                       style={{
                                         fontSize: 11,
                                         color: getAccountTypeIcon(
-                                          (transaction.account as any)?.account_type ||
-                                          '',
+                                          (transaction.account as any)
+                                            ?.account_type || '',
                                         ).color,
                                         fontWeight: '600',
                                       }}>
@@ -1805,7 +1824,12 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
 
       <AccountsManagementModal
         visible={showAccountsManagementModal}
-        onClose={() => setShowAccountsManagementModal(false)}
+        onClose={() => {
+          setShowAccountsManagementModal(false);
+          // Refresh data when closing accounts management
+          dispatch(fetchAccounts(true));
+          dispatch(fetchNetWorth(true));
+        }}
         onAddAccount={() => {
           setShowAccountsManagementModal(false);
           setTimeout(() => setShowAddAccountModal(true), 100);
@@ -1819,6 +1843,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
         onAccountAdded={() => {
           setShowAddAccountModal(false);
           dispatch(fetchAccounts(true)); // Refresh accounts list
+          dispatch(fetchNetWorth(true)); // Refresh net worth
           setTimeout(() => setShowAccountsManagementModal(true), 100); // Return to accounts management
         }}
       />

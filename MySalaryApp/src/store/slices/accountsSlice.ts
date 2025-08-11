@@ -47,7 +47,7 @@ export const fetchAccounts = createAsyncThunk(
       // Check if we should use cached data
       const state = getState() as { accounts: AccountsState };
       const { accounts, lastFetch } = state.accounts;
-      
+
       if (!forceRefresh && accounts.length > 0 && lastFetch) {
         const now = Date.now();
         if (now - lastFetch < CACHE_DURATION) {
@@ -62,7 +62,7 @@ export const fetchAccounts = createAsyncThunk(
 
       const response = await axios.get(`${API_BASE_URL}/accounts`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -73,19 +73,22 @@ export const fetchAccounts = createAsyncThunk(
       }
       return rejectWithValue(error.message || 'Failed to fetch accounts');
     }
-  }
+  },
 );
 
 // Async thunk to create account
 export const createAccount = createAsyncThunk(
   'accounts/createAccount',
-  async (accountData: {
-    account_type: string;
-    account_name: string;
-    currency_id: number;
-    balance: number;
-    description?: string;
-  }, { dispatch, rejectWithValue }) => {
+  async (
+    accountData: {
+      account_type: string;
+      account_name: string;
+      currency_id: number;
+      balance: number;
+      description?: string;
+    },
+    { dispatch, rejectWithValue },
+  ) => {
     try {
       const token = await AsyncStorage.getItem('token');
       if (!token) {
@@ -97,9 +100,9 @@ export const createAccount = createAsyncThunk(
         accountData,
         {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       // Refresh accounts list after creation
@@ -112,35 +115,37 @@ export const createAccount = createAsyncThunk(
       }
       return rejectWithValue(error.message || 'Failed to create account');
     }
-  }
+  },
 );
 
 // Async thunk to update account
 export const updateAccount = createAsyncThunk(
   'accounts/updateAccount',
-  async ({ id, data }: {
-    id: number;
-    data: Partial<{
-      account_name: string;
-      description: string;
-      is_active: boolean;
-    }>;
-  }, { dispatch, rejectWithValue }) => {
+  async (
+    {
+      id,
+      data,
+    }: {
+      id: number;
+      data: Partial<{
+        account_name: string;
+        description: string;
+        is_active: boolean;
+      }>;
+    },
+    { dispatch, rejectWithValue },
+  ) => {
     try {
       const token = await AsyncStorage.getItem('token');
       if (!token) {
         throw new Error('No authentication token found');
       }
 
-      const response = await axios.put(
-        `${API_BASE_URL}/accounts/${id}`,
-        data,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await axios.put(`${API_BASE_URL}/accounts/${id}`, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       // Refresh accounts list after update
       dispatch(fetchAccounts(true));
@@ -152,7 +157,7 @@ export const updateAccount = createAsyncThunk(
       }
       return rejectWithValue(error.message || 'Failed to update account');
     }
-  }
+  },
 );
 
 // Async thunk to delete account
@@ -167,7 +172,7 @@ export const deleteAccount = createAsyncThunk(
 
       await axios.delete(`${API_BASE_URL}/accounts/${id}`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -181,14 +186,14 @@ export const deleteAccount = createAsyncThunk(
       }
       return rejectWithValue(error.message || 'Failed to delete account');
     }
-  }
+  },
 );
 
 const accountsSlice = createSlice({
   name: 'accounts',
   initialState,
   reducers: {
-    clearAccountsData: (state) => {
+    clearAccountsData: state => {
       state.accounts = [];
       state.error = null;
       state.lastFetch = null;
@@ -197,10 +202,10 @@ const accountsSlice = createSlice({
       state.error = action.payload;
     },
   },
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     // Fetch accounts
     builder
-      .addCase(fetchAccounts.pending, (state) => {
+      .addCase(fetchAccounts.pending, state => {
         state.loading = true;
         state.error = null;
       })
@@ -217,11 +222,11 @@ const accountsSlice = createSlice({
 
     // Create account
     builder
-      .addCase(createAccount.pending, (state) => {
+      .addCase(createAccount.pending, state => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(createAccount.fulfilled, (state) => {
+      .addCase(createAccount.fulfilled, state => {
         state.loading = false;
         state.error = null;
       })
@@ -232,11 +237,11 @@ const accountsSlice = createSlice({
 
     // Update account
     builder
-      .addCase(updateAccount.pending, (state) => {
+      .addCase(updateAccount.pending, state => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(updateAccount.fulfilled, (state) => {
+      .addCase(updateAccount.fulfilled, state => {
         state.loading = false;
         state.error = null;
       })
@@ -247,11 +252,11 @@ const accountsSlice = createSlice({
 
     // Delete account
     builder
-      .addCase(deleteAccount.pending, (state) => {
+      .addCase(deleteAccount.pending, state => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(deleteAccount.fulfilled, (state) => {
+      .addCase(deleteAccount.fulfilled, state => {
         state.loading = false;
         state.error = null;
       })

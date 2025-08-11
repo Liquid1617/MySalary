@@ -14,6 +14,7 @@ import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { colors } from '../styles';
 import { apiService } from '../services/api';
 import { getAccountTypeIcon } from '../utils/accountTypeIcon';
+import { getAccountIcon } from './icons/getAccountIcon';
 
 interface Account {
   id: number;
@@ -154,11 +155,11 @@ export const AccountsManagementModal: React.FC<
                       style={styles.accountItem}
                       onPress={() => handleAccountPress(account)}>
                       <View style={styles.accountIcon}>
-                        <FontAwesome5
-                          name={iconData.icon}
-                          size={20}
-                          color={iconData.color}
-                        />
+                        {getAccountIcon({ 
+                          accountType: account.account_type, 
+                          size: 20, 
+                          color: iconData.color 
+                        })}
                       </View>
                       <View style={styles.accountDetails}>
                         <Text style={styles.accountName}>
@@ -204,11 +205,11 @@ export const AccountsManagementModal: React.FC<
                           styles.accountIcon,
                           styles.inactiveAccountIcon,
                         ]}>
-                        <FontAwesome5
-                          name={iconData.icon}
-                          size={20}
-                          color={colors.textSecondary}
-                        />
+                        {getAccountIcon({ 
+                          accountType: account.account_type, 
+                          size: 20, 
+                          color: colors.textSecondary 
+                        })}
                       </View>
                       <View style={styles.accountDetails}>
                         <Text
