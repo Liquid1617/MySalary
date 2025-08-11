@@ -46,8 +46,8 @@ export const AccountItem: React.FC<
           <Text style={styles.accountName} numberOfLines={1}>
             {account.account_name}
           </Text>
-          <Text style={styles.accountType} numberOfLines={1}>
-            {account.account_type.replace('_', ' ').toUpperCase()}
+          <Text style={[styles.accountType, { color: meta.color }]} numberOfLines={1}>
+            {meta.name}
           </Text>
         </View>
 

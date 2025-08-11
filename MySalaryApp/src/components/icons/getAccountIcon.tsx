@@ -3,6 +3,7 @@ import { BankIcon } from './BankIcon';
 import { CashIcon } from './CashIcon';
 import { CreditCardIcon } from './CreditCardIcon';
 import { DebitCardIcon } from './DebitCardIcon';
+import { DigitalWalletIcon } from './DigitalWalletIcon';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 
 interface GetAccountIconProps {
@@ -26,14 +27,7 @@ export const getAccountIcon = ({ accountType, size = 20, color = '#000' }: GetAc
     case 'bank_account':
       return <BankIcon width={svgWidth} height={svgHeight * 1.15} fill={color} />;
     case 'digital_wallet':
-      return (
-        <FontAwesome5
-          name="mobile-alt"
-          size={size * 1.2}
-          color={color}
-          solid
-        />
-      );
+      return <DigitalWalletIcon width={svgWidth} height={svgHeight} fill={color} />;
     default:
       return (
         <FontAwesome5

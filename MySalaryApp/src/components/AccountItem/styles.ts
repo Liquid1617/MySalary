@@ -26,9 +26,12 @@ export const styles = StyleSheet.create({
     marginBottom: 2,
   },
   accountType: {
+    fontFamily: 'Commissioner',
     fontSize: 12,
     fontWeight: '500',
-    color: '#7A7E85',
+    fontStyle: 'normal',
+    lineHeight: 12,
+    letterSpacing: 0,
   },
   balance: {
     fontSize: 14,

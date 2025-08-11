@@ -12,16 +12,16 @@ export const getAccountTypeIcon = (
     case 'debit_card':
       return {
         icon: 'credit-card',
-        color: '#3B82F6',
+        color: '#32C4DE',
         name: 'Debit Card',
-        backgroundColor: '#EFF6FF',
+        backgroundColor: '#E5F7FA',
       };
     case 'credit_card':
       return {
         icon: 'credit-card',
-        color: '#8B5CF6',
+        color: '#9D97E9',
         name: 'Credit Card',
-        backgroundColor: '#F3E8FF',
+        backgroundColor: '#F0EFFC',
       };
     case 'bank_account':
       return {
@@ -33,16 +33,16 @@ export const getAccountTypeIcon = (
     case 'cash':
       return {
         icon: 'wallet',
-        color: '#F59E0B',
+        color: '#F0BF54',
         name: 'Cash',
-        backgroundColor: '#FEF3E0',
+        backgroundColor: '#FDF7E8',
       };
     case 'digital_wallet':
       return {
         icon: 'mobile-alt',
-        color: '#EF4444',
+        color: '#93C90A',
         name: 'Digital Wallet',
-        backgroundColor: '#FEF2F2',
+        backgroundColor: '#F7FCE5',
       };
     default:
       return {
