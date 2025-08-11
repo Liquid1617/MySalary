@@ -15,7 +15,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { useBudgetActions } from '../hooks/useBudgets';
 import { apiService } from '../services/api';
-import { BudgetResponse, PeriodType, CreateBudgetRequest, UpdateBudgetRequest } from '../types/budget';
+import {
+  BudgetResponse,
+  PeriodType,
+  CreateBudgetRequest,
+  UpdateBudgetRequest,
+} from '../types/budget';
 import { useUserCurrency } from '../hooks/useUserCurrency';
 
 interface BudgetEditScreenProps {
@@ -56,9 +61,10 @@ export const BudgetEditScreen: React.FC<BudgetEditScreenProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const { budget } = route.params || {};
-  const { createBudget, updateBudget, deleteBudget, isLoading } = useBudgetActions();
+  const { createBudget, updateBudget, deleteBudget, isLoading } =
+    useBudgetActions();
   const { userCurrency } = useUserCurrency();
-  
+
   const [formData, setFormData] = useState({
     name: '',
     limit_amount: '',
@@ -96,7 +102,8 @@ export const BudgetEditScreen: React.FC<BudgetEditScreenProps> = ({
   }, [budget, userCurrency, resetForm]);
 
   // Initialize dates when period type changes (same logic as BudgetFormModal)
-  const [previousPeriodType, setPreviousPeriodType] = useState<PeriodType>('month');
+  const [previousPeriodType, setPreviousPeriodType] =
+    useState<PeriodType>('month');
 
   useEffect(() => {
     if (
@@ -123,37 +130,42 @@ export const BudgetEditScreen: React.FC<BudgetEditScreenProps> = ({
     try {
       setLoadingData(true);
       console.log('Loading categories and currencies...');
-      
+
       const [categoriesData, currenciesResponse] = await Promise.all([
         apiService.get<Category[]>('/categories'),
         apiService.get<{ currencies: Currency[] }>('/currencies'),
       ]);
-      
+
       console.log('Categories loaded:', categoriesData);
       console.log('Categories count:', categoriesData?.length || 0);
       console.log('Currencies response loaded:', currenciesResponse);
-      console.log('Currencies count:', currenciesResponse?.currencies?.length || 0);
-      
+      console.log(
+        'Currencies count:',
+        currenciesResponse?.currencies?.length || 0,
+      );
+
       const finalCategories = categoriesData || [];
       const finalCurrencies = currenciesResponse?.currencies || [];
-      
+
       setCategories(finalCategories);
       setCurrencies(finalCurrencies);
-      
+
       console.log('Final categories set:', finalCategories.length);
       console.log('Final currencies set:', finalCurrencies.length);
-      
+
       if (finalCategories.length > 0) {
         console.log('First category:', finalCategories[0]);
-        console.log('Expense categories:', finalCategories.filter(cat => cat.type === 'expense'));
+        console.log(
+          'Expense categories:',
+          finalCategories.filter(cat => cat.type === 'expense'),
+        );
       }
     } catch (error) {
       console.error('Error loading form data:', error);
       console.error('Error details:', JSON.stringify(error, null, 2));
       Alert.alert(
         'Error',
-        `Failed to load data: ${
-          error instanceof Error ? error.message : 'Unknown error'
+        `Failed to load data: ${error instanceof Error ? error.message : 'Unknown error'
         }`,
       );
     } finally {
@@ -196,11 +208,11 @@ export const BudgetEditScreen: React.FC<BudgetEditScreenProps> = ({
       // Always use dates from form fields (identical logic to BudgetFormModal)
       const startDate = formData.custom_start_date;
       const endDate = formData.custom_end_date;
-      
+
       console.log(`=== SAVING BUDGET (Frontend) ===`);
       console.log(`Period type: ${formData.period_type}`);
       console.log(`Using form dates: ${startDate} to ${endDate}`);
-      
+
       const budgetData = {
         name: formData.name.trim(),
         limit_amount: parseFloat(formData.limit_amount),
@@ -211,8 +223,11 @@ export const BudgetEditScreen: React.FC<BudgetEditScreenProps> = ({
         custom_start_date: startDate,
         custom_end_date: endDate,
       };
-      
-      console.log('Full budget data being sent:', JSON.stringify(budgetData, null, 2));
+
+      console.log(
+        'Full budget data being sent:',
+        JSON.stringify(budgetData, null, 2),
+      );
 
       if (isEditing) {
         await updateBudget.mutateAsync({
@@ -243,18 +258,23 @@ export const BudgetEditScreen: React.FC<BudgetEditScreenProps> = ({
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('Attempting to delete budget with ID:', budget.id, typeof budget.id);
+              console.log(
+                'Attempting to delete budget with ID:',
+                budget.id,
+                typeof budget.id,
+              );
               await deleteBudget.mutateAsync(budget.id);
               navigation.goBack();
             } catch (error) {
               console.error('Error deleting budget:', error);
               console.error('Error details:', JSON.stringify(error, null, 2));
-              const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+              const errorMessage =
+                error instanceof Error ? error.message : 'Unknown error';
               Alert.alert('Error', `Failed to delete budget: ${errorMessage}`);
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -282,23 +302,28 @@ export const BudgetEditScreen: React.FC<BudgetEditScreenProps> = ({
     } else if (periodType === 'week') {
       // Start of current week (Monday)
       const day = today.getDay();
-      
+
       // Calculate days to subtract to get to Monday
       // Sunday = 0, Monday = 1, Tuesday = 2, ..., Saturday = 6
       // Days to go back: Sunday=6, Monday=0, Tuesday=1, Wednesday=2, Thursday=3, Friday=4, Saturday=5
       const daysToMonday = day === 0 ? 6 : day - 1;
-      
+
       // Use UTC date calculation to avoid timezone issues
-      const startOfWeek = new Date(Date.UTC(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate() - daysToMonday,
-        0, 0, 0, 0
-      ));
-      
+      const startOfWeek = new Date(
+        Date.UTC(
+          today.getFullYear(),
+          today.getMonth(),
+          today.getDate() - daysToMonday,
+          0,
+          0,
+          0,
+          0,
+        ),
+      );
+
       return startOfWeek.toISOString().split('T')[0];
     }
-    
+
     return today.toISOString().split('T')[0];
   }, []);
 
@@ -307,45 +332,59 @@ export const BudgetEditScreen: React.FC<BudgetEditScreenProps> = ({
     if (formData.period_type === 'custom') {
       return formData.custom_start_date || '';
     }
-    return formData.custom_start_date || getCalculatedStartDate(formData.period_type);
+    return (
+      formData.custom_start_date || getCalculatedStartDate(formData.period_type)
+    );
   };
 
-  const getCalculatedEndDate = useCallback((periodType: PeriodType) => {
-    if (periodType === 'month') {
-      // Last day of current month (using UTC to avoid timezone issues)
+  const getCalculatedEndDate = useCallback(
+    (periodType: PeriodType) => {
+      if (periodType === 'month') {
+        // Last day of current month (using UTC to avoid timezone issues)
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+        const endOfMonth = new Date(
+          Date.UTC(year, month + 1, 0, 23, 59, 59, 999),
+        ); // Last day of current month
+        return endOfMonth.toISOString().split('T')[0];
+      } else if (periodType === 'week') {
+        // End of current week (Sunday) - 6 days after Monday
+        const startDateStr = getCalculatedStartDate(periodType);
+        const startDate = new Date(startDateStr + 'T00:00:00.000Z');
+
+        // Calculate end date using UTC
+        const endOfWeek = new Date(
+          Date.UTC(
+            startDate.getUTCFullYear(),
+            startDate.getUTCMonth(),
+            startDate.getUTCDate() + 6,
+            23,
+            59,
+            59,
+            999,
+          ),
+        );
+
+        return endOfWeek.toISOString().split('T')[0];
+      }
+
+      // Default 30 days for custom
       const today = new Date();
-      const year = today.getFullYear();
-      const month = today.getMonth();
-      const endOfMonth = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999)); // Last day of current month
-      return endOfMonth.toISOString().split('T')[0];
-    } else if (periodType === 'week') {
-      // End of current week (Sunday) - 6 days after Monday
-      const startDateStr = getCalculatedStartDate(periodType);
-      const startDate = new Date(startDateStr + 'T00:00:00.000Z');
-      
-      // Calculate end date using UTC
-      const endOfWeek = new Date(Date.UTC(
-        startDate.getUTCFullYear(),
-        startDate.getUTCMonth(),
-        startDate.getUTCDate() + 6,
-        23, 59, 59, 999
-      ));
-      
-      return endOfWeek.toISOString().split('T')[0];
-    }
-    
-    // Default 30 days for custom
-    const today = new Date();
-    const endDate = new Date(today);
-    endDate.setDate(endDate.getDate() + 30);
-    return endDate.toISOString().split('T')[0];
-  }, [getCalculatedStartDate]);
+      const endDate = new Date(today);
+      endDate.setDate(endDate.getDate() + 30);
+      return endDate.toISOString().split('T')[0];
+    },
+    [getCalculatedStartDate],
+  );
 
   const getDisplayEndDate = () => {
     if (formData.period_type === 'custom') {
       return formData.custom_end_date || '';
     }
-    return formData.custom_end_date || getCalculatedEndDate(formData.period_type);
+    return (
+      formData.custom_end_date || getCalculatedEndDate(formData.period_type)
+    );
   };
 
   const expenseCategories = categories.filter(cat => cat.type === 'expense');
@@ -356,7 +395,9 @@ export const BudgetEditScreen: React.FC<BudgetEditScreenProps> = ({
       {/* Header */}
       <View style={[styles.headerContainer, { paddingTop: insets.top }]}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.closeButton}>
             <FontAwesome5 name="chevron-left" size={24} color="#000" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
@@ -365,8 +406,7 @@ export const BudgetEditScreen: React.FC<BudgetEditScreenProps> = ({
           <TouchableOpacity
             onPress={handleSave}
             disabled={isLoading}
-            style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
-          >
+            style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}>
             {isLoading ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
@@ -389,7 +429,9 @@ export const BudgetEditScreen: React.FC<BudgetEditScreenProps> = ({
             <TextInput
               style={styles.textInput}
               value={formData.name}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
+              onChangeText={text =>
+                setFormData(prev => ({ ...prev, name: text }))
+              }
               placeholder="e.g., Food, Entertainment"
               placeholderTextColor="#999"
             />
@@ -402,15 +444,16 @@ export const BudgetEditScreen: React.FC<BudgetEditScreenProps> = ({
               <TextInput
                 style={[styles.textInput, styles.amountInput]}
                 value={formData.limit_amount}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, limit_amount: text }))}
+                onChangeText={text =>
+                  setFormData(prev => ({ ...prev, limit_amount: text }))
+                }
                 placeholder="0.00"
                 placeholderTextColor="#999"
                 keyboardType="numeric"
               />
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.currencySelector}
-                onPress={() => setShowCurrencyPicker(!showCurrencyPicker)}
-              >
+                onPress={() => setShowCurrencyPicker(!showCurrencyPicker)}>
                 <Text style={styles.currencyText}>{formData.currency}</Text>
                 <FontAwesome5 name="chevron-down" size={12} color="#666" />
               </TouchableOpacity>
@@ -421,21 +464,26 @@ export const BudgetEditScreen: React.FC<BudgetEditScreenProps> = ({
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Period</Text>
             <View style={styles.periodContainer}>
-              {PERIOD_OPTIONS.map((option) => (
+              {PERIOD_OPTIONS.map(option => (
                 <TouchableOpacity
                   key={option.value}
                   style={[
                     styles.periodButton,
-                    formData.period_type === option.value && styles.periodButtonActive,
+                    formData.period_type === option.value &&
+                    styles.periodButtonActive,
                   ]}
-                  onPress={() => setFormData(prev => ({ ...prev, period_type: option.value }))}
-                >
+                  onPress={() =>
+                    setFormData(prev => ({
+                      ...prev,
+                      period_type: option.value,
+                    }))
+                  }>
                   <Text
                     style={[
                       styles.periodButtonText,
-                      formData.period_type === option.value && styles.periodButtonTextActive,
-                    ]}
-                  >
+                      formData.period_type === option.value &&
+                      styles.periodButtonTextActive,
+                    ]}>
                     {option.label}
                   </Text>
                 </TouchableOpacity>
@@ -446,12 +494,17 @@ export const BudgetEditScreen: React.FC<BudgetEditScreenProps> = ({
           {/* Period Dates - always show */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              {formData.period_type === 'custom' ? 'Custom Period' : 'Budget Period'}
+              {formData.period_type === 'custom'
+                ? 'Custom Period'
+                : 'Budget Period'}
             </Text>
             <Text style={styles.sectionDescription}>
-              {formData.period_type === 'month' && 'From start of current month to end of current month'}
-              {formData.period_type === 'week' && 'From start of current week (Monday) to end of current week (Sunday)'}
-              {formData.period_type === 'custom' && 'Set your custom start and end dates'}
+              {formData.period_type === 'month' &&
+                'From start of current month to end of current month'}
+              {formData.period_type === 'week' &&
+                'From start of current week (Monday) to end of current week (Sunday)'}
+              {formData.period_type === 'custom' &&
+                'Set your custom start and end dates'}
             </Text>
             <View style={styles.dateFieldsContainer}>
               <View style={styles.dateField}>
@@ -459,13 +512,19 @@ export const BudgetEditScreen: React.FC<BudgetEditScreenProps> = ({
                 <TextInput
                   style={[
                     styles.dateInput,
-                    formData.period_type !== 'custom' && styles.dateInputDisabled
+                    formData.period_type !== 'custom' &&
+                    styles.dateInputDisabled,
                   ]}
                   placeholder="YYYY-MM-DD"
                   value={getDisplayStartDate()}
-                  onChangeText={formData.period_type === 'custom' ? 
-                    (text) => setFormData(prev => ({ ...prev, custom_start_date: text })) : 
-                    undefined
+                  onChangeText={
+                    formData.period_type === 'custom'
+                      ? text =>
+                        setFormData(prev => ({
+                          ...prev,
+                          custom_start_date: text,
+                        }))
+                      : undefined
                   }
                   editable={formData.period_type === 'custom'}
                 />
@@ -475,13 +534,19 @@ export const BudgetEditScreen: React.FC<BudgetEditScreenProps> = ({
                 <TextInput
                   style={[
                     styles.dateInput,
-                    formData.period_type !== 'custom' && styles.dateInputDisabled
+                    formData.period_type !== 'custom' &&
+                    styles.dateInputDisabled,
                   ]}
                   placeholder="YYYY-MM-DD"
                   value={getDisplayEndDate()}
-                  onChangeText={formData.period_type === 'custom' ? 
-                    (text) => setFormData(prev => ({ ...prev, custom_end_date: text })) : 
-                    undefined
+                  onChangeText={
+                    formData.period_type === 'custom'
+                      ? text =>
+                        setFormData(prev => ({
+                          ...prev,
+                          custom_end_date: text,
+                        }))
+                      : undefined
                   }
                   editable={formData.period_type === 'custom'}
                 />
@@ -493,16 +558,26 @@ export const BudgetEditScreen: React.FC<BudgetEditScreenProps> = ({
           <View style={styles.section}>
             <TouchableOpacity
               style={styles.rolloverContainer}
-              onPress={() => setFormData(prev => ({ ...prev, rollover: !prev.rollover }))}
-            >
+              onPress={() =>
+                setFormData(prev => ({ ...prev, rollover: !prev.rollover }))
+              }>
               <View style={styles.rolloverInfo}>
                 <Text style={styles.rolloverTitle}>Rollover unused amount</Text>
                 <Text style={styles.rolloverDescription}>
                   Carry over unused budget to next period
                 </Text>
               </View>
-              <View style={[styles.toggle, formData.rollover && styles.toggleActive]}>
-                <View style={[styles.toggleThumb, formData.rollover && styles.toggleThumbActive]} />
+              <View
+                style={[
+                  styles.toggle,
+                  formData.rollover && styles.toggleActive,
+                ]}>
+                <View
+                  style={[
+                    styles.toggleThumb,
+                    formData.rollover && styles.toggleThumbActive,
+                  ]}
+                />
               </View>
             </TouchableOpacity>
           </View>
@@ -519,25 +594,25 @@ export const BudgetEditScreen: React.FC<BudgetEditScreenProps> = ({
               </Text>
             ) : (
               <View style={styles.categoriesContainer}>
-                {expenseCategories.map((category) => (
-                <TouchableOpacity
-                  key={category.id}
-                  style={[
-                    styles.categoryButton,
-                    formData.categories.includes(category.id.toString()) && styles.categoryButtonActive,
-                  ]}
-                  onPress={() => toggleCategory(category.id.toString())}
-                >
-                  <Text
+                {expenseCategories.map(category => (
+                  <TouchableOpacity
+                    key={category.id}
                     style={[
-                      styles.categoryButtonText,
-                      formData.categories.includes(category.id.toString()) && styles.categoryButtonTextActive,
+                      styles.categoryButton,
+                      formData.categories.includes(category.id.toString()) &&
+                      styles.categoryButtonActive,
                     ]}
-                  >
-                    {category.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    onPress={() => toggleCategory(category.id.toString())}>
+                    <Text
+                      style={[
+                        styles.categoryButtonText,
+                        formData.categories.includes(category.id.toString()) &&
+                        styles.categoryButtonTextActive,
+                      ]}>
+                      {category.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             )}
           </View>
@@ -548,8 +623,7 @@ export const BudgetEditScreen: React.FC<BudgetEditScreenProps> = ({
               <TouchableOpacity
                 style={styles.deleteButton}
                 onPress={handleDelete}
-                disabled={isLoading}
-              >
+                disabled={isLoading}>
                 <FontAwesome5 name="trash" size={16} color="#FFFFFF" />
                 <Text style={styles.deleteButtonText}>Delete Budget</Text>
               </TouchableOpacity>
@@ -559,35 +633,37 @@ export const BudgetEditScreen: React.FC<BudgetEditScreenProps> = ({
           <View style={styles.bottomSpacer} />
         </ScrollView>
       )}
-      
+
       {/* Currency Picker Overlay */}
       {showCurrencyPicker && (
         <View style={styles.currencyPickerOverlay}>
-          <TouchableWithoutFeedback onPress={() => setShowCurrencyPicker(false)}>
+          <TouchableWithoutFeedback
+            onPress={() => setShowCurrencyPicker(false)}>
             <View style={styles.currencyPickerBackdrop} />
           </TouchableWithoutFeedback>
           <View style={styles.currencyPickerModal}>
-            <ScrollView 
+            <ScrollView
               style={styles.currencyScrollView}
               showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-            >
+              keyboardShouldPersistTaps="handled">
               {currencies.map(currency => (
                 <TouchableOpacity
                   key={currency.code}
                   style={[
                     styles.currencyOption,
-                    formData.currency === currency.code && styles.currencyOptionActive
+                    formData.currency === currency.code &&
+                    styles.currencyOptionActive,
                   ]}
                   onPress={() => {
                     setFormData(prev => ({ ...prev, currency: currency.code }));
                     setShowCurrencyPicker(false);
-                  }}
-                >
-                  <Text style={[
-                    styles.currencyOptionText,
-                    formData.currency === currency.code && styles.currencyOptionTextActive
-                  ]}>
+                  }}>
+                  <Text
+                    style={[
+                      styles.currencyOptionText,
+                      formData.currency === currency.code &&
+                      styles.currencyOptionTextActive,
+                    ]}>
                     {currency.code} - {currency.name}
                   </Text>
                 </TouchableOpacity>
@@ -894,7 +970,7 @@ const styles = StyleSheet.create({
   bottomSpacer: {
     height: 40,
   },
-  
+
   // Custom Date Fields
   dateFieldsContainer: {
     flexDirection: 'row',

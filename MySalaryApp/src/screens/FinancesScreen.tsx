@@ -281,6 +281,9 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
   const [snackBarVisible, setSnackBarVisible] = useState(false);
   const [snackBarMessage, setSnackBarMessage] = useState('');
   const [undoAction, setUndoAction] = useState<(() => void) | null>(null);
+  const [transactionView, setTransactionView] = useState<'recent' | 'future'>(
+    'recent',
+  );
 
   // Budget data
   const { data: budgets = [], isLoading: budgetsLoading } = useBudgets();
@@ -1391,7 +1394,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
               )}
             </View>
 
-            {/* Recent Transactions Section */}
+            {/* Transactions Section */}
             <View
               style={{
                 marginBottom: 24,
@@ -1409,7 +1412,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                     fontWeight: 'bold',
                     color: '#000',
                   }}>
-                  Future Transactions
+                  Transactions
                 </Text>
                 <TouchableOpacity
                   style={{
@@ -1430,6 +1433,67 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                 </TouchableOpacity>
               </View>
 
+              {/* Transaction Type Toggle */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  marginBottom: 16,
+                  height: 33,
+                  width: 323,
+                }}>
+                <TouchableOpacity
+                  style={{
+                    height: 33,
+                    paddingHorizontal: 8,
+                    paddingVertical: 8,
+                    backgroundColor: 'transparent',
+                    borderBottomWidth: transactionView === 'recent' ? 1 : 0,
+                    borderBottomColor: '#252233',
+                    marginRight: 32,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '50%',
+                  }}
+                  onPress={() => setTransactionView('recent')}>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: transactionView === 'recent' ? '500' : '400',
+                      fontFamily: 'Commissioner',
+                      lineHeight: 14,
+                      color:
+                        transactionView === 'recent' ? '#252233' : '#D3D6D7',
+                    }}>
+                    Recent
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    height: 33,
+                    paddingHorizontal: 8,
+                    paddingVertical: 8,
+                    backgroundColor: 'transparent',
+                    borderBottomWidth: transactionView === 'future' ? 1 : 0,
+                    borderBottomColor: '#252233',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '50%',
+                  }}
+                  onPress={() => setTransactionView('future')}>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: transactionView === 'future' ? '500' : '400',
+                      fontFamily: 'Commissioner',
+                      lineHeight: 14,
+                      color:
+                        transactionView === 'future' ? '#252233' : '#D3D6D7',
+                    }}>
+                    Future
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
               {transactionsData.loading ? (
                 <View
                   style={{
@@ -1446,306 +1510,653 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                     Loading transactions...
                   </Text>
                 </View>
-              ) : transactionsData.transactions.filter(
-                t => t.status === 'scheduled',
-              ).length === 0 ? (
-                <View
-                  style={{
-                    backgroundColor: 'white',
-                    borderRadius: 16,
-                    padding: 20,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 2,
-                    elevation: 1,
-                  }}>
-                  <Text style={{ fontSize: 16, color: '#666' }}>
-                    No future transactions
-                  </Text>
-                  <Text style={{ fontSize: 14, color: '#999', marginTop: 4 }}>
-                    Scheduled transactions will appear here
-                  </Text>
-                </View>
-              ) : (
-                <View
-                  style={{
-                    backgroundColor: 'white',
-                    borderRadius: 16,
-                    padding: 16,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 2,
-                    elevation: 1,
-                  }}>
-                  {transactionsData.transactions
-                    .filter(t => t.status === 'scheduled')
-                    .slice(0, 10)
-                    .map((transaction, index) => {
-                      const isTransfer =
-                        transaction.transaction_type === 'transfer';
+              ) : transactionView === 'future' ? (
+                transactionsData.transactions
+                  .filter((t, index, self) => self.findIndex(tx => tx.id === t.id) === index) // Deduplicate
+                  .filter(t => t.status === 'scheduled')
+                  .length === 0 ? (
+                  <View
+                    style={{
+                      backgroundColor: 'white',
+                      borderRadius: 16,
+                      padding: 20,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.05,
+                      shadowRadius: 2,
+                      elevation: 1,
+                    }}>
+                    <Text style={{ fontSize: 16, color: '#666' }}>
+                      No future transactions
+                    </Text>
+                    <Text style={{ fontSize: 14, color: '#999', marginTop: 4 }}>
+                      Scheduled transactions will appear here
+                    </Text>
+                  </View>
+                ) : (
+                  <View
+                    style={{
+                      backgroundColor: 'white',
+                      borderRadius: 16,
+                      padding: 16,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.05,
+                      shadowRadius: 2,
+                      elevation: 1,
+                    }}>
+                    {transactionsData.transactions
+                      .filter((t, index, self) => self.findIndex(tx => tx.id === t.id) === index) // Deduplicate
+                      .filter(t => t.status === 'scheduled')
+                      .slice(0, 10)
+                      .map((transaction, index) => {
+                        const isTransfer =
+                          transaction.transaction_type === 'transfer';
 
-                      // Get icon and color based on transaction type
-                      const iconData = isTransfer
-                        ? { icon: 'exchange-alt', color: '#6B7280' }
-                        : getCategoryIcon(
-                          transaction.category?.category_name || '',
-                          transaction.category?.category_type || '',
+                        // Get icon and color based on transaction type
+                        const iconData = isTransfer
+                          ? { icon: 'exchange-alt', color: '#6B7280' }
+                          : getCategoryIcon(
+                            transaction.category?.category_name || '',
+                            transaction.category?.category_type || '',
+                          );
+
+                        const accountIcon = getAccountTypeIcon(
+                          (transaction.account as any)?.account_type ||
+                          'checking',
                         );
 
-                      const accountIcon = getAccountTypeIcon(
-                        (transaction.account as any)?.account_type ||
-                        'checking',
-                      );
+                        // Функция для извлечения информации о конвертации
+                        const getTransferDisplayInfo = (transaction: any) => {
+                          if (transaction.transaction_type !== 'transfer')
+                            return null;
 
-                      // Функция для извлечения информации о конвертации
-                      const getTransferDisplayInfo = (transaction: any) => {
-                        if (transaction.transaction_type !== 'transfer')
-                          return null;
-
-                        if (transaction.description) {
-                          const convertMatch = transaction.description.match(
-                            /\[Converted: (.+) ([A-Z]{3}) = (.+) ([A-Z]{3})\]/,
-                          );
-                          if (convertMatch) {
-                            return {
-                              fromAmount: parseFloat(convertMatch[1]),
-                              fromCurrency: convertMatch[2],
-                              toAmount: parseFloat(convertMatch[3]),
-                              toCurrency: convertMatch[4],
-                            };
+                          if (transaction.description) {
+                            const convertMatch = transaction.description.match(
+                              /\[Converted: (.+) ([A-Z]{3}) = (.+) ([A-Z]{3})\]/,
+                            );
+                            if (convertMatch) {
+                              return {
+                                fromAmount: parseFloat(convertMatch[1]),
+                                fromCurrency: convertMatch[2],
+                                toAmount: parseFloat(convertMatch[3]),
+                                toCurrency: convertMatch[4],
+                              };
+                            }
                           }
-                        }
-                        return null;
-                      };
+                          return null;
+                        };
 
-                      const transferInfo = getTransferDisplayInfo(transaction);
+                        const transferInfo =
+                          getTransferDisplayInfo(transaction);
 
-                      // Check if account is deactivated
-                      const isAccountDeactivated = !(transaction.account as any)
-                        ?.is_active;
-                      const opacity = isAccountDeactivated ? 0.5 : 1.0;
-                      const isScheduled = transaction.status === 'scheduled';
+                        // Check if account is deactivated
+                        const isAccountDeactivated = !(
+                          transaction.account as any
+                        )?.is_active;
+                        const opacity = isAccountDeactivated ? 0.5 : 1.0;
+                        const isScheduled = transaction.status === 'scheduled';
 
-                      const transactionRow = (
-                        <TouchableOpacity
-                          style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            paddingVertical: 12,
-                          }}
-                          onPress={() => handleTransactionPress(transaction)}
-                          activeOpacity={0.7}>
-                          {/* Category/Transfer Icon */}
-                          <View
+                        const transactionRow = (
+                          <TouchableOpacity
                             style={{
-                              width: 40,
-                              height: 40,
-                              borderRadius: 20,
-                              backgroundColor: `${iconData.color}15`,
-                              justifyContent: 'center',
+                              flexDirection: 'row',
                               alignItems: 'center',
-                              marginRight: 12,
-                            }}>
-                            <FontAwesome5
-                              name={iconData.icon}
-                              size={18}
-                              color={iconData.color}
-                            />
-                          </View>
-
-                          {/* Transaction Details */}
-                          <View style={{ flex: 1 }}>
-                            <Text
-                              style={{
-                                fontSize: 16,
-                                fontWeight: '500',
-                                color: '#000',
-                                marginBottom: 2,
-                              }}>
-                              {isTransfer
-                                ? 'Transfer'
-                                : transaction.category?.category_name ||
-                                'Category'}
-                            </Text>
+                              paddingVertical: 12,
+                            }}
+                            onPress={() => handleTransactionPress(transaction)}
+                            activeOpacity={0.7}>
+                            {/* Category/Transfer Icon */}
                             <View
                               style={{
-                                flexDirection: 'column',
-                                alignItems: 'flex-start',
+                                width: 40,
+                                height: 40,
+                                borderRadius: 20,
+                                backgroundColor: `${iconData.color}15`,
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                marginRight: 12,
                               }}>
-                              {isTransfer ? (
-                                <View
-                                  style={{
-                                    flexDirection: 'column',
-                                    alignItems: 'flex-start',
-                                  }}>
-                                  {/* First Row - From Account */}
+                              <FontAwesome5
+                                name={iconData.icon}
+                                size={18}
+                                color={iconData.color}
+                              />
+                            </View>
+
+                            {/* Transaction Details */}
+                            <View style={{ flex: 1 }}>
+                              <Text
+                                style={{
+                                  fontSize: 16,
+                                  fontWeight: '500',
+                                  color: '#000',
+                                  marginBottom: 2,
+                                }}>
+                                {isTransfer
+                                  ? 'Transfer'
+                                  : transaction.category?.category_name ||
+                                  'Category'}
+                              </Text>
+                              <View
+                                style={{
+                                  flexDirection: 'column',
+                                  alignItems: 'flex-start',
+                                }}>
+                                {isTransfer ? (
                                   <View
                                     style={{
-                                      paddingHorizontal: 8,
-                                      paddingVertical: 3,
-                                      borderRadius: 12,
-                                      backgroundColor: `${getAccountTypeIcon(
-                                        (transaction.account as any)
-                                          ?.account_type || '',
-                                      ).color
-                                        }20`,
-                                      marginBottom: 4,
+                                      flexDirection: 'column',
+                                      alignItems: 'flex-start',
                                     }}>
-                                    <Text
-                                      style={{
-                                        fontSize: 11,
-                                        color: getAccountTypeIcon(
-                                          (transaction.account as any)
-                                            ?.account_type || '',
-                                        ).color,
-                                        fontWeight: '600',
-                                      }}>
-                                      {transaction.account?.account_name ||
-                                        'Unknown'}
-                                    </Text>
-                                  </View>
-
-                                  {/* Second Row - Arrow + To Account */}
-                                  <View
-                                    style={{
-                                      flexDirection: 'row',
-                                      alignItems: 'center',
-                                    }}>
-                                    <FontAwesome5
-                                      name="arrow-right"
-                                      size={12}
-                                      color="#6B7280"
-                                      style={{ marginRight: 6 }}
-                                    />
-
+                                    {/* First Row - From Account */}
                                     <View
                                       style={{
                                         paddingHorizontal: 8,
                                         paddingVertical: 3,
                                         borderRadius: 12,
                                         backgroundColor: `${getAccountTypeIcon(
-                                          (transaction.targetAccount as any)
-                                            ?.account_type || 'checking',
+                                          (transaction.account as any)
+                                            ?.account_type || '',
                                         ).color
                                           }20`,
+                                        marginBottom: 4,
                                       }}>
                                       <Text
                                         style={{
                                           fontSize: 11,
                                           color: getAccountTypeIcon(
-                                            (transaction.targetAccount as any)
-                                              ?.account_type || 'checking',
+                                            (transaction.account as any)
+                                              ?.account_type || '',
                                           ).color,
                                           fontWeight: '600',
                                         }}>
-                                        {transaction.targetAccount
+                                        {transaction.account?.account_name ||
+                                          'Unknown'}
+                                      </Text>
+                                    </View>
+
+                                    {/* Second Row - Arrow + To Account */}
+                                    <View
+                                      style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                      }}>
+                                      <FontAwesome5
+                                        name="arrow-right"
+                                        size={12}
+                                        color="#6B7280"
+                                        style={{ marginRight: 6 }}
+                                      />
+
+                                      <View
+                                        style={{
+                                          paddingHorizontal: 8,
+                                          paddingVertical: 3,
+                                          borderRadius: 12,
+                                          backgroundColor: `${getAccountTypeIcon(
+                                            (transaction.targetAccount as any)
+                                              ?.account_type || 'checking',
+                                          ).color
+                                            }20`,
+                                        }}>
+                                        <Text
+                                          style={{
+                                            fontSize: 11,
+                                            color: getAccountTypeIcon(
+                                              (transaction.targetAccount as any)
+                                                ?.account_type || 'checking',
+                                            ).color,
+                                            fontWeight: '600',
+                                          }}>
+                                          {transaction.targetAccount
+                                            ?.account_name || 'Unknown'}
+                                        </Text>
+                                      </View>
+                                    </View>
+                                  </View>
+                                ) : (
+                                  <View
+                                    style={{
+                                      paddingHorizontal: 8,
+                                      paddingVertical: 3,
+                                      borderRadius: 12,
+                                      backgroundColor: `${accountIcon.color}20`,
+                                      maxWidth: 120,
+                                    }}>
+                                    <Text
+                                      style={{
+                                        fontSize: 11,
+                                        color: accountIcon.color,
+                                        fontWeight: '600',
+                                      }}
+                                      numberOfLines={1}
+                                      ellipsizeMode="tail">
+                                      {transaction.account?.account_name ||
+                                        'Account'}
+                                    </Text>
+                                  </View>
+                                )}
+                                {isAccountDeactivated && (
+                                  <View
+                                    style={{
+                                      paddingHorizontal: 6,
+                                      paddingVertical: 2,
+                                      borderRadius: 8,
+                                      backgroundColor: '#FBBF24',
+                                      marginLeft: 6,
+                                    }}>
+                                    <Text
+                                      style={{
+                                        fontSize: 9,
+                                        color: '#FFFFFF',
+                                        fontWeight: '600',
+                                      }}>
+                                      DEACTIVATED
+                                    </Text>
+                                  </View>
+                                )}
+                              </View>
+                            </View>
+
+                            {/* Amount and Date */}
+                            <View style={{ alignItems: 'flex-end' }}>
+                              <Text
+                                style={{
+                                  fontSize: 16,
+                                  fontWeight: '600',
+                                  color: isTransfer
+                                    ? '#F59E0B'
+                                    : transaction.transaction_type === 'income'
+                                      ? '#10B981'
+                                      : '#EF4444',
+                                  marginBottom: 2,
+                                }}>
+                                {isTransfer
+                                  ? transferInfo
+                                    ? `${transferInfo.toAmount} ${transferInfo.toCurrency}`
+                                    : `${transaction.amount} ${transaction.targetAccount?.currency?.symbol || '$'}`
+                                  : `${transaction.transaction_type === 'income'
+                                    ? '+'
+                                    : '-'
+                                  }${transaction.amount} ${transaction.account.currency?.symbol || '$'}`}
+                              </Text>
+                              <Text
+                                style={{
+                                  fontSize: 14,
+                                  color: '#666',
+                                }}>
+                                {formatTransactionDate(
+                                  transaction.transaction_date,
+                                )}
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                        );
+
+                        return (
+                          <View
+                            key={`future-transactions-${transaction.id}-${index}`}
+                            style={{
+                              opacity,
+                            }}>
+                            <SwipeableTransactionRow
+                              transaction={transaction}
+                              onConfirm={handleConfirmTransaction}
+                              isScheduled={isScheduled}>
+                              {transactionRow}
+                            </SwipeableTransactionRow>
+
+                            {index <
+                              transactionsData.transactions
+                                .filter((t, index, self) => self.findIndex(tx => tx.id === t.id) === index) // Deduplicate
+                                .filter(t => t.status === 'scheduled')
+                                .slice(0, 10).length -
+                              1 && (
+                                <View
+                                  style={{
+                                    height: 1,
+                                    backgroundColor: '#E5E5EA',
+                                    marginLeft: 0,
+                                    marginRight: 0,
+                                  }}
+                                />
+                              )}
+                          </View>
+                        );
+                      })}
+                  </View>
+                )
+              ) : // Recent transactions view
+                transactionsData.transactions
+                  .filter((t, index, self) => self.findIndex(tx => tx.id === t.id) === index) // Deduplicate
+                  .filter(t => t.status === 'posted')
+                  .length === 0 ? (
+                  <View
+                    style={{
+                      backgroundColor: 'white',
+                      borderRadius: 16,
+                      padding: 20,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.05,
+                      shadowRadius: 2,
+                      elevation: 1,
+                    }}>
+                    <Text style={{ fontSize: 16, color: '#666' }}>
+                      No recent transactions
+                    </Text>
+                    <Text style={{ fontSize: 14, color: '#999', marginTop: 4 }}>
+                      Your completed transactions will appear here
+                    </Text>
+                  </View>
+                ) : (
+                  <View
+                    style={{
+                      backgroundColor: 'white',
+                      borderRadius: 16,
+                      padding: 16,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.05,
+                      shadowRadius: 2,
+                      elevation: 1,
+                    }}>
+                    {transactionsData.transactions
+                      .filter((t, index, self) => self.findIndex(tx => tx.id === t.id) === index) // Deduplicate
+                      .filter(t => t.status === 'posted')
+                      .slice(0, 10)
+                      .map((transaction, index) => {
+                        const isTransfer =
+                          transaction.transaction_type === 'transfer';
+                        const iconData = isTransfer
+                          ? { icon: 'exchange-alt', color: '#6B7280' }
+                          : getCategoryIcon(
+                            transaction.category?.category_name || '',
+                            transaction.category?.category_type || '',
+                          );
+
+                        const accountIcon = getAccountTypeIcon(
+                          (transaction.account as any)?.account_type ||
+                          'checking',
+                        );
+
+                        const getTransferDisplayInfo = (transaction: any) => {
+                          if (transaction.transaction_type !== 'transfer')
+                            return null;
+                          if (transaction.description) {
+                            const convertMatch = transaction.description.match(
+                              /\[Converted: (.+) ([A-Z]{3}) = (.+) ([A-Z]{3})\]/,
+                            );
+                            if (convertMatch) {
+                              return {
+                                fromAmount: parseFloat(convertMatch[1]),
+                                fromCurrency: convertMatch[2],
+                                toAmount: parseFloat(convertMatch[3]),
+                                toCurrency: convertMatch[4],
+                              };
+                            }
+                          }
+                          return null;
+                        };
+
+                        const transferInfo = getTransferDisplayInfo(transaction);
+                        const isAccountDeactivated = !(transaction.account as any)
+                          ?.is_active;
+                        const opacity = isAccountDeactivated ? 0.5 : 1.0;
+                        const isScheduled = transaction.status === 'scheduled';
+                        const isLastTransaction =
+                          index ===
+                          transactionsData.transactions
+                            .filter((t, index, self) => self.findIndex(tx => tx.id === t.id) === index) // Deduplicate
+                            .filter(t => t.status === 'posted')
+                            .slice(0, 10).length -
+                          1;
+
+                        return (
+                          <View key={`recent-transactions-${transaction.id}-${index}`}>
+                            <SwipeableTransactionRow
+                              transaction={transaction as any}
+                              onConfirm={async transaction => {
+                                if (transaction.status === 'scheduled') {
+                                  try {
+                                    await apiService.put(
+                                      `/transactions/${transaction.id}`,
+                                      {
+                                        status: 'completed',
+                                      },
+                                    );
+                                    dispatch(fetchTransactions(true));
+                                    dispatch(fetchNetWorth(true));
+                                    dispatch(fetchAccounts(true));
+                                    setSnackBarMessage('Transaction confirmed');
+                                    setSnackBarVisible(true);
+                                  } catch (error) {
+                                    console.error(
+                                      'Error confirming transaction:',
+                                      error,
+                                    );
+                                    Alert.alert(
+                                      'Error',
+                                      'Failed to confirm transaction',
+                                    );
+                                  }
+                                }
+                              }}
+                              isScheduled={isScheduled}>
+                              <View
+                                style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  paddingVertical: 12,
+                                }}>
+                                {/* Category/Transfer Icon */}
+                                <View
+                                  style={{
+                                    width: 40,
+                                    height: 40,
+                                    borderRadius: 20,
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    marginRight: 12,
+                                  }}>
+                                  <View
+                                    style={{
+                                      width: 40,
+                                      height: 40,
+                                      borderRadius: 20,
+                                      backgroundColor: `${iconData.color}15`,
+                                      justifyContent: 'center',
+                                      alignItems: 'center',
+                                    }}>
+                                    <FontAwesome5
+                                      name={iconData.icon}
+                                      size={18}
+                                      color={iconData.color}
+                                    />
+                                  </View>
+                                </View>
+
+                                {/* Transaction Details */}
+                                <View style={{ flex: 1 }}>
+                                  <Text
+                                    style={{
+                                      fontSize: 16,
+                                      fontWeight: '500',
+                                      color: '#000',
+                                      marginBottom: 2,
+                                    }}>
+                                    {isTransfer
+                                      ? 'Transfer'
+                                      : transaction.category?.category_name ||
+                                      'Category'}
+                                  </Text>
+                                  {isTransfer && (
+                                    <View
+                                      style={{
+                                        flexDirection: 'column',
+                                        alignItems: 'flex-start',
+                                      }}>
+                                      {/* Account badges */}
+                                      <View
+                                        style={{
+                                          flexDirection: 'column',
+                                          alignItems: 'flex-start',
+                                        }}>
+                                        {/* From Account */}
+                                        <View
+                                          style={{
+                                            paddingHorizontal: 8,
+                                            paddingVertical: 3,
+                                            borderRadius: 12,
+                                            backgroundColor: `${getAccountTypeIcon(
+                                              (transaction.account as any)
+                                                ?.account_type || '',
+                                            ).color
+                                              }20`,
+                                            marginBottom: 4,
+                                          }}>
+                                          <Text
+                                            style={{
+                                              fontSize: 11,
+                                              fontWeight: '600',
+                                              color: getAccountTypeIcon(
+                                                (transaction.account as any)
+                                                  ?.account_type || '',
+                                              ).color,
+                                            }}>
+                                            {(transaction.account as any)
+                                              ?.account_name || 'Unknown'}
+                                          </Text>
+                                        </View>
+
+                                        {/* Arrow + To Account */}
+                                        <View
+                                          style={{
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
+                                          }}>
+                                          <FontAwesome5
+                                            name="arrow-right"
+                                            size={12}
+                                            color="#6B7280"
+                                            style={{ marginRight: 6 }}
+                                          />
+                                          <View
+                                            style={{
+                                              paddingHorizontal: 8,
+                                              paddingVertical: 3,
+                                              borderRadius: 12,
+                                              backgroundColor: `${getAccountTypeIcon(
+                                                (
+                                                  transaction.targetAccount as any
+                                                )?.account_type || '',
+                                              ).color
+                                                }20`,
+                                            }}>
+                                            <Text
+                                              style={{
+                                                fontSize: 11,
+                                                fontWeight: '600',
+                                                color: getAccountTypeIcon(
+                                                  (
+                                                    transaction.targetAccount as any
+                                                  )?.account_type || '',
+                                                ).color,
+                                              }}>
+                                              {(transaction.targetAccount as any)
+                                                ?.account_name || 'Unknown'}
+                                            </Text>
+                                          </View>
+                                        </View>
+                                      </View>
+                                    </View>
+                                  )}
+
+                                  {!isTransfer && (
+                                    <View
+                                      style={{
+                                        paddingHorizontal: 8,
+                                        paddingVertical: 3,
+                                        borderRadius: 12,
+                                        backgroundColor: `${accountIcon.color}20`,
+                                        maxWidth: 120,
+                                        alignSelf: 'flex-start',
+                                      }}>
+                                      <Text
+                                        style={{
+                                          fontSize: 11,
+                                          fontWeight: '600',
+                                          color: accountIcon.color,
+                                        }}>
+                                        {(transaction.account as any)
                                           ?.account_name || 'Unknown'}
                                       </Text>
                                     </View>
-                                  </View>
+                                  )}
+
+                                  {/* Scheduled badge */}
+                                  {isScheduled && (
+                                    <View
+                                      style={{
+                                        paddingHorizontal: 6,
+                                        paddingVertical: 2,
+                                        borderRadius: 8,
+                                        backgroundColor: '#FBBF24',
+                                        marginLeft: 6,
+                                      }}>
+                                      <Text
+                                        style={{
+                                          fontSize: 9,
+                                          color: '#FFFFFF',
+                                          fontWeight: '600',
+                                        }}>
+                                        SCHEDULED
+                                      </Text>
+                                    </View>
+                                  )}
                                 </View>
-                              ) : (
-                                <View
-                                  style={{
-                                    paddingHorizontal: 8,
-                                    paddingVertical: 3,
-                                    borderRadius: 12,
-                                    backgroundColor: `${accountIcon.color}20`,
-                                    maxWidth: 120,
-                                  }}>
+
+                                {/* Amount and Date */}
+                                <View style={{ alignItems: 'flex-end' }}>
                                   <Text
                                     style={{
-                                      fontSize: 11,
-                                      color: accountIcon.color,
+                                      fontSize: 16,
                                       fontWeight: '600',
-                                    }}
-                                    numberOfLines={1}
-                                    ellipsizeMode="tail">
-                                    {transaction.account?.account_name ||
-                                      'Account'}
-                                  </Text>
-                                </View>
-                              )}
-                              {isAccountDeactivated && (
-                                <View
-                                  style={{
-                                    paddingHorizontal: 6,
-                                    paddingVertical: 2,
-                                    borderRadius: 8,
-                                    backgroundColor: '#FBBF24',
-                                    marginLeft: 6,
-                                  }}>
-                                  <Text
-                                    style={{
-                                      fontSize: 9,
-                                      color: '#FFFFFF',
-                                      fontWeight: '600',
+                                      color: isTransfer
+                                        ? '#F59E0B'
+                                        : transaction.transaction_type ===
+                                          'income'
+                                          ? '#10B981'
+                                          : '#EF4444',
+                                      marginBottom: 2,
                                     }}>
-                                    DEACTIVATED
+                                    {isTransfer
+                                      ? transferInfo
+                                        ? `${transferInfo.toAmount} ${transferInfo.toCurrency}`
+                                        : `${formatCurrencyAmountShort(
+                                          parseFloat(transaction.amount),
+                                          transaction.account?.currency as Currency
+                                        )}`
+                                      : `${transaction.transaction_type ===
+                                        'income'
+                                        ? '+'
+                                        : '-'
+                                      }${formatCurrencyAmountShort(
+                                        parseFloat(transaction.amount),
+                                        transaction.account?.currency as Currency
+                                      )}`}
+                                  </Text>
+                                  <Text style={{ fontSize: 14, color: '#666' }}>
+                                    {formatTransactionDate(
+                                      transaction.transaction_date,
+                                    )}
                                   </Text>
                                 </View>
-                              )}
-                            </View>
-                          </View>
+                              </View>
+                            </SwipeableTransactionRow>
 
-                          {/* Amount and Date */}
-                          <View style={{ alignItems: 'flex-end' }}>
-                            <Text
-                              style={{
-                                fontSize: 16,
-                                fontWeight: '600',
-                                color: isTransfer
-                                  ? '#F59E0B'
-                                  : transaction.transaction_type === 'income'
-                                    ? '#10B981'
-                                    : '#EF4444',
-                                marginBottom: 2,
-                              }}>
-                              {isTransfer
-                                ? transferInfo
-                                  ? `${transferInfo.toAmount} ${transferInfo.toCurrency}`
-                                  : `${transaction.amount} ${transaction.targetAccount?.currency
-                                    ?.symbol || '$'
-                                  }`
-                                : `${transaction.transaction_type === 'income'
-                                  ? '+'
-                                  : '-'
-                                }${transaction.amount} ${transaction.account.currency?.symbol || '$'
-                                }`}
-                            </Text>
-                            <Text
-                              style={{
-                                fontSize: 14,
-                                color: '#666',
-                              }}>
-                              {formatTransactionDate(
-                                transaction.transaction_date,
-                              )}
-                            </Text>
-                          </View>
-                        </TouchableOpacity>
-                      );
-
-                      return (
-                        <View
-                          key={transaction.id}
-                          style={{
-                            opacity,
-                          }}>
-                          <SwipeableTransactionRow
-                            transaction={transaction}
-                            onConfirm={handleConfirmTransaction}
-                            isScheduled={isScheduled}>
-                            {transactionRow}
-                          </SwipeableTransactionRow>
-
-                          {index <
-                            transactionsData.transactions
-                              .filter(t => t.status === 'scheduled')
-                              .slice(0, 10).length -
-                            1 && (
+                            {!isLastTransaction && (
                               <View
                                 style={{
                                   height: 1,
@@ -1755,11 +2166,11 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                                 }}
                               />
                             )}
-                        </View>
-                      );
-                    })}
-                </View>
-              )}
+                          </View>
+                        );
+                      })}
+                  </View>
+                )}
             </View>
           </View>
         </View>

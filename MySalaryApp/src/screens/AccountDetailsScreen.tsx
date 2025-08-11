@@ -19,6 +19,9 @@ import { apiService } from '../services/api';
 import { Colors } from '../styles/colors';
 import { getAccountTypeIcon } from '../utils/accountTypeIcon';
 import { Transaction, Account } from '../types/transaction';
+import { useAppDispatch } from '../store/hooks';
+import { fetchAccounts } from '../store/slices/accountsSlice';
+import { fetchNetWorth } from '../store/slices/networthSlice';
 
 
 // Function to get category icon and color for transactions
@@ -100,6 +103,7 @@ export const AccountDetailsScreen: React.FC<{
 }> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { account: initialAccount } = route.params;
+  const dispatch = useAppDispatch();
 
   const [account, setAccount] = useState(initialAccount);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -194,6 +198,10 @@ export const AccountDetailsScreen: React.FC<{
       console.log('Permanently deleting account and transactions:', account.id);
       await apiService.delete(`/accounts/${account.id}/permanently`);
       console.log('Account and transactions permanently deleted');
+
+      // Update Redux state to reflect the deletion
+      await dispatch(fetchAccounts(true));
+      await dispatch(fetchNetWorth(true));
 
       setShowDeleteModal(false);
       Alert.alert(
