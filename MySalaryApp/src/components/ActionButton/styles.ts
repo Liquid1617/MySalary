@@ -9,7 +9,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  
+
   // Add button (for sections like accounts, transactions)
   addButton: {
     paddingHorizontal: 14,
@@ -25,19 +25,19 @@ export const styles = StyleSheet.create({
     color: '#7A7E85',
   },
 
-  // Manage button 
+  // Manage button
   manageButton: {
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 22,
-    backgroundColor: '#9DEAFB',
+    backgroundColor: '#EEF1F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
   manageButtonText: {
     fontSize: 12,
-    fontWeight: '500',
-    color: '#000',
+    fontWeight: '400',
+    color: '#7A7E85',
   },
 
   // View All button

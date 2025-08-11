@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { styles } from './styles';
+import { formatCurrencyAmountShort } from '../../utils/formatCurrency';
 
 interface BalanceCardData {
   type: 'income' | 'expense';
@@ -27,24 +28,24 @@ const BalanceCard: React.FC<{ data: BalanceCardData }> = ({ data }) => {
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <View style={[styles.iconContainer, { backgroundColor: iconBackground }]}>
+        <View
+          style={[styles.iconContainer, { backgroundColor: iconBackground }]}>
           <FontAwesome5 name={icon} size={14} color={iconColor} />
         </View>
         <View style={styles.changeIndicator}>
           <Text style={[styles.changeText, { color: iconColor }]}>
-            {data.change > 0 ? '+' : ''}{data.change}%
+            {data.change > 0 ? '+' : ''}
+            {data.change}%
           </Text>
-          <FontAwesome5 
-            name={data.isPositive ? 'chevron-up' : 'chevron-down'} 
-            size={8} 
+          <FontAwesome5
+            name={data.isPositive ? 'chevron-up' : 'chevron-down'}
+            size={8}
             color={iconColor}
             style={styles.changeIcon}
           />
         </View>
       </View>
-      <Text style={styles.cardLabel}>
-        {isIncome ? 'Income' : 'Expense'}
-      </Text>
+      <Text style={styles.cardLabel}>{isIncome ? 'Income' : 'Expense'}</Text>
       <Text style={styles.cardAmount}>{data.amount}</Text>
     </View>
   );
@@ -57,16 +58,24 @@ export const BalanceCards: React.FC<BalanceCardsProps> = ({
   expensesPercentChange,
   userCurrency,
 }) => {
+  const incomeFormatted = formatCurrencyAmountShort(
+    Math.abs(monthlyIncome),
+    userCurrency,
+  );
   const incomeData: BalanceCardData = {
     type: 'income',
-    amount: `+${monthlyIncome.toLocaleString()}`,
+    amount: `+${incomeFormatted}`,
     change: Math.abs(incomePercentChange),
     isPositive: incomePercentChange >= 0,
   };
 
+  const expensesFormatted = formatCurrencyAmountShort(
+    Math.abs(monthlyExpenses),
+    userCurrency,
+  );
   const expenseData: BalanceCardData = {
     type: 'expense',
-    amount: `-${monthlyExpenses.toLocaleString()}`,
+    amount: `-${expensesFormatted}`,
     change: Math.abs(expensesPercentChange),
     isPositive: expensesPercentChange >= 0,
   };

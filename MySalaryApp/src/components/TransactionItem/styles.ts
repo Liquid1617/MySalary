@@ -4,7 +4,7 @@ export const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    height: 61,
     backgroundColor: 'transparent',
   },
   iconContainer: {
@@ -19,10 +19,11 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   categoryName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
-    color: '#000',
-    marginBottom: 2,
+    color: '#252233',
+    lineHeight: 14,
+    marginBottom: 8,
   },
   detailsContainer: {
     flexDirection: 'column',
@@ -33,14 +34,20 @@ export const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   accountTag: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
+    borderRadius: 22,
+    paddingTop: 2,
+    paddingBottom: 2,
+    paddingLeft: 8,
+    paddingRight: 8,
+    minHeight: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 4,
   },
   accountTagText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '400',
+    lineHeight: 10,
   },
   transferArrow: {
     flexDirection: 'row',
@@ -75,8 +82,9 @@ export const styles = StyleSheet.create({
     marginBottom: 2,
   },
   date: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 10,
+    lineHeight: 10,
+    color: '#7A7E85',
   },
   separator: {
     height: 1,

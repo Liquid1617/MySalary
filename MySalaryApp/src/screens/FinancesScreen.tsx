@@ -204,13 +204,17 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
         : 0
       : ((monthlyIncome - previousMonthIncome) / previousMonthIncome) * 100;
 
+  const expensesChangeRatio =
+    previousMonthExpenses === 0
+      ? 0
+      : (monthlyExpenses - previousMonthExpenses) / previousMonthExpenses;
+
   const expensesPercentChange =
     previousMonthExpenses === 0
       ? monthlyExpenses > 0
         ? 100
         : 0
-      : ((monthlyExpenses - previousMonthExpenses) / previousMonthExpenses) *
-      100;
+      : expensesChangeRatio * 100;
 
   // Calculate absolute change as income - expenses
   const monthlyNetChange = monthlyIncome - monthlyExpenses;
@@ -571,10 +575,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
           <View
             style={[homeScreenStyles.mainContent, { marginTop: 0, gap: 10 }]}>
             {/* Accounts Section */}
-            <View
-              style={{
-                marginBottom: 24,
-              }}>
+            <View style={{ marginBottom: 24 }}>
               <View
                 style={{
                   flexDirection: 'row',
@@ -583,11 +584,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                   marginBottom: 16,
                 }}>
                 <Text
-                  style={{
-                    fontSize: 20,
-                    fontWeight: 'bold',
-                    color: '#000',
-                  }}>
+                  style={{ fontSize: 20, fontWeight: 'bold', color: '#000' }}>
                   Accounts
                 </Text>
                 <ActionButton
@@ -606,15 +603,33 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
               />
             </View>
 
-            <TransactionsSection
-              transactions={transactionsData.transactions as any[]}
-              isLoading={transactionsData.loading}
-              activeView={transactionView}
-              onViewChange={setTransactionView}
-              onTransactionPress={handleTransactionPress}
-              onConfirmTransaction={handleConfirmTransaction as any}
-              onViewAllPress={() => navigation.navigate('AllTransactions')}
-            />
+            <View style={{ marginBottom: 0 }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 16,
+                }}>
+                <Text
+                  style={{ fontSize: 20, fontWeight: 'bold', color: '#000' }}>
+                  Transactions
+                </Text>
+                <ActionButton
+                  variant="view"
+                  size="small"
+                  onPress={() => navigation.navigate('AllTransactions')}
+                />
+              </View>
+              <TransactionsSection
+                transactions={transactionsData.transactions as any[]}
+                isLoading={transactionsData.loading}
+                activeView={transactionView}
+                onViewChange={setTransactionView}
+                onTransactionPress={handleTransactionPress}
+                onConfirmTransaction={handleConfirmTransaction as any}
+              />
+            </View>
           </View>
         </View>
 

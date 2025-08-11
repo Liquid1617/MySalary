@@ -45,29 +45,25 @@ interface TransactionItemProps {
 const getCategoryIcon = (categoryName: string, categoryType: string) => {
   // Map categories to icons
   const iconMap: { [key: string]: { icon: string; color: string } } = {
-    'Salary': { icon: 'money-check-alt', color: '#10B981' },
-    'Food': { icon: 'utensils', color: '#EF4444' },
-    'Transportation': { icon: 'car', color: '#6366F1' },
-    'Entertainment': { icon: 'film', color: '#8B5CF6' },
-    'Shopping': { icon: 'shopping-bag', color: '#EC4899' },
-    'Health': { icon: 'heartbeat', color: '#14B8A6' },
-    'Bills': { icon: 'receipt', color: '#F59E0B' },
+    Salary: { icon: 'money-check-alt', color: '#10B981' },
+    Food: { icon: 'utensils', color: '#EF4444' },
+    Transportation: { icon: 'car', color: '#6366F1' },
+    Entertainment: { icon: 'film', color: '#8B5CF6' },
+    Shopping: { icon: 'shopping-bag', color: '#EC4899' },
+    Health: { icon: 'heartbeat', color: '#14B8A6' },
+    Bills: { icon: 'receipt', color: '#F59E0B' },
   };
 
   return iconMap[categoryName] || { icon: 'circle', color: '#6B7280' };
 };
 
-const getAccountTypeIcon = (accountType: string) => {
-  switch (accountType) {
-    case 'checking':
-      return { icon: 'university', color: '#4F46E5' };
-    case 'savings':
-      return { icon: 'piggy-bank', color: '#059669' };
-    case 'credit_card':
-      return { icon: 'credit-card', color: '#DC2626' };
-    default:
-      return { icon: 'wallet', color: '#6B7280' };
-  }
+// Account-type colors for account tag background/text
+const accountTypeColorMap: { [key: string]: string } = {
+  debit_card: '#3B82F6',
+  credit_card: '#8B5CF6',
+  bank_account: '#10B981',
+  cash: '#F59E0B',
+  digital_wallet: '#EF4444',
 };
 
 export const TransactionItem: React.FC<TransactionItemProps> = ({
@@ -78,19 +74,19 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
 }) => {
   const isTransfer = transaction.transaction_type === 'transfer';
   const isScheduled = transaction.status === 'scheduled';
-  
+
   // Get icon and color based on transaction type
   const iconData = isTransfer
     ? { icon: 'exchange-alt', color: '#6B7280' }
     : getCategoryIcon(
-        transaction.category?.category_name || '',
-        transaction.category?.category_type || '',
-      );
+      transaction.category?.category_name || '',
+      transaction.category?.category_type || '',
+    );
 
   // Parse transfer info from description if available
   const getTransferDisplayInfo = (transaction: any) => {
     if (transaction.transaction_type !== 'transfer') return null;
-    
+
     if (transaction.description) {
       const convertMatch = transaction.description.match(
         /\[Converted: (.+) ([A-Z]{3}) = (.+) ([A-Z]{3})\]/,
@@ -114,18 +110,13 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
       style={styles.container}
       onPress={onPress}
       activeOpacity={0.7}>
-      
       {/* Category/Transfer Icon */}
       <View
         style={[
           styles.iconContainer,
           { backgroundColor: `${iconData.color}15` },
         ]}>
-        <FontAwesome5
-          name={iconData.icon}
-          size={18}
-          color={iconData.color}
-        />
+        <FontAwesome5 name={iconData.icon} size={18} color={iconData.color} />
       </View>
 
       {/* Transaction Details */}
@@ -135,34 +126,63 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
             ? 'Transfer'
             : transaction.category?.category_name || 'Category'}
         </Text>
-        
+
         <View style={styles.detailsContainer}>
           {isTransfer ? (
             <View style={styles.transferContainer}>
               {/* From Account */}
-              <View style={styles.accountTag}>
-                <Text style={styles.accountTagText}>
+              <View
+                style={[styles.accountTag, { backgroundColor: '#10BC741F' }]}>
+                <Text
+                  style={[
+                    styles.accountTagText,
+                    {
+                      color:
+                        accountTypeColorMap[
+                        transaction.account?.account_name as any
+                        ],
+                    },
+                  ]}>
                   {transaction.account?.account_name || 'Unknown'}
                 </Text>
               </View>
 
               {/* Arrow + To Account */}
               <View style={styles.transferArrow}>
-                <FontAwesome5
-                  name="arrow-right"
-                  size={12}
-                  color="#6B7280"
-                />
-                <View style={styles.accountTag}>
-                  <Text style={styles.accountTagText}>
+                <FontAwesome5 name="arrow-right" size={12} color="#6B7280" />
+                <View
+                  style={[styles.accountTag, { backgroundColor: '#10BC741F' }]}>
+                  <Text
+                    style={[
+                      styles.accountTagText,
+                      {
+                        color:
+                          accountTypeColorMap[
+                          transaction.targetAccount?.account_name as any
+                          ],
+                      },
+                    ]}>
                     {transaction.targetAccount?.account_name || 'Unknown'}
                   </Text>
                 </View>
               </View>
             </View>
           ) : (
-            <View style={styles.singleAccountTag}>
-              <Text style={styles.accountTagText}>
+            <View
+              style={[
+                styles.singleAccountTag,
+                { backgroundColor: '#10BC741F' },
+              ]}>
+              <Text
+                style={[
+                  styles.accountTagText,
+                  {
+                    color:
+                      accountTypeColorMap[
+                      transaction.account?.account_type as any
+                      ] || '#10BC74',
+                  },
+                ]}>
                 {transaction.account?.account_name || 'Unknown'}
               </Text>
             </View>
@@ -193,13 +213,14 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
             ? transferInfo
               ? `${transferInfo.toAmount} ${transferInfo.toCurrency}`
               : `${formatCurrencyAmountShort(
-                  parseFloat(transaction.amount),
-                  transaction.account?.currency as any
-                )}`
-            : `${transaction.transaction_type === 'income' ? '+' : '-'}${formatCurrencyAmountShort(
                 parseFloat(transaction.amount),
-                transaction.account?.currency as any
-              )}`}
+                transaction.account?.currency as any,
+              )}`
+            : `${transaction.transaction_type === 'income' ? '+' : '-'
+            }${formatCurrencyAmountShort(
+              parseFloat(transaction.amount),
+              transaction.account?.currency as any,
+            )}`}
         </Text>
         <Text style={styles.date}>
           {formatTransactionDate(transaction.transaction_date)}
@@ -221,9 +242,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
         renderTransactionContent()
       )}
 
-      {showSeparator && (
-        <View style={styles.separator} />
-      )}
+      {showSeparator && <View style={styles.separator} />}
     </View>
   );
 };

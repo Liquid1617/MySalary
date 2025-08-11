@@ -5,7 +5,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 16,
     height: 33,
-    width: 323,
+    width: '100%',
   },
   toggleButton: {
     height: 33,
@@ -16,9 +16,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '50%',
   },
-  leftButton: {
-    marginRight: 32,
-  },
+  leftButton: {},
   rightButton: {
     // No additional margin for right button
   },

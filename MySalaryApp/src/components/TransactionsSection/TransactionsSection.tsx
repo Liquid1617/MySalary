@@ -1,6 +1,9 @@
 import React from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
-import { TransactionToggle, TransactionViewType } from '../TransactionToggle/TransactionToggle';
+import {
+  TransactionToggle,
+  TransactionViewType,
+} from '../TransactionToggle/TransactionToggle';
 import { TransactionItem } from '../TransactionItem/TransactionItem';
 import { ActionButton } from '../ActionButton/ActionButton';
 import { styles } from './styles';
@@ -43,7 +46,6 @@ interface TransactionsSectionProps {
   onViewChange: (view: TransactionViewType) => void;
   onTransactionPress: (transaction: Transaction) => void;
   onConfirmTransaction?: (transaction: Transaction) => void;
-  onViewAllPress: () => void;
 }
 
 export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
@@ -53,12 +55,11 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
   onViewChange,
   onTransactionPress,
   onConfirmTransaction,
-  onViewAllPress,
 }) => {
   // Deduplicate transactions
   const uniqueTransactions = transactions.filter(
     (transaction, index, self) =>
-      self.findIndex(t => t.id === transaction.id) === index
+      self.findIndex(t => t.id === transaction.id) === index,
   );
 
   // Filter transactions based on active view
@@ -73,10 +74,9 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <Text style={styles.emptyText}>
-        {activeView === 'recent' 
+        {activeView === 'recent'
           ? 'No recent transactions'
-          : 'No scheduled transactions'
-        }
+          : 'No scheduled transactions'}
       </Text>
     </View>
   );
@@ -115,20 +115,7 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Transactions</Text>
-        <ActionButton
-          variant="view"
-          onPress={onViewAllPress}
-          size="small"
-        />
-      </View>
-
-      <TransactionToggle
-        activeView={activeView}
-        onViewChange={onViewChange}
-      />
-
+      <TransactionToggle activeView={activeView} onViewChange={onViewChange} />
       {renderTransactions()}
     </View>
   );

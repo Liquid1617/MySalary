@@ -15,17 +15,8 @@ export const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1f2937',
-  },
+  header: {},
+  title: {},
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: 32,
