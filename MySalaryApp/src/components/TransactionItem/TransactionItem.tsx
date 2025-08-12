@@ -4,6 +4,7 @@ import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { formatCurrencyAmountShort } from '../../utils/formatCurrency';
 import { formatTransactionDate } from '../../utils/dateUtils';
 import { SwipeableTransactionRow } from '../SwipeableTransactionRow';
+import { getCategoryIcon } from '../icons/getCategoryIcon';
 import { styles } from './styles';
 
 interface TransactionItemProps {
@@ -15,6 +16,7 @@ interface TransactionItemProps {
     status: 'posted' | 'scheduled';
     account: {
       account_name: string;
+      account_type: string;
       currency?: {
         symbol: string;
         code: string;
@@ -24,6 +26,7 @@ interface TransactionItemProps {
     };
     targetAccount?: {
       account_name: string;
+      account_type: string;
       currency?: {
         symbol: string;
         code: string;
@@ -42,20 +45,6 @@ interface TransactionItemProps {
   showSeparator?: boolean;
 }
 
-const getCategoryIcon = (categoryName: string, categoryType: string) => {
-  // Map categories to icons
-  const iconMap: { [key: string]: { icon: string; color: string } } = {
-    Salary: { icon: 'money-check-alt', color: '#10B981' },
-    Food: { icon: 'utensils', color: '#EF4444' },
-    Transportation: { icon: 'car', color: '#6366F1' },
-    Entertainment: { icon: 'film', color: '#8B5CF6' },
-    Shopping: { icon: 'shopping-bag', color: '#EC4899' },
-    Health: { icon: 'heartbeat', color: '#14B8A6' },
-    Bills: { icon: 'receipt', color: '#F59E0B' },
-  };
-
-  return iconMap[categoryName] || { icon: 'circle', color: '#6B7280' };
-};
 
 // Account-type colors for account tag background/text
 const accountTypeColorMap: { [key: string]: string } = {
@@ -75,13 +64,16 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
   const isTransfer = transaction.transaction_type === 'transfer';
   const isScheduled = transaction.status === 'scheduled';
 
-  // Get icon and color based on transaction type
-  const iconData = isTransfer
-    ? { icon: 'exchange-alt', color: '#6B7280' }
-    : getCategoryIcon(
-      transaction.category?.category_name || '',
-      transaction.category?.category_type || '',
-    );
+  // Get icon component based on transaction type and account type
+  const categoryIcon = isTransfer ? null : getCategoryIcon({
+    categoryName: transaction.category?.category_name || '',
+    accountType: transaction.account?.account_type || 'cash',
+    width: 40,
+    height: 40,
+  });
+
+  // Fallback for transfers - use FontAwesome5 icon
+  const transferIconColor = '#6B7280';
 
   // Parse transfer info from description if available
   const getTransferDisplayInfo = (transaction: any) => {
@@ -111,13 +103,17 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
       onPress={onPress}
       activeOpacity={0.7}>
       {/* Category/Transfer Icon */}
-      <View
-        style={[
-          styles.iconContainer,
-          { backgroundColor: `${iconData.color}15` },
-        ]}>
-        <FontAwesome5 name={iconData.icon} size={18} color={iconData.color} />
-      </View>
+      {isTransfer ? (
+        <View
+          style={[
+            styles.iconContainer,
+            { backgroundColor: `${transferIconColor}15` },
+          ]}>
+          <FontAwesome5 name="exchange-alt" size={18} color={transferIconColor} />
+        </View>
+      ) : (
+        categoryIcon
+      )}
 
       {/* Transaction Details */}
       <View style={styles.content}>
@@ -132,15 +128,12 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
             <View style={styles.transferContainer}>
               {/* From Account */}
               <View
-                style={[styles.accountTag, { backgroundColor: '#10BC741F' }]}>
+                style={[styles.accountTag, { backgroundColor: '#EEF1F2' }]}>
                 <Text
                   style={[
                     styles.accountTagText,
                     {
-                      color:
-                        accountTypeColorMap[
-                        transaction.account?.account_name as any
-                        ],
+                      color: '#7A7E85',
                     },
                   ]}>
                   {transaction.account?.account_name || 'Unknown'}
@@ -151,15 +144,12 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
               <View style={styles.transferArrow}>
                 <FontAwesome5 name="arrow-right" size={12} color="#6B7280" />
                 <View
-                  style={[styles.accountTag, { backgroundColor: '#10BC741F' }]}>
+                  style={[styles.accountTag, { backgroundColor: '#EEF1F2' }]}>
                   <Text
                     style={[
                       styles.accountTagText,
                       {
-                        color:
-                          accountTypeColorMap[
-                          transaction.targetAccount?.account_name as any
-                          ],
+                        color: '#7A7E85',
                       },
                     ]}>
                     {transaction.targetAccount?.account_name || 'Unknown'}
@@ -171,16 +161,13 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
             <View
               style={[
                 styles.singleAccountTag,
-                { backgroundColor: '#10BC741F' },
+                { backgroundColor: '#EEF1F2' },
               ]}>
               <Text
                 style={[
                   styles.accountTagText,
                   {
-                    color:
-                      accountTypeColorMap[
-                      transaction.account?.account_type as any
-                      ] || '#10BC74',
+                    color: '#7A7E85',
                   },
                 ]}>
                 {transaction.account?.account_name || 'Unknown'}
@@ -203,10 +190,10 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
             styles.amount,
             {
               color: isTransfer
-                ? '#F59E0B'
+                ? '#F0BF54'
                 : transaction.transaction_type === 'income'
                   ? '#10B981'
-                  : '#EF4444',
+                  : '#252233',
             },
           ]}>
           {isTransfer

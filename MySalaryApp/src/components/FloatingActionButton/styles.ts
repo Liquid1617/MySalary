@@ -5,23 +5,31 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 20,
     right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#4F46E5',
+    width: 54,
+    height: 54,
+    borderRadius: 48,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    // Градиентный фон (будет реализован через LinearGradient в компоненте)
+    backgroundColor: 'transparent',
+    // Тень
+    shadowColor: '#000000',
     shadowOffset: {
-      width: 0,
-      height: 4,
+      width: 2,
+      height: 2,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.06, // 0F в hex = 15/255 ≈ 0.06
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  gradient: {
+    width: 54,
+    height: 54,
+    borderRadius: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   pressed: {
-    backgroundColor: '#3730A3',
     transform: [{ scale: 0.95 }],
   },
 });

@@ -29,6 +29,19 @@ export const styles = StyleSheet.create({
   transactionsList: {
     marginTop: 16,
   },
+  futureTransactionsList: {
+    marginTop: 16,
+    position: 'relative',
+  },
+  verticalTimeline: {
+    position: 'absolute',
+    left: 28, // 16 (padding) + 12 (dot center)
+    top: 16,
+    bottom: 16,
+    width: 1,
+    backgroundColor: '#E5E7EB',
+    zIndex: 1,
+  },
   loadingContainer: {
     paddingVertical: 20,
     alignItems: 'center',

@@ -35,6 +35,7 @@ export interface Transaction {
   account: {
     id: number;
     account_name: string;
+    account_type: string;
     currency?: Currency;
   };
   category?: {
@@ -47,6 +48,7 @@ export interface Transaction {
   targetAccount?: {
     id: number;
     account_name: string;
+    account_type: string;
     currency?: Currency;
   };
   transfer_to_account?: {
