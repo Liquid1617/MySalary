@@ -352,8 +352,8 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
       // Refresh transactions from Redux after confirmation
       dispatch(fetchTransactions({ forceRefresh: true }));
 
-      // Confirm on server
-      await apiService.confirmTransaction(transaction.id, 'scheduledDate');
+      // Confirm on server - use 'today' mode to set current date for future transactions
+      await apiService.confirmTransaction(transaction.id, 'today');
 
       // Invalidate budget cache to refresh spending totals
       queryClient.invalidateQueries({ queryKey: ['budgets'] });

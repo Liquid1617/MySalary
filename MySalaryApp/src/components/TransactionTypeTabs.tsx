@@ -19,26 +19,26 @@ const TransactionTypeTabs: React.FC<TransactionTypeTabsProps> = ({
     switch (type) {
       case 'expense':
         return {
-          backgroundColor: isActive ? colors.error : colors.white,
-          textColor: isActive ? colors.white : colors.error,
+          backgroundColor: isActive ? colors.error : 'transparent',
+          textColor: isActive ? colors.white : '#7A7E85',
           borderColor: colors.error,
         };
       case 'income':
         return {
-          backgroundColor: isActive ? colors.success : colors.white,
-          textColor: isActive ? colors.white : colors.success,
+          backgroundColor: isActive ? colors.success : 'transparent',
+          textColor: isActive ? colors.white : '#7A7E85',
           borderColor: colors.success,
         };
       case 'transfer':
         return {
-          backgroundColor: isActive ? colors.accent : colors.white,
-          textColor: isActive ? colors.white : colors.accent,
+          backgroundColor: isActive ? colors.accent : 'transparent',
+          textColor: isActive ? colors.white : '#7A7E85',
           borderColor: colors.accent,
         };
       default:
         return {
-          backgroundColor: isActive ? colors.primary : colors.white,
-          textColor: isActive ? colors.white : colors.primary,
+          backgroundColor: isActive ? colors.primary : 'transparent',
+          textColor: isActive ? colors.white : '#7A7E85',
           borderColor: colors.primary,
         };
     }
@@ -55,9 +55,7 @@ const TransactionTypeTabs: React.FC<TransactionTypeTabsProps> = ({
           styles.tab,
           {
             backgroundColor: tabColors.backgroundColor,
-            borderColor: tabColors.borderColor,
           },
-          isActive && styles.activeTab,
           disabled && styles.disabled,
         ]}
         onPress={() => onChange(type)}
@@ -81,7 +79,9 @@ const TransactionTypeTabs: React.FC<TransactionTypeTabsProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: colors.lightGray,
+    width: 353,
+    height: 48,
+    backgroundColor: '#EEF1F2',
     borderRadius: 8,
     padding: 2,
   },
@@ -90,17 +90,15 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  activeTab: {
-    borderWidth: 1,
-  },
   tabText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Commissioner',
+    fontWeight: '500',
+    fontSize: 16,
+    lineHeight: 16,
+    letterSpacing: 0,
     textAlign: 'center',
   },
   disabled: {

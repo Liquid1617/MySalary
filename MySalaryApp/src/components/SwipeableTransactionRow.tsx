@@ -125,6 +125,7 @@ export const SwipeableTransactionRow: React.FC<SwipeableTransactionRowProps> = (
 const styles = StyleSheet.create({
   container: {
     position: 'relative',
+    overflow: 'hidden',
   },
   background: {
     position: 'absolute',

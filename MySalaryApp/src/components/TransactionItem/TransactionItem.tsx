@@ -5,6 +5,11 @@ import { formatCurrencyAmountShort } from '../../utils/formatCurrency';
 import { formatTransactionDate } from '../../utils/dateUtils';
 import { SwipeableTransactionRow } from '../SwipeableTransactionRow';
 import { getCategoryIcon } from '../icons/getCategoryIcon';
+import { TransferIcon } from '../icons/TransferIcon';
+import {
+  createTransferGradient,
+  shouldUseTransferGradient,
+} from '../../utils/transferGradient';
 import { styles } from './styles';
 
 interface TransactionItemProps {
@@ -45,7 +50,6 @@ interface TransactionItemProps {
   showSeparator?: boolean;
 }
 
-
 // Account-type colors for account tag background/text
 const accountTypeColorMap: { [key: string]: string } = {
   debit_card: '#3B82F6',
@@ -53,6 +57,12 @@ const accountTypeColorMap: { [key: string]: string } = {
   bank_account: '#10B981',
   cash: '#F59E0B',
   digital_wallet: '#EF4444',
+};
+
+// Helper function to truncate account names
+const truncateAccountName = (name: string, maxLength: number = 10): string => {
+  if (name.length <= maxLength) return name;
+  return `${name.substring(0, maxLength)}...`;
 };
 
 export const TransactionItem: React.FC<TransactionItemProps> = ({
@@ -65,15 +75,29 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
   const isScheduled = transaction.status === 'scheduled';
 
   // Get icon component based on transaction type and account type
-  const categoryIcon = isTransfer ? null : getCategoryIcon({
-    categoryName: transaction.category?.category_name || '',
-    accountType: transaction.account?.account_type || 'cash',
-    width: 40,
-    height: 40,
-  });
+  const categoryIcon = isTransfer
+    ? null
+    : getCategoryIcon({
+      categoryName: transaction.category?.category_name || '',
+      accountType: transaction.account?.account_type || 'cash',
+      width: 40,
+      height: 40,
+    });
 
-  // Fallback for transfers - use FontAwesome5 icon
+  // Transfer icon with gradient support
   const transferIconColor = '#6B7280';
+  const useGradient = shouldUseTransferGradient(
+    transaction.transaction_type,
+    transaction.account?.account_type,
+    transaction.targetAccount?.account_type,
+  );
+
+  const transferGradient = useGradient
+    ? createTransferGradient({
+      fromAccountType: transaction.account?.account_type || 'cash',
+      toAccountType: transaction.targetAccount?.account_type || 'cash',
+    })
+    : null;
 
   // Parse transfer info from description if available
   const getTransferDisplayInfo = (transaction: any) => {
@@ -104,13 +128,15 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
       activeOpacity={0.7}>
       {/* Category/Transfer Icon */}
       {isTransfer ? (
-        <View
-          style={[
-            styles.iconContainer,
-            { backgroundColor: `${transferIconColor}15` },
-          ]}>
-          <FontAwesome5 name="exchange-alt" size={18} color={transferIconColor} />
-        </View>
+        <TransferIcon
+          width={40}
+          height={40}
+          useGradient={useGradient}
+          fromColor={transferGradient?.fromColor}
+          toColor={transferGradient?.toColor}
+          fill={transferIconColor}
+          backgroundColor={`${transferIconColor}15`}
+        />
       ) : (
         categoryIcon
       )}
@@ -127,8 +153,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
           {isTransfer ? (
             <View style={styles.transferContainer}>
               {/* From Account */}
-              <View
-                style={[styles.accountTag, { backgroundColor: '#EEF1F2' }]}>
+              <View style={[styles.accountTag, { backgroundColor: '#EEF1F2' }]}>
                 <Text
                   style={[
                     styles.accountTagText,
@@ -136,33 +161,35 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
                       color: '#7A7E85',
                     },
                   ]}>
-                  {transaction.account?.account_name || 'Unknown'}
+                  {truncateAccountName(
+                    transaction.account?.account_name || 'Unknown',
+                  )}
                 </Text>
               </View>
 
-              {/* Arrow + To Account */}
+              {/* Arrow */}
               <View style={styles.transferArrow}>
                 <FontAwesome5 name="arrow-right" size={12} color="#6B7280" />
-                <View
-                  style={[styles.accountTag, { backgroundColor: '#EEF1F2' }]}>
-                  <Text
-                    style={[
-                      styles.accountTagText,
-                      {
-                        color: '#7A7E85',
-                      },
-                    ]}>
-                    {transaction.targetAccount?.account_name || 'Unknown'}
-                  </Text>
-                </View>
+              </View>
+
+              {/* To Account */}
+              <View style={[styles.accountTag, { backgroundColor: '#EEF1F2' }]}>
+                <Text
+                  style={[
+                    styles.accountTagText,
+                    {
+                      color: '#7A7E85',
+                    },
+                  ]}>
+                  {truncateAccountName(
+                    transaction.targetAccount?.account_name || 'Unknown',
+                  )}
+                </Text>
               </View>
             </View>
           ) : (
             <View
-              style={[
-                styles.singleAccountTag,
-                { backgroundColor: '#EEF1F2' },
-              ]}>
+              style={[styles.singleAccountTag, { backgroundColor: '#EEF1F2' }]}>
               <Text
                 style={[
                   styles.accountTagText,

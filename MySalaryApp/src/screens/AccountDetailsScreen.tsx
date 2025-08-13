@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
@@ -13,16 +12,18 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { apiService } from '../services/api';
-import { Colors } from '../styles/colors';
 import { getAccountTypeIcon } from '../utils/accountTypeIcon';
-import { Transaction, Account } from '../types/transaction';
+import { TransferIcon } from '../components/icons/TransferIcon';
+import {
+  createTransferGradient,
+  shouldUseTransferGradient,
+} from '../utils/transferGradient';
+import { Transaction } from '../types/transaction';
 import { useAppDispatch } from '../store/hooks';
 import { fetchAccounts } from '../store/slices/accountsSlice';
 import { fetchNetWorth } from '../store/slices/networthSlice';
-
 
 // Function to get category icon and color for transactions
 const getCategoryIcon = (categoryName: string, categoryType: string) => {
@@ -342,12 +343,12 @@ export const AccountDetailsScreen: React.FC<{
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(Math.abs(numericAmount));
-    
+
     // Для кредитных карт показываем знак минус, если баланс положительный (долг)
     if (account.account_type === 'credit_card' && numericAmount > 0) {
       return `-${formatted}`;
     }
-    
+
     // Для остальных счетов показываем как есть
     return numericAmount < 0 ? `-${formatted}` : formatted;
   };
@@ -420,9 +421,23 @@ export const AccountDetailsScreen: React.FC<{
     const iconData = isTransfer
       ? { icon: 'exchange-alt', color: '#6B7280' }
       : getCategoryIcon(
-          transaction.category?.category_name || '',
-          transaction.category?.category_type || '',
-        );
+        transaction.category?.category_name || '',
+        transaction.category?.category_type || '',
+      );
+
+    // Transfer icon with gradient support
+    const useGradient = shouldUseTransferGradient(
+      transaction.transaction_type,
+      transaction.account?.account_type,
+      transaction.targetAccount?.account_type,
+    );
+
+    const transferGradient = useGradient
+      ? createTransferGradient({
+        fromAccountType: transaction.account?.account_type || 'cash',
+        toAccountType: transaction.targetAccount?.account_type || 'cash',
+      })
+      : null;
 
     const isIncome = transaction.transaction_type === 'income';
     const isLastItem = index === transactions.length - 1;
@@ -439,22 +454,36 @@ export const AccountDetailsScreen: React.FC<{
             paddingVertical: 12,
           }}>
           {/* Category/Transfer Icon */}
-          <View
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: `${iconData.color}15`,
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginRight: 12,
-            }}>
-            <FontAwesome5
-              name={iconData.icon}
-              size={18}
-              color={iconData.color}
-            />
-          </View>
+          {isTransfer ? (
+            <View style={{ marginRight: 12 }}>
+              <TransferIcon
+                width={40}
+                height={40}
+                useGradient={useGradient}
+                fromColor={transferGradient?.fromColor}
+                toColor={transferGradient?.toColor}
+                fill={iconData.color}
+                backgroundColor={`${iconData.color}15`}
+              />
+            </View>
+          ) : (
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: `${iconData.color}15`,
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 12,
+              }}>
+              <FontAwesome5
+                name={iconData.icon}
+                size={18}
+                color={iconData.color}
+              />
+            </View>
+          )}
 
           {/* Transaction Details */}
           <View style={{ flex: 1 }}>
@@ -482,11 +511,10 @@ export const AccountDetailsScreen: React.FC<{
                     paddingHorizontal: 8,
                     paddingVertical: 3,
                     borderRadius: 12,
-                    backgroundColor: `${
-                      getAccountTypeIcon(
-                        transaction.account?.account_type || '',
-                      ).color
-                    }20`,
+                    backgroundColor: `${getAccountTypeIcon(
+                      transaction.account?.account_type || '',
+                    ).color
+                      }20`,
                     marginBottom: 4,
                   }}>
                   <Text
@@ -519,11 +547,10 @@ export const AccountDetailsScreen: React.FC<{
                       paddingHorizontal: 8,
                       paddingVertical: 3,
                       borderRadius: 12,
-                      backgroundColor: `${
-                        getAccountTypeIcon(
-                          transaction.targetAccount?.account_type || '',
-                        ).color
-                      }20`,
+                      backgroundColor: `${getAccountTypeIcon(
+                        transaction.targetAccount?.account_type || '',
+                      ).color
+                        }20`,
                     }}>
                     <Text
                       style={{
@@ -550,21 +577,19 @@ export const AccountDetailsScreen: React.FC<{
                 color: isTransfer
                   ? '#F59E0B'
                   : isIncome
-                  ? '#10B981'
-                  : '#EF4444',
+                    ? '#10B981'
+                    : '#EF4444',
                 marginBottom: 2,
               }}>
               {isTransfer
                 ? convertedAmount
-                  ? `${formatBalance(convertedAmount.amount.toString())} ${
-                      account.currency?.symbol || '$'
-                    }`
-                  : `${formatBalance(transaction.amount)} ${
-                      account.currency?.symbol || '$'
-                    }`
+                  ? `${formatBalance(convertedAmount.amount.toString())} ${account.currency?.symbol || '$'
+                  }`
+                  : `${formatBalance(transaction.amount)} ${account.currency?.symbol || '$'
+                  }`
                 : `${isIncome ? '+' : '-'}${formatBalance(
-                    transaction.amount,
-                  )} ${account.currency?.symbol || '$'}`}
+                  transaction.amount,
+                )} ${account.currency?.symbol || '$'}`}
             </Text>
             <Text
               style={{
@@ -715,7 +740,11 @@ export const AccountDetailsScreen: React.FC<{
             style={{
               fontSize: 36,
               fontWeight: 'bold',
-              color: account.account_type === 'credit_card' && parseFloat(account.balance) > 0 ? '#EF4444' : '#333',
+              color:
+                account.account_type === 'credit_card' &&
+                  parseFloat(account.balance) > 0
+                  ? '#EF4444'
+                  : '#333',
             }}>
             {formatBalance(account.balance)} {account.currency?.symbol || '$'}
           </Text>
@@ -1024,8 +1053,8 @@ export const AccountDetailsScreen: React.FC<{
                   borderRadius: 8,
                   backgroundColor:
                     updating ||
-                    !newAccountName.trim() ||
-                    newAccountName.trim() === account.account_name
+                      !newAccountName.trim() ||
+                      newAccountName.trim() === account.account_name
                       ? '#D1D5DB'
                       : '#3B82F6',
                   alignItems: 'center',
@@ -1127,11 +1156,9 @@ export const AccountDetailsScreen: React.FC<{
                 fontWeight: '500',
               }}>
               {transactions.length > 0
-                ? `This will permanently delete the account and all ${
-                    transactions.length
-                  } transaction${
-                    transactions.length !== 1 ? 's' : ''
-                  }. This action cannot be undone.`
+                ? `This will permanently delete the account and all ${transactions.length
+                } transaction${transactions.length !== 1 ? 's' : ''
+                }. This action cannot be undone.`
                 : 'This will permanently delete the account. This action cannot be undone.'}
             </Text>
 

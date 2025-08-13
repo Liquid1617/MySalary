@@ -33,7 +33,7 @@ export const formatTransactionDate = (dateString: string) => {
       month: 'short',
       day: 'numeric',
     });
-    return `📅 ${formatted}`; // Добавляем иконку календаря для будущих дат
+    return formatted; // Убрали иконку календаря для будущих дат
   } else {
     return transactionDate.toLocaleDateString('en-US', {
       month: 'short',

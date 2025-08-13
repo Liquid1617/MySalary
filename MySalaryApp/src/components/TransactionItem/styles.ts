@@ -31,8 +31,9 @@ export const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   transferContainer: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
   },
   accountTag: {
     borderRadius: 22,
@@ -43,7 +44,6 @@ export const styles = StyleSheet.create({
     minHeight: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
   },
   accountTagText: {
     fontSize: 10,
@@ -51,9 +51,7 @@ export const styles = StyleSheet.create({
     lineHeight: 10,
   },
   transferArrow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 6,
+    marginHorizontal: 6,
   },
   singleAccountTag: {
     paddingHorizontal: 8,

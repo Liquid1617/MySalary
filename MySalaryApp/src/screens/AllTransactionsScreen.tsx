@@ -21,6 +21,8 @@ import { EditTransactionModal } from '../components/EditTransactionModal';
 import { AddTransactionModal } from '../components/AddTransactionModal';
 import { CategoryFilterModal } from '../components/CategoryFilterModal';
 import { getAccountTypeIcon } from '../utils/accountTypeIcon';
+import { TransferIcon } from '../components/icons/TransferIcon';
+import { createTransferGradient, shouldUseTransferGradient } from '../utils/transferGradient';
 
 
 export const AllTransactionsScreen: React.FC<{ navigation: any }> = ({
@@ -210,8 +212,8 @@ export const AllTransactionsScreen: React.FC<{ navigation: any }> = ({
         )
       );
       
-      // Confirm on server
-      await apiService.confirmTransaction(transaction.id, 'scheduledDate');
+      // Confirm on server - use 'today' mode to set current date for future transactions
+      await apiService.confirmTransaction(transaction.id, 'today');
       
       // Invalidate budget cache to refresh spending totals on other screens
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
@@ -267,14 +269,29 @@ export const AllTransactionsScreen: React.FC<{ navigation: any }> = ({
   const renderTransaction = ({ item }: { item: Transaction }) => {
     const isScheduled = isTransactionScheduled(item);
     const accountIcon = getAccountTypeIcon(item.account?.account_type || '');
+    const isTransfer = item.transaction_type === 'transfer';
     
     // Get proper category icon
-    const categoryIconData = item.transaction_type === 'transfer'
+    const categoryIconData = isTransfer
       ? { icon: 'exchange-alt', color: '#6B7280' }
       : getCategoryIcon(
           item.category?.category_name || item.category?.name || '',
           item.category?.category_type || item.category?.type || item.transaction_type || '',
         );
+
+    // Transfer icon with gradient support
+    const useGradient = shouldUseTransferGradient(
+      item.transaction_type,
+      item.account?.account_type,
+      item.targetAccount?.account_type,
+    );
+    
+    const transferGradient = useGradient 
+      ? createTransferGradient({
+          fromAccountType: item.account?.account_type || 'cash',
+          toAccountType: item.targetAccount?.account_type || 'cash',
+        })
+      : null;
     
     const transactionRow = (
       <TouchableOpacity 
@@ -282,13 +299,27 @@ export const AllTransactionsScreen: React.FC<{ navigation: any }> = ({
         onPress={() => handleTransactionPress(item)}>
         
         {/* Category Icon Circle */}
-        <View style={styles.categoryIconCircle}>
-          <FontAwesome5
-            name={categoryIconData.icon}
-            size={20}
-            color={categoryIconData.color}
-          />
-        </View>
+        {isTransfer ? (
+          <View style={{ marginRight: 12 }}>
+            <TransferIcon
+              width={40}
+              height={40}
+              useGradient={useGradient}
+              fromColor={transferGradient?.fromColor}
+              toColor={transferGradient?.toColor}
+              fill={categoryIconData.color}
+              backgroundColor={`${categoryIconData.color}15`}
+            />
+          </View>
+        ) : (
+          <View style={styles.categoryIconCircle}>
+            <FontAwesome5
+              name={categoryIconData.icon}
+              size={20}
+              color={categoryIconData.color}
+            />
+          </View>
+        )}
 
         {/* Text Stack */}
         <View style={styles.textStack}>

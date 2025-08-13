@@ -1,12 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Modal,
-  FlatList,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, TouchableOpacity, Modal, FlatList } from 'react-native';
 import { customSelectStyles } from '../styles/components/CustomSelect.styles';
 import { typographyStyles } from '../styles';
 

@@ -30,20 +30,22 @@ const AccountCard: React.FC<AccountCardProps> = ({
   const formatBalance = (balance: number, currencySymbol: string) => {
     const absBalance = Math.abs(balance);
     let formattedAmount;
-    
+
     if (absBalance >= 1000000) {
-      formattedAmount = `${currencySymbol}${(absBalance / 1000000).toFixed(1)}M`;
+      formattedAmount = `${currencySymbol}${(absBalance / 1000000).toFixed(
+        1,
+      )}M`;
     } else if (absBalance >= 1000) {
       formattedAmount = `${currencySymbol}${(absBalance / 1000).toFixed(1)}K`;
     } else {
       formattedAmount = `${currencySymbol}${absBalance.toFixed(2)}`;
     }
-    
+
     // Для кредитных карт показываем знак минус, если баланс положительный (долг)
     if (account.type === 'credit_card' && balance > 0) {
       return `-${formattedAmount}`;
     }
-    
+
     // Для остальных счетов показываем как есть
     return balance < 0 ? `-${formattedAmount}` : formattedAmount;
   };
@@ -61,17 +63,24 @@ const AccountCard: React.FC<AccountCardProps> = ({
       onPress={onPress}
       disabled={disabled}>
       <View style={styles.iconContainer}>
-        {getAccountIcon({ accountType: account.type, size: 16, color: iconData.color })}
+        {getAccountIcon({
+          accountType: account.type,
+          size: 16,
+          color: iconData.color,
+        })}
       </View>
 
       <View style={styles.content}>
         <Text style={styles.accountName} numberOfLines={1}>
           {account.name}
         </Text>
-        <Text style={[
-          styles.balance,
-          account.type === 'credit_card' && account.balance > 0 && styles.debtBalance
-        ]}>
+        <Text
+          style={[
+            styles.balance,
+            account.type === 'credit_card' &&
+            account.balance > 0 &&
+            styles.debtBalance,
+          ]}>
           {formatBalance(account.balance, account.currency_symbol)}
         </Text>
       </View>
