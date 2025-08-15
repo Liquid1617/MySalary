@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
   },
   messagesContent: {
     paddingHorizontal: chatTokens.spacing.lg,
-    paddingTop: 100, // Уменьшенный отступ под хэдер
+    paddingTop: 70, // Уменьшенный отступ под хэдер
     paddingBottom: chatTokens.spacing.md,
     flexGrow: 1,
   },

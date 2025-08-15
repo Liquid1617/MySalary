@@ -88,8 +88,8 @@ export const chatTokens = {
     // Message bubbles
     bubbleMaxWidth: 0.76, // 76% of screen width
     bubblePadding: {
-      horizontal: 16,
-      vertical: 12,
+      horizontal: 12,
+      vertical: 6,
     },
     
     // Spacing

@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: chatTokens.spacing.lg,
+    marginVertical: chatTokens.spacing.xs,
   },
   datePill: {
     width: 68,
