@@ -27,6 +27,7 @@ interface AccountsState {
   loading: boolean;
   error: string | null;
   lastFetch: number | null;
+  hasLoadedInitial: boolean;
 }
 
 const initialState: AccountsState = {
@@ -34,6 +35,7 @@ const initialState: AccountsState = {
   loading: false,
   error: null,
   lastFetch: null,
+  hasLoadedInitial: false,
 };
 
 // Cache duration: 5 minutes
@@ -197,6 +199,7 @@ const accountsSlice = createSlice({
       state.accounts = [];
       state.error = null;
       state.lastFetch = null;
+      state.hasLoadedInitial = false;
     },
     setError: (state, action: PayloadAction<string>) => {
       state.error = action.payload;
@@ -214,6 +217,7 @@ const accountsSlice = createSlice({
         state.accounts = action.payload;
         state.lastFetch = Date.now();
         state.error = null;
+        state.hasLoadedInitial = true;
       })
       .addCase(fetchAccounts.rejected, (state, action) => {
         state.loading = false;

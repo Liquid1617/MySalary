@@ -47,6 +47,7 @@ interface TransactionsState {
   loading: boolean;
   error: string | null;
   lastFetch: number | null;
+  hasLoadedInitial: boolean;
   pagination: {
     page: number;
     limit: number;
@@ -60,6 +61,7 @@ const initialState: TransactionsState = {
   loading: false,
   error: null,
   lastFetch: null,
+  hasLoadedInitial: false,
   pagination: {
     page: 1,
     limit: 20,
@@ -255,6 +257,7 @@ const transactionsSlice = createSlice({
       state.transactions = [];
       state.error = null;
       state.lastFetch = null;
+      state.hasLoadedInitial = false;
       state.pagination = {
         page: 1,
         limit: 20,
@@ -283,6 +286,7 @@ const transactionsSlice = createSlice({
       })
       .addCase(fetchTransactions.fulfilled, (state, action) => {
         state.loading = false;
+        state.hasLoadedInitial = true;
         const { transactions, total, page, limit } = action.payload;
 
         if (page === 1) {
@@ -296,10 +300,10 @@ const transactionsSlice = createSlice({
         state.lastFetch = Date.now();
         state.error = null;
         state.pagination = {
-          page,
-          limit,
+          page: page || 1,
+          limit: limit || 20,
           total,
-          hasMore: transactions.length === limit,
+          hasMore: transactions.length === (limit || 20),
         };
       })
       .addCase(fetchTransactions.rejected, (state, action) => {

@@ -50,13 +50,13 @@ interface TransactionItemProps {
   showSeparator?: boolean;
 }
 
-// Account-type colors for account tag background/text
+// Account-type colors for account tag background/text (синхронизировано с getAccountTypeIcon)
 const accountTypeColorMap: { [key: string]: string } = {
-  debit_card: '#3B82F6',
-  credit_card: '#8B5CF6',
+  debit_card: '#32C4DE',
+  credit_card: '#9D97E9',
   bank_account: '#10B981',
-  cash: '#F59E0B',
-  digital_wallet: '#EF4444',
+  cash: '#F0BF54',
+  digital_wallet: '#93C90A',
 };
 
 // Helper function to truncate account names
@@ -75,11 +75,13 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
   const isScheduled = transaction.status === 'scheduled';
 
   // Get icon component based on transaction type and account type
+  const accountType = transaction.account?.account_type || 'cash';
+  
   const categoryIcon = isTransfer
     ? null
     : getCategoryIcon({
       categoryName: transaction.category?.category_name || '',
-      accountType: transaction.account?.account_type || 'cash',
+      accountType: accountType,
       width: 40,
       height: 40,
     });

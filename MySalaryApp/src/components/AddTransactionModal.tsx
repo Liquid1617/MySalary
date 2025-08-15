@@ -22,6 +22,8 @@ import AddCategoryModal from './AddCategoryModal';
 import { CustomSelector } from './CustomSelector';
 import { CompactSelector } from './CompactSelector';
 import { Account, Category } from '../types/transaction';
+import { useAppDispatch } from '../store/hooks';
+import { createTransaction } from '../store/slices/transactionsSlice';
 
 interface AccountForCard {
   id: string;
@@ -42,6 +44,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const dispatch = useAppDispatch();
   const [transactionType, setTransactionType] = useState<
     'income' | 'expense' | 'transfer'
   >('income');
@@ -142,43 +145,23 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     try {
       setLoading(true);
 
-      if (transactionType === 'transfer') {
-        console.log('Creating transfer transaction:', {
-          account_id: selectedAccount!.id,
-          transfer_to: selectedToAccount!.id,
-          amount: numericAmount,
-          transaction_type: 'transfer',
-          description: description || '',
-        });
+      const transactionData = {
+        account_id: selectedAccount!.id,
+        amount: numericAmount,
+        transaction_type: transactionType,
+        description: description || undefined,
+        transaction_date: transactionDate,
+        ...(transactionType === 'transfer' 
+          ? { transfer_to: selectedToAccount!.id }
+          : { category_id: selectedCategory!.id }
+        ),
+      };
 
-        await apiService.post('/transactions', {
-          account_id: selectedAccount!.id,
-          transfer_to: selectedToAccount!.id,
-          amount: numericAmount,
-          transaction_type: 'transfer',
-          description: description || '',
-          transaction_date: transactionDate,
-        });
+      console.log('Creating transaction with data:', transactionData);
 
-        console.log('Transfer completed successfully');
-      } else {
-        console.log('Creating transaction with data:', {
-          account_id: selectedAccount!.id,
-          category_id: selectedCategory!.id,
-          amount: numericAmount,
-          transaction_type: transactionType,
-          description: description || '',
-        });
-
-        await apiService.post('/transactions', {
-          account_id: selectedAccount!.id,
-          category_id: selectedCategory!.id,
-          amount: numericAmount,
-          transaction_type: transactionType,
-          description: description || '',
-          transaction_date: transactionDate,
-        });
-      }
+      const result = await dispatch(createTransaction(transactionData)).unwrap();
+      
+      console.log('Transaction created successfully:', result);
 
       Alert.alert(
         'Success',

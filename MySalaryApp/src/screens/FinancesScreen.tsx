@@ -239,14 +239,14 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
         dispatch(fetchNetWorth(false));
       }
       if (
-        transactionsData.transactions.length === 0 &&
+        !transactionsData.hasLoadedInitial &&
         !transactionsData.loading
       ) {
-        console.log('📡 useFocusEffect: Fetching transactions (no data)');
+        console.log('📡 useFocusEffect: Fetching transactions (no initial load)');
         dispatch(fetchTransactions({}));
       }
-      if (accountsData.accounts.length === 0 && !accountsData.loading) {
-        console.log('📡 useFocusEffect: Fetching accounts (no data)');
+      if (!accountsData.hasLoadedInitial && !accountsData.loading) {
+        console.log('📡 useFocusEffect: Fetching accounts (no initial load)');
         dispatch(fetchAccounts(false));
       }
     }, [
@@ -603,7 +603,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
               />
             </View>
 
-            <View style={{ marginBottom: 0 }}>
+            <View style={{ marginBottom: 24 }}>
               <View
                 style={{
                   flexDirection: 'row',
@@ -667,7 +667,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
         visible={showAddTransactionModal}
         onClose={() => setShowAddTransactionModal(false)}
         onSuccess={() => {
-          dispatch(fetchTransactions({ forceRefresh: true }));
+          // fetchTransactions уже вызывается в createTransaction action
           dispatch(fetchNetWorth(true));
           dispatch(fetchAccounts(true));
           // Инвалидируем кэш бюджетов при создании транзакции

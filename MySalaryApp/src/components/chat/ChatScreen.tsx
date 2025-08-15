@@ -334,15 +334,26 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ visible, onClose }) => {
       animationType="slide"
       presentationStyle="fullScreen"
       onRequestClose={onClose}>
-      <LinearGradient
-        colors={[chatTokens.colors.gradientStart, chatTokens.colors.gradientEnd]}
-        locations={[0, 0.22]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 0.22 }}
-        style={styles.container}>
+      <View style={styles.container}>
+        {/* Base white background */}
+        <LinearGradient
+          colors={[chatTokens.colors.gradientStart, chatTokens.colors.gradientEnd]}
+          style={StyleSheet.absoluteFillObject}
+        />
+        
+        {/* Radial gradient overlay simulation */}
+        <LinearGradient
+          colors={[
+            chatTokens.colors.radialStart,
+            chatTokens.colors.radialMiddle,
+            chatTokens.colors.radialEnd
+          ]}
+          locations={[0, 0.3077, 1]}
+          start={{ x: 0, y: 1 }}
+          end={{ x: 1, y: 0 }}
+          style={[StyleSheet.absoluteFillObject, styles.radialOverlay]}
+        />
         <SafeAreaView style={styles.container}>
-          <ChatHeader onClose={onClose} />
-          
           <View style={styles.messagesContainer}>
             <FlatList
               ref={flatListRef}
@@ -377,7 +388,10 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ visible, onClose }) => {
           />
           
         </SafeAreaView>
-      </LinearGradient>
+        
+        {/* Header positioned above content */}
+        <ChatHeader onClose={onClose} />
+      </View>
       
       <AttachSheet
         visible={attachSheetVisible}
@@ -394,13 +408,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  radialOverlay: {
+    // Empty style to allow combining with absoluteFillObject
+  },
   messagesContainer: {
     flex: 1,
     position: 'relative',
   },
   messagesContent: {
     paddingHorizontal: chatTokens.spacing.lg,
-    paddingVertical: chatTokens.spacing.md,
+    paddingTop: 100, // Уменьшенный отступ под хэдер
+    paddingBottom: chatTokens.spacing.md,
     flexGrow: 1,
   },
 });

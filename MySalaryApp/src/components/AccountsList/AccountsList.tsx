@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
 import { AccountItem } from '../AccountItem/AccountItem';
 import { styles } from './styles';
 
@@ -26,22 +26,35 @@ export const AccountsList: React.FC<AccountsListProps> = ({
   onAccountPress,
 }) => {
   if (loading) {
-    return <View style={styles.loadingContainer} />;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#4F46E5" />
+      </View>
+    );
+  }
+
+  const activeAccounts = accounts.filter(account => account.is_active !== false);
+
+  if (activeAccounts.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No accounts yet</Text>
+        <Text style={styles.emptySubtext}>Add your first account to start tracking finances</Text>
+      </View>
+    );
   }
 
   return (
     <View style={styles.container}>
       <View style={styles.list}>
-        {accounts
-          .filter(account => account.is_active !== false)
-          .map((account, index, arr) => (
-            <AccountItem
-              key={account.id}
-              account={account}
-              onPress={() => onAccountPress(account)}
-              showSeparator={index < arr.length - 1}
-            />
-          ))}
+        {activeAccounts.map((account, index, arr) => (
+          <AccountItem
+            key={account.id}
+            account={account}
+            onPress={() => onAccountPress(account)}
+            showSeparator={index < arr.length - 1}
+          />
+        ))}
       </View>
     </View>
   );

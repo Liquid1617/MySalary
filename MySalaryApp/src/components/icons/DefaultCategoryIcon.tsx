@@ -14,10 +14,16 @@ export const DefaultCategoryIcon: React.FC<DefaultCategoryIconProps> = ({
   fill = '#7A7E85',
   backgroundColor = '#EEF1F2',
 }) => {
+  // Масштабируем viewBox под размер иконки
+  const scale = width / 28;
+  const iconSize = 8 * scale; // размер внутренней иконки
+  const iconRadius = iconSize / 2;
+  const center = width / 2;
+  
   return (
-    <Svg width={width} height={height} viewBox="0 0 28 28" fill="none">
-      <Rect width="28" height="28" rx="14" fill={backgroundColor} />
-      <Circle cx="14" cy="14" r="4" fill={fill} />
+    <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} fill="none">
+      <Rect width={width} height={height} rx={width / 2} fill={backgroundColor} />
+      <Circle cx={center} cy={center} r={iconRadius} fill={fill} />
     </Svg>
   );
 };

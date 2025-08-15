@@ -24,10 +24,10 @@ interface GetCategoryIconProps {
 const getAccountColor = (accountType: string): string => {
   const accountColorMap: { [key: string]: string } = {
     cash: '#F0BF54',           // Золотой цвет для наличных
-    bank_account: '#10BC74',   // Зеленый цвет для банковского счета  
-    debit_card: '#3B82F6',     // Синий цвет для дебетовой карты
-    credit_card: '#8B5CF6',    // Фиолетовый цвет для кредитной карты
-    digital_wallet: '#EF4444', // Красный цвет для цифрового кошелька
+    bank_account: '#10B981',   // Зеленый цвет для банковского счета  
+    debit_card: '#32C4DE',     // Голубой цвет для дебетовой карты
+    credit_card: '#9D97E9',    // Фиолетовый цвет для кредитной карты
+    digital_wallet: '#93C90A', // Зеленый цвет для цифрового кошелька
   };
   
   return accountColorMap[accountType] || '#EEF1F2';

@@ -14,9 +14,13 @@ export const chatTokens = {
     aiText: '#111111',
     userText: '#FFFFFF',
     
-    // Gradient background
-    gradientStart: '#ECF2FF',
-    gradientEnd: '#F8FAFD',
+    // Gradient background - Linear gradient with radial overlay effect
+    gradientStart: '#FFFFFF', // Base white
+    gradientEnd: '#FFFFFF',   // Base white
+    // Radial gradient simulation colors
+    radialStart: 'rgba(157, 151, 233, 0.12)', // 12% opacity purple
+    radialMiddle: 'rgba(198, 194, 255, 0.12)', // 12% opacity light purple  
+    radialEnd: 'rgba(114, 225, 245, 0.12)',   // 12% opacity cyan
     
     // Dividers and borders
     divider: '#E0E0E0',

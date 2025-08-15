@@ -33,29 +33,40 @@ export const DateDivider: React.FC<DateDividerProps> = ({ date, customText }) =>
 
   return (
     <View style={styles.container}>
-      <View style={styles.line} />
-      <Text style={styles.dateText}>{getDateText()}</Text>
-      <View style={styles.line} />
+      <View style={styles.datePill}>
+        <Text style={styles.dateText}>{getDateText()}</Text>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginVertical: chatTokens.spacing.lg,
-    paddingHorizontal: 16,
   },
-  line: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E0E0E0',
+  datePill: {
+    width: 68,
+    height: 27,
+    gap: 10,
+    opacity: 1,
+    borderRadius: 20,
+    paddingTop: 6,
+    paddingRight: 10,
+    paddingBottom: 6,
+    paddingLeft: 10,
+    backgroundColor: 'rgba(211, 214, 215, 0.2)', // #D3D6D733 = 20% opacity
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   dateText: {
-    ...chatTokens.typography.dateText,
-    color: chatTokens.colors.textSecondary,
-    marginHorizontal: chatTokens.spacing.md,
+    fontFamily: 'Commissioner',
+    fontWeight: '400',
+    fontSize: 12,
+    lineHeight: 12, // 100% line height
+    letterSpacing: 0,
+    color: '#C4C6C7',
     textAlign: 'center',
   },
 });
