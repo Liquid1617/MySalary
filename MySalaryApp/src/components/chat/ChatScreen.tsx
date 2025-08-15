@@ -16,13 +16,12 @@ import { deepSeekService } from '../../services/deepseek';
 import {
   ChatHeader,
   MessageBubble,
-  InputTray,
   ScrollToBottomFAB,
   DateDivider,
   AttachSheet,
   Message,
-  InputState,
 } from './index';
+import { StyledInputTray } from './StyledInputTray';
 
 interface ChatScreenProps {
   visible: boolean;
@@ -31,7 +30,7 @@ interface ChatScreenProps {
 
 type ChatState = {
   messages: Message[];
-  status: InputState;
+  status: 'idle' | 'streaming' | 'error';
   currentStreamingMessageId?: string;
 };
 
@@ -52,6 +51,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ visible, onClose }) => {
   const [attachSheetVisible, setAttachSheetVisible] = useState(false);
   const [showScrollFAB, setShowScrollFAB] = useState(false);
   const [retryMessage, setRetryMessage] = useState<string | null>(null);
+  const [inputText, setInputText] = useState<string>('');
   
   const flatListRef = useRef<FlatList>(null);
   const { height: screenHeight } = Dimensions.get('window');
@@ -378,13 +378,13 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ visible, onClose }) => {
             />
           </View>
           
-          <InputTray
-            onSend={handleSendMessage}
-            onAttach={() => setAttachSheetVisible(true)}
-            onCancel={handleCancelMessage}
-            onRetry={handleRetryMessage}
-            onResetError={handleResetError}
-            state={chatState.status}
+          <StyledInputTray
+            value={inputText}
+            onChangeText={setInputText}
+            onSendPress={() => handleSendMessage(inputText).then(() => setInputText(''))}
+            onPhotoPress={() => setAttachSheetVisible(true)}
+            onDocumentPress={() => setAttachSheetVisible(true)}
+            disabled={chatState.status === 'streaming'}
           />
           
         </SafeAreaView>

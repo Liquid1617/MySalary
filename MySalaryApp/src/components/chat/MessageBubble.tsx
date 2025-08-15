@@ -33,13 +33,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const isStreaming = message.status === 'streaming';
 
   const renderAvatar = () => {
-    if (!isAI || !showAvatar || !message.isFirstInGroup) return null;
-    
-    return (
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>AI</Text>
-      </View>
-    );
+    return null;
   };
 
   const renderErrorActions = () => {
@@ -60,6 +54,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     if (!isStreaming) return null;
     
     return <View style={styles.streamingCaret} />;
+  };
+
+  const renderTimestamp = () => {
+    const time = message.timestamp.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+    
+    return (
+      <Text style={styles.timestamp}>{time}</Text>
+    );
   };
 
   const getBubbleStyle = () => {
@@ -113,12 +119,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 </Text>
               )}
               {renderStreamingIndicator()}
+              <View style={styles.timestampContainer}>
+                {renderTimestamp()}
+              </View>
             </>
           ) : (
-            <Text style={getTextStyle()}>
-              {message.text}
-              {renderStreamingIndicator()}
-            </Text>
+            <View style={styles.messageRow}>
+              <Text style={getTextStyle()}>
+                {message.text}
+                {renderStreamingIndicator()}
+              </Text>
+              <View style={styles.timestampWrapper}>
+                {renderTimestamp()}
+              </View>
+            </View>
           )}
         </View>
         
@@ -164,6 +178,7 @@ const styles = StyleSheet.create({
   },
   aiBubble: {
     backgroundColor: chatTokens.colors.aiBubble,
+    ...chatTokens.shadows.aiBubble,
   },
   userBubble: {
     backgroundColor: chatTokens.colors.userBubble,
@@ -207,6 +222,29 @@ const styles = StyleSheet.create({
     color: chatTokens.colors.primary,
     fontWeight: '500',
   },
+  messageRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  messageContent: {
+    flexShrink: 1,
+  },
+  timestampWrapper: {
+    marginLeft: 8,
+    alignSelf: 'flex-end',
+  },
+  timestampContainer: {
+    alignItems: 'flex-end',
+    marginTop: 4,
+  },
+  timestamp: {
+    fontFamily: 'Commissioner',
+    fontWeight: '400',
+    fontSize: 12,
+    lineHeight: 12,
+    letterSpacing: 0,
+    color: '#D3D6D7',
+  },
 });
 
 const markdownStyles = {
@@ -229,29 +267,29 @@ const markdownStyles = {
   },
   strong: {
     color: chatTokens.colors.aiText,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
   em: {
     color: chatTokens.colors.aiText,
-    fontStyle: 'italic',
+    fontStyle: 'italic' as const,
   },
   heading1: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     color: chatTokens.colors.aiText,
     marginTop: 4,
     marginBottom: 4,
   },
   heading2: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     color: chatTokens.colors.aiText,
     marginTop: 4,
     marginBottom: 4,
   },
   heading3: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     color: chatTokens.colors.aiText,
     marginTop: 4,
     marginBottom: 4,

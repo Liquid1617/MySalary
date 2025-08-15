@@ -9,9 +9,9 @@ export const chatTokens = {
     textSecondary: '#666666',
     
     // Message bubbles
-    aiBubble: '#F1F2F6',
-    userBubble: '#0066FF',
-    aiText: '#111111',
+    aiBubble: '#FDFDFE',
+    userBubble: '#A39DFF',
+    aiText: '#252233',
     userText: '#FFFFFF',
     
     // Gradient background - Linear gradient with radial overlay effect
@@ -56,10 +56,10 @@ export const chatTokens = {
       lineHeight: 22,
     },
     messageText: {
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: '400' as const,
       lineHeight: 20,
-      letterSpacing: 0.2,
+      letterSpacing: 0,
     },
     dateText: {
       fontSize: 11,
@@ -88,8 +88,8 @@ export const chatTokens = {
     // Message bubbles
     bubbleMaxWidth: 0.76, // 76% of screen width
     bubblePadding: {
-      horizontal: 12,
-      vertical: 6,
+      horizontal: 14,
+      vertical: 12,
     },
     
     // Spacing
@@ -111,6 +111,13 @@ export const chatTokens = {
       shadowOpacity: 0.12,
       shadowRadius: 4,
       elevation: 4,
+    },
+    aiBubble: {
+      shadowColor: '#000000',
+      shadowOffset: { width: 1, height: 2 },
+      shadowOpacity: 0.04,
+      shadowRadius: 8,
+      elevation: 2,
     },
   },
   

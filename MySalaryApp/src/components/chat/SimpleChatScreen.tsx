@@ -13,7 +13,7 @@ import { chatTokens } from '../../styles/tokens/chat';
 import { deepSeekService } from '../../services/deepseek';
 import { ChatHeader } from './ChatHeader';
 import { MessageBubble, Message } from './MessageBubble';
-import { SimpleInputTray, InputState } from './SimpleInputTray';
+import { StyledInputTray } from './StyledInputTray';
 import { DateDivider } from './DateDivider';
 
 interface SimpleChatScreenProps {
@@ -23,7 +23,7 @@ interface SimpleChatScreenProps {
 
 type ChatState = {
   messages: Message[];
-  status: InputState;
+  status: 'idle' | 'streaming' | 'error';
 };
 
 type ListItem = 
@@ -45,6 +45,7 @@ export const SimpleChatScreen: React.FC<SimpleChatScreenProps> = ({ visible, onC
   });
   
   const [retryMessage, setRetryMessage] = useState<string | null>(null);
+  const [inputText, setInputText] = useState<string>('');
   const flatListRef = useRef<FlatList>(null);
 
   // Group messages by date and create list items with dividers
@@ -295,11 +296,13 @@ export const SimpleChatScreen: React.FC<SimpleChatScreenProps> = ({ visible, onC
             showsVerticalScrollIndicator={false}
           />
           
-          <SimpleInputTray
-            onSend={handleSendMessage}
-            onRetry={handleRetryMessage}
-            onResetError={handleResetError}
-            state={chatState.status}
+          <StyledInputTray
+            value={inputText}
+            onChangeText={setInputText}
+            onSendPress={() => handleSendMessage(inputText).then(() => setInputText(''))}
+            onPhotoPress={() => console.log('Photo pressed')}
+            onDocumentPress={() => console.log('Document pressed')}
+            disabled={chatState.status === 'streaming'}
           />
         </SafeAreaView>
         
