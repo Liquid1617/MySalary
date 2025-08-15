@@ -2,11 +2,15 @@ import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   container: {
+    width: 271,
+    height: 65,
     flexDirection: 'row',
     alignItems: 'center',
-    height: 65,
-    backgroundColor: 'transparent',
-    paddingHorizontal: 5,
+    justifyContent: 'space-between',
+    opacity: 1,
+    borderRadius: 5,
+    paddingRight: 5,
+    backgroundColor: 'white',
     position: 'relative',
   },
   dotContainer: {
