@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   View, 
   TextInput, 
@@ -7,19 +7,19 @@ import {
   KeyboardAvoidingView, 
   Platform,
   Animated,
-  Dimensions,
-  SafeAreaView
+  Dimensions
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { PlusIcon } from '../icons/PlusIcon';
 import { SendArrowIcon } from '../icons/SendArrowIcon';
 import { AttachmentMenu } from './AttachmentMenu';
+import { MediaPreviewScreen } from './MediaPreviewScreen';
+import { MediaFile } from '../../utils/imagePickerUtils';
 
 interface StyledInputTrayProps {
   value: string;
   onChangeText: (text: string) => void;
-  onSendPress: () => void;
-  onPhotoPress?: () => void;
+  onSendPress: (text: string, mediaFiles?: MediaFile[]) => void;
   onDocumentPress?: () => void;
   placeholder?: string;
   disabled?: boolean;
@@ -29,13 +29,13 @@ export const StyledInputTray: React.FC<StyledInputTrayProps> = ({
   value,
   onChangeText,
   onSendPress,
-  onPhotoPress = () => {},
   onDocumentPress = () => {},
   placeholder = "Message",
   disabled = false
 }) => {
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
-  const [inputHeight, setInputHeight] = useState(50);
+  const [showMediaPreview, setShowMediaPreview] = useState(false);
+  const [inputHeight, setInputHeight] = useState(60);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 12 });
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const screenWidth = Dimensions.get('window').width;
@@ -43,7 +43,7 @@ export const StyledInputTray: React.FC<StyledInputTrayProps> = ({
 
   const handleAttachPress = () => {
     // Calculate position above the input tray
-    containerRef.current?.measureInWindow((x, y, width, height) => {
+    containerRef.current?.measureInWindow((_, y) => {
       setMenuPosition({
         top: y - 88 - 3, // 88px menu height + 3px gap above input
         left: 12
@@ -65,9 +65,17 @@ export const StyledInputTray: React.FC<StyledInputTrayProps> = ({
     ]).start();
   };
 
+  const handlePhotoSelection = () => {
+    setShowMediaPreview(true);
+  };
+
+  const handleMediaPreviewSend = (text: string, mediaFiles: MediaFile[]) => {
+    onSendPress(text, mediaFiles);
+  };
+
   const handleSendPress = () => {
     if (value.trim()) {
-      onSendPress();
+      onSendPress(value);
     }
   };
 
@@ -91,18 +99,20 @@ export const StyledInputTray: React.FC<StyledInputTrayProps> = ({
         </Animated.View>
 
         <View style={[styles.inputContainer, { width: inputWidth }]}>
-          <TextInput
-            style={[styles.textInput, { height: Math.max(50, inputHeight) }]}
-            value={value}
-            onChangeText={onChangeText}
-            placeholder={placeholder}
-            placeholderTextColor="#D3D6D7"
-            multiline
-            editable={!disabled}
-            onContentSizeChange={(event) => {
-              setInputHeight(event.nativeEvent.contentSize.height + 12); // padding compensation
-            }}
-          />
+          <View style={[styles.textInputWrapper, { height: Math.max(60, inputHeight) }]}>
+            <TextInput
+              style={[styles.textInput, { paddingLeft: 18 }]}
+              value={value}
+              onChangeText={onChangeText}
+              placeholder={placeholder}
+              placeholderTextColor="#D3D6D7"
+              multiline
+              editable={!disabled}
+              onContentSizeChange={(event) => {
+                setInputHeight(event.nativeEvent.contentSize.height + 40); // padding compensation (20 top + 20 bottom)
+              }}
+            />
+          </View>
           
           <View style={styles.sendButtonContainer}>
             <TouchableOpacity
@@ -129,9 +139,15 @@ export const StyledInputTray: React.FC<StyledInputTrayProps> = ({
       <AttachmentMenu
         visible={showAttachmentMenu}
         onClose={() => setShowAttachmentMenu(false)}
-        onPhotoPress={onPhotoPress}
+        onPhotoPress={handlePhotoSelection}
         onDocumentPress={onDocumentPress}
         position={menuPosition}
+      />
+
+      <MediaPreviewScreen
+        visible={showMediaPreview}
+        onClose={() => setShowMediaPreview(false)}
+        onSend={handleMediaPreviewSend}
       />
     </KeyboardAvoidingView>
   );
@@ -164,24 +180,28 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     position: 'relative',
-    minHeight: 50,
+    minHeight: 60,
   },
-  textInput: {
+  textInputWrapper: {
     borderRadius: 30,
-    paddingTop: 17,
-    paddingRight: 50, // space for send button
-    paddingBottom: 17,
-    paddingLeft: 18,
     backgroundColor: '#FDFDFE',
     shadowColor: '#000000',
     shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 0.03,
     shadowRadius: 6,
     elevation: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: 50, // space for send button
+  },
+  textInput: {
+    paddingTop: 20,
+    paddingBottom: 20,
+    paddingRight: 0,
     fontFamily: 'Commissioner',
     fontWeight: '500',
     fontSize: 16,
-    lineHeight: 16,
+    lineHeight: 20,
     color: '#252233',
     textAlignVertical: 'center',
   },

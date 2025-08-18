@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-nati
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import Markdown from 'react-native-markdown-display';
 import { chatTokens } from '../../styles/tokens/chat';
+import { MediaFile } from '../../utils/imagePickerUtils';
+import { MediaPreview } from './MediaPreview';
 
 export interface Message {
   id: string;
@@ -11,6 +13,7 @@ export interface Message {
   timestamp: Date;
   status?: 'sending' | 'sent' | 'error' | 'streaming';
   isFirstInGroup?: boolean;
+  mediaFiles?: MediaFile[];
 }
 
 interface MessageBubbleProps {
@@ -31,6 +34,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const isAI = message.sender === 'ai';
   const isError = message.status === 'error';
   const isStreaming = message.status === 'streaming';
+  
+  // Уменьшаем максимальную ширину для сообщений с медиафайлами
+  const hasMedia = message.mediaFiles && message.mediaFiles.length > 0;
+  const adjustedMaxWidth = hasMedia && !isAI 
+    ? Dimensions.get('window').width * 0.80 // 80% для сообщений с медиа
+    : maxWidth;
 
   const renderAvatar = () => {
     return null;
@@ -93,7 +102,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       {renderAvatar()}
       
       <TouchableOpacity
-        style={[styles.bubbleContainer, { maxWidth: '76%' }]}
+        style={[styles.bubbleContainer, { maxWidth: hasMedia && !isAI ? '80%' : '76%' }]}
         onLongPress={onLongPress}
         accessibilityRole="text"
         accessibilityHint="Long press for options"
@@ -125,10 +134,15 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             </>
           ) : (
             <View style={styles.messageRow}>
-              <Text style={getTextStyle()}>
-                {message.text}
-                {renderStreamingIndicator()}
-              </Text>
+              <View style={styles.messageContent}>
+                <Text style={getTextStyle()}>
+                  {message.text}
+                  {renderStreamingIndicator()}
+                </Text>
+                {message.mediaFiles && message.mediaFiles.length > 0 && (
+                  <MediaPreview mediaFiles={message.mediaFiles} />
+                )}
+              </View>
               <View style={styles.timestampWrapper}>
                 {renderTimestamp()}
               </View>
@@ -146,7 +160,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginVertical: 4, // 4pt within blocks
+    marginVertical: 2, // уменьшили отступы между сообщениями
   },
   aiContainer: {
     justifyContent: 'flex-start',

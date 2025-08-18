@@ -15,6 +15,7 @@ import { ChatHeader } from './ChatHeader';
 import { MessageBubble, Message } from './MessageBubble';
 import { StyledInputTray } from './StyledInputTray';
 import { DateDivider } from './DateDivider';
+import { MediaFile } from '../../utils/imagePickerUtils';
 
 interface SimpleChatScreenProps {
   visible: boolean;
@@ -47,6 +48,65 @@ export const SimpleChatScreen: React.FC<SimpleChatScreenProps> = ({ visible, onC
   const [retryMessage, setRetryMessage] = useState<string | null>(null);
   const [inputText, setInputText] = useState<string>('');
   const flatListRef = useRef<FlatList>(null);
+
+  const handleSendWithMedia = async (text: string, mediaFiles?: MediaFile[]) => {
+    if (!text.trim() && (!mediaFiles || mediaFiles.length === 0)) return;
+    
+    // Создаём сообщение пользователя с текстом и медиафайлами
+    const userMessageId = addMessage({
+      text: text.trim(),
+      sender: 'user',
+      status: 'sent',
+      mediaFiles: mediaFiles,
+    });
+    
+    // Отправляем в AI только если есть текст, НО не создаём дублирующее сообщение
+    if (text.trim()) {
+      // Создаём AI сообщение-заглушку
+      const aiMessageId = addMessage({
+        text: '',
+        sender: 'ai',
+        status: 'streaming',
+      });
+
+      try {
+        setChatState(prev => ({
+          ...prev,
+          status: 'streaming',
+          currentStreamingMessageId: aiMessageId,
+        }));
+
+        const stream = await deepSeekService.sendMessage(text.trim());
+        let fullResponse = '';
+
+        for await (const chunk of stream) {
+          fullResponse += chunk;
+          updateMessage(aiMessageId, { text: fullResponse });
+        }
+
+        updateMessage(aiMessageId, { status: undefined });
+        setChatState(prev => ({
+          ...prev,
+          status: 'idle',
+          currentStreamingMessageId: undefined,
+        }));
+      } catch (error) {
+        console.error('Error sending message:', error);
+        updateMessage(aiMessageId, { 
+          text: 'Sorry, I encountered an error. Please try again.',
+          status: 'error'
+        });
+        setChatState(prev => ({
+          ...prev,
+          status: 'error',
+          currentStreamingMessageId: undefined,
+        }));
+        setRetryMessage(text.trim());
+      }
+    }
+    
+    // Инпут очищается в родительском компоненте
+  };
 
   // Group messages by date and create list items with dividers
   const createListItems = (messages: Message[]): ListItem[] => {
@@ -299,8 +359,10 @@ export const SimpleChatScreen: React.FC<SimpleChatScreenProps> = ({ visible, onC
           <StyledInputTray
             value={inputText}
             onChangeText={setInputText}
-            onSendPress={() => handleSendMessage(inputText).then(() => setInputText(''))}
-            onPhotoPress={() => console.log('Photo pressed')}
+            onSendPress={(text, mediaFiles) => {
+              handleSendWithMedia(text, mediaFiles);
+              setInputText(''); // Очищаем инпут после отправки
+            }}
             onDocumentPress={() => console.log('Document pressed')}
             disabled={chatState.status === 'streaming'}
           />

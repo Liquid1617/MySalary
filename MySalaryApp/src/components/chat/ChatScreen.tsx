@@ -22,6 +22,7 @@ import {
   Message,
 } from './index';
 import { StyledInputTray } from './StyledInputTray';
+import { MediaFile } from '../../utils/imagePickerUtils';
 
 interface ChatScreenProps {
   visible: boolean;
@@ -52,6 +53,55 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ visible, onClose }) => {
   const [showScrollFAB, setShowScrollFAB] = useState(false);
   const [retryMessage, setRetryMessage] = useState<string | null>(null);
   const [inputText, setInputText] = useState<string>('');
+
+  const handleSendWithMedia = async (text: string, mediaFiles?: MediaFile[]) => {
+    if (!text.trim() && (!mediaFiles || mediaFiles.length === 0)) return;
+    
+    // Создаём сообщение пользователя с текстом и медиафайлами
+    const userMessageId = addMessage({
+      text: text.trim(),
+      sender: 'user',
+      mediaFiles: mediaFiles,
+    });
+    
+    // Отправляем в AI только если есть текст, НО не создаём дублирующее сообщение
+    if (text.trim()) {
+      // Создаём AI сообщение-заглушку
+      const aiMessageId = addMessage({
+        text: '',
+        sender: 'ai',
+        status: 'streaming',
+      });
+
+      try {
+        const stream = await deepSeekService.sendMessage(text.trim());
+        let fullResponse = '';
+
+        for await (const chunk of stream) {
+          fullResponse += chunk;
+          updateMessage(aiMessageId, { text: fullResponse });
+        }
+
+        updateMessage(aiMessageId, { status: undefined });
+        setChatState(prev => ({
+          ...prev,
+          status: 'idle',
+        }));
+      } catch (error) {
+        console.error('Error sending message:', error);
+        updateMessage(aiMessageId, { 
+          text: 'Sorry, I encountered an error. Please try again.',
+          status: 'error'
+        });
+        setChatState(prev => ({
+          ...prev,
+          status: 'error',
+        }));
+      }
+    }
+    
+    // Инпут очищается в родительском компоненте
+  };
   
   const flatListRef = useRef<FlatList>(null);
   const { height: screenHeight } = Dimensions.get('window');
@@ -381,8 +431,10 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ visible, onClose }) => {
           <StyledInputTray
             value={inputText}
             onChangeText={setInputText}
-            onSendPress={() => handleSendMessage(inputText).then(() => setInputText(''))}
-            onPhotoPress={() => setAttachSheetVisible(true)}
+            onSendPress={(text, mediaFiles) => {
+              handleSendWithMedia(text, mediaFiles);
+              setInputText(''); // Очищаем инпут после отправки
+            }}
             onDocumentPress={() => setAttachSheetVisible(true)}
             disabled={chatState.status === 'streaming'}
           />

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { PhotoIcon } from '../icons/PhotoIcon';
 import { DocumentIcon } from '../icons/DocumentIcon';
+import { MediaFile } from '../../utils/imagePickerUtils';
 
 interface AttachmentMenuProps {
   visible: boolean;
