@@ -1,5 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Dimensions,
+} from 'react-native';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import Markdown from 'react-native-markdown-display';
 import { chatTokens } from '../../styles/tokens/chat';
@@ -29,17 +35,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   onRetry,
   onLongPress,
   showAvatar = true,
-  maxWidth = Dimensions.get('window').width * chatTokens.dimensions.bubbleMaxWidth,
+  maxWidth = 320,
 }) => {
   const isAI = message.sender === 'ai';
   const isError = message.status === 'error';
   const isStreaming = message.status === 'streaming';
-  
+
   // Уменьшаем максимальную ширину для сообщений с медиафайлами
   const hasMedia = message.mediaFiles && message.mediaFiles.length > 0;
-  const adjustedMaxWidth = hasMedia && !isAI 
-    ? Dimensions.get('window').width * 0.80 // 80% для сообщений с медиа
-    : maxWidth;
+  const adjustedMaxWidth =
+    hasMedia && !isAI
+      ? Dimensions.get('window').width * 0.8 // 80% для сообщений с медиа
+      : maxWidth;
 
   const renderAvatar = () => {
     return null;
@@ -47,7 +54,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   const renderErrorActions = () => {
     if (!isError || !onRetry) return null;
-    
+
     return (
       <TouchableOpacity
         style={styles.retryButton}
@@ -61,7 +68,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   const renderStreamingIndicator = () => {
     if (!isStreaming) return null;
-    
+
     return <View style={styles.streamingCaret} />;
   };
 
@@ -69,24 +76,29 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     const time = message.timestamp.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false
+      hour12: false,
     });
-    
-    return (
-      <Text style={styles.timestamp}>{time}</Text>
-    );
+
+    return <Text style={styles.timestamp}>{time}</Text>;
   };
 
   const getBubbleStyle = () => {
     if (isError) {
       return [styles.bubble, styles.errorBubble];
     }
-    
-    return [
+
+    const baseStyles = [
       styles.bubble,
       isAI ? styles.aiBubble : styles.userBubble,
       isStreaming && styles.streamingBubble,
     ];
+
+    // Если есть только медиа без текста, уменьшаем padding
+    if (hasMedia && !message.text?.trim() && !isAI) {
+      baseStyles.push(styles.mediaOnlyBubble);
+    }
+
+    return baseStyles;
   };
 
   const getTextStyle = () => {
@@ -98,59 +110,78 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   };
 
   return (
-    <View style={[styles.container, isAI ? styles.aiContainer : styles.userContainer]}>
+    <View
+      style={[
+        styles.container,
+        isAI ? styles.aiContainer : styles.userContainer,
+        hasMedia && !isAI && styles.userContainerWithMedia,
+      ]}>
       {renderAvatar()}
-      
+
       <TouchableOpacity
-        style={[styles.bubbleContainer, { maxWidth: hasMedia && !isAI ? '80%' : '76%' }]}
+        style={[
+          styles.bubbleContainer,
+          { maxWidth: hasMedia && !isAI ? maxWidth * 0.85 : maxWidth },
+        ]}
         onLongPress={onLongPress}
         accessibilityRole="text"
         accessibilityHint="Long press for options"
         disabled={!onLongPress}
         activeOpacity={onLongPress ? 0.7 : 1}>
-        
         {isError && (
           <View style={styles.errorIcon}>
-            <FontAwesome5 name="exclamation-triangle" size={12} color={chatTokens.colors.error} />
+            <FontAwesome5
+              name="exclamation-triangle"
+              size={12}
+              color={chatTokens.colors.error}
+            />
           </View>
         )}
-        
+
         <View style={getBubbleStyle()}>
           {isAI ? (
             <>
               {message.text && message.text.trim() ? (
-                <Markdown style={markdownStyles}>
-                  {message.text}
-                </Markdown>
+                <Markdown style={markdownStyles}>{message.text}</Markdown>
               ) : (
-                <Text style={getTextStyle()}>
-                  {message.text}
-                </Text>
+                <Text style={getTextStyle()}>{message.text}</Text>
               )}
               {renderStreamingIndicator()}
-              <View style={styles.timestampContainer}>
-                {renderTimestamp()}
-              </View>
+              <View style={styles.timestampContainer}>{renderTimestamp()}</View>
             </>
           ) : (
-            <View style={styles.messageRow}>
-              <View style={styles.messageContent}>
-                <Text style={getTextStyle()}>
-                  {message.text}
-                  {renderStreamingIndicator()}
-                </Text>
-                {message.mediaFiles && message.mediaFiles.length > 0 && (
+            <View style={styles.userMessageContainer}>
+              {message.mediaFiles && message.mediaFiles.length > 0 && (
+                <View style={[
+                  styles.mediaContainer, 
+                  !message.text?.trim() && { marginBottom: 0 }
+                ]}>
                   <MediaPreview mediaFiles={message.mediaFiles} />
-                )}
-              </View>
-              <View style={styles.timestampWrapper}>
-                {renderTimestamp()}
-              </View>
+                </View>
+              )}
+              {message.text && message.text.trim() ? (
+                <View style={styles.messageRow}>
+                  <View style={styles.messageContent}>
+                    <Text style={getTextStyle()}>
+                      {message.text}
+                      {renderStreamingIndicator()}
+                    </Text>
+                  </View>
+                  <View style={styles.timestampWrapper}>
+                    {renderTimestamp()}
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.timestampContainer}>
+                  {renderTimestamp()}
+                </View>
+              )}
             </View>
           )}
         </View>
-        
+
         {renderErrorActions()}
+
       </TouchableOpacity>
     </View>
   );
@@ -160,13 +191,16 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginVertical: 2, // уменьшили отступы между сообщениями
+    marginVertical: 8,
   },
   aiContainer: {
     justifyContent: 'flex-start',
   },
   userContainer: {
     justifyContent: 'flex-end',
+  },
+  userContainerWithMedia: {
+    marginRight: 40,
   },
   avatar: {
     width: 32,
@@ -184,6 +218,7 @@ const styles = StyleSheet.create({
   },
   bubbleContainer: {
     alignItems: 'flex-start',
+    position: 'relative',
   },
   bubble: {
     paddingHorizontal: chatTokens.dimensions.bubblePadding.horizontal,
@@ -196,6 +231,7 @@ const styles = StyleSheet.create({
   },
   userBubble: {
     backgroundColor: chatTokens.colors.userBubble,
+    borderBottomRightRadius: 4,
   },
   errorBubble: {
     backgroundColor: chatTokens.colors.errorBubble,
@@ -258,6 +294,17 @@ const styles = StyleSheet.create({
     lineHeight: 12,
     letterSpacing: 0,
     color: '#D3D6D7',
+  },
+  userMessageContainer: {
+    width: '100%' as const,
+  },
+  mediaContainer: {
+    marginBottom: 6,
+  },
+  mediaOnlyBubble: {
+    paddingHorizontal: chatTokens.dimensions.bubblePadding.horizontal,
+    paddingVertical: 2,
+    borderRadius: chatTokens.borderRadius.bubble,
   },
 });
 
@@ -360,5 +407,23 @@ const markdownStyles = {
     color: chatTokens.colors.aiText,
     fontSize: chatTokens.typography.messageText.fontSize,
     marginRight: 4,
+  },
+  userMessageContainer: {
+    width: '100%' as const,
+  },
+  mediaContainer: {
+    marginBottom: 6,
+  },
+  mediaOnlyBubble: {
+    paddingTop: 6,
+    paddingBottom: 8,
+  },
+  messageTail: {
+    position: 'absolute' as const,
+    bottom: 0,
+    right: -6,
+    width: 12,
+    height: 12,
+    borderTopLeftRadius: 12,
   },
 };

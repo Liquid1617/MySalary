@@ -1,13 +1,13 @@
 import React, { useState, useRef } from 'react';
-import { 
-  View, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  KeyboardAvoidingView, 
+import {
+  View,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
   Platform,
   Animated,
-  Dimensions
+  Dimensions,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { PlusIcon } from '../icons/PlusIcon';
@@ -29,13 +29,13 @@ export const StyledInputTray: React.FC<StyledInputTrayProps> = ({
   value,
   onChangeText,
   onSendPress,
-  onDocumentPress = () => {},
-  placeholder = "Message",
-  disabled = false
+  onDocumentPress = () => { },
+  placeholder = 'Message',
+  disabled = false,
 }) => {
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [showMediaPreview, setShowMediaPreview] = useState(false);
-  const [inputHeight, setInputHeight] = useState(60);
+  const [inputHeight, setInputHeight] = useState(50);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 12 });
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const screenWidth = Dimensions.get('window').width;
@@ -46,10 +46,10 @@ export const StyledInputTray: React.FC<StyledInputTrayProps> = ({
     containerRef.current?.measureInWindow((_, y) => {
       setMenuPosition({
         top: y - 88 - 3, // 88px menu height + 3px gap above input
-        left: 12
+        left: 12,
       });
     });
-    
+
     setShowAttachmentMenu(true);
     Animated.sequence([
       Animated.timing(scaleAnim, {
@@ -84,51 +84,51 @@ export const StyledInputTray: React.FC<StyledInputTrayProps> = ({
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
+      style={styles.container}>
       <View style={styles.inputRow} ref={containerRef}>
         <Animated.View style={[{ transform: [{ scale: scaleAnim }] }]}>
           <TouchableOpacity
             style={styles.attachButton}
             onPress={handleAttachPress}
             disabled={disabled}
-            activeOpacity={0.7}
-          >
+            activeOpacity={0.7}>
             <PlusIcon width={24} height={24} color="#252233" />
           </TouchableOpacity>
         </Animated.View>
 
         <View style={[styles.inputContainer, { width: inputWidth }]}>
-          <View style={[styles.textInputWrapper, { height: Math.max(60, inputHeight) }]}>
+          <View
+            style={[
+              styles.textInputWrapper,
+              { height: Math.max(50, inputHeight) },
+            ]}>
             <TextInput
-              style={[styles.textInput, { paddingLeft: 18 }]}
+              style={[styles.textInput, { paddingLeft: 1 }]}
               value={value}
               onChangeText={onChangeText}
               placeholder={placeholder}
               placeholderTextColor="#D3D6D7"
               multiline
               editable={!disabled}
-              onContentSizeChange={(event) => {
-                setInputHeight(event.nativeEvent.contentSize.height + 40); // padding compensation (20 top + 20 bottom)
+              onContentSizeChange={event => {
+                setInputHeight(event.nativeEvent.contentSize.height + 12); // padding compensation (6 top + 6 bottom)
               }}
             />
           </View>
-          
+
           <View style={styles.sendButtonContainer}>
             <TouchableOpacity
               onPress={handleSendPress}
               disabled={disabled || !value.trim()}
-              activeOpacity={0.8}
-            >
+              activeOpacity={0.8}>
               <LinearGradient
                 colors={['#FFFFFF', '#C6C2FF', '#72E1F5', '#53EFAE', '#B5FA01']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={[
                   styles.sendButton,
-                  (!value.trim() || disabled) && styles.sendButtonDisabled
-                ]}
-              >
+                  (!value.trim() || disabled) && styles.sendButtonDisabled,
+                ]}>
                 <SendArrowIcon width={20} height={20} color="#252233" />
               </LinearGradient>
             </TouchableOpacity>
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     position: 'relative',
-    minHeight: 60,
+    minHeight: 50,
   },
   textInputWrapper: {
     borderRadius: 30,
@@ -192,12 +192,15 @@ const styles = StyleSheet.create({
     elevation: 3,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingRight: 50, // space for send button
+    paddingRight: 6,
+    paddingLeft: 18,
+    gap: 10,
   },
   textInput: {
-    paddingTop: 20,
-    paddingBottom: 20,
-    paddingRight: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingLeft: 0,
+    paddingRight: 40, // отступ для кнопки отправки
     fontFamily: 'Commissioner',
     fontWeight: '500',
     fontSize: 16,
@@ -208,7 +211,8 @@ const styles = StyleSheet.create({
   sendButtonContainer: {
     position: 'absolute',
     right: 6,
-    bottom: 6,
+    top: '50%',
+    transform: [{ translateY: -19 }], // половина высоты кнопки (38/2)
   },
   sendButton: {
     width: 38,

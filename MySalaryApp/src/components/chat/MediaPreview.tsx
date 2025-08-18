@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Image, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Image, Text, StyleSheet } from 'react-native';
 import { MediaFile } from '../../utils/imagePickerUtils';
 
 interface MediaPreviewProps {
@@ -7,9 +7,9 @@ interface MediaPreviewProps {
   maxItems?: number;
 }
 
-export const MediaPreview: React.FC<MediaPreviewProps> = ({ 
-  mediaFiles, 
-  maxItems = 4 
+export const MediaPreview: React.FC<MediaPreviewProps> = ({
+  mediaFiles,
+  maxItems = 4,
 }) => {
   if (!mediaFiles || mediaFiles.length === 0) {
     return null;
@@ -19,24 +19,26 @@ export const MediaPreview: React.FC<MediaPreviewProps> = ({
   const imageCount = Math.min(mediaFiles.length, maxItems);
   const visibleFiles = mediaFiles.slice(0, maxItems);
   const remainingCount = mediaFiles.length - maxItems;
-  
+
   // Определяем размер изображений в зависимости от количества
   const getImageSize = (count: number) => {
     if (count === 1) return 85;
     if (count === 2) return 60;
     return 45; // для 3-4 изображений
   };
-  
+
   const imageSize = getImageSize(imageCount);
 
   return (
     <View style={styles.container}>
       <View style={styles.grid}>
         {visibleFiles.map((file, index) => (
-          <View key={index} style={[styles.mediaItem, { width: imageSize, height: imageSize }]}>
+          <View
+            key={index}
+            style={[styles.mediaItem, { width: imageSize, height: imageSize }]}>
             {file.type.startsWith('image') ? (
-              <Image 
-                source={{ uri: file.uri }} 
+              <Image
+                source={{ uri: file.uri }}
                 style={styles.image}
                 resizeMode="cover"
               />
@@ -61,11 +63,13 @@ export const MediaPreview: React.FC<MediaPreviewProps> = ({
 const styles = StyleSheet.create({
   container: {
     marginTop: 4,
+    maxWidth: '100%',
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 2,
+    alignSelf: 'flex-start',
   },
   mediaItem: {
     borderRadius: 8,
