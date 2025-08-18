@@ -5,7 +5,12 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon app.js"
+    "start": "nodemon app.js",
+    "seed:demo": "node scripts/seed-demo-data.js",
+    "seed:demo:prod": "node scripts/seed-demo-prod.js",
+    "db:seed": "npx sequelize-cli db:seed:all",
+    "db:seed:prod": "NODE_ENV=production npx sequelize-cli db:seed:all",
+    "db:seed:undo": "npx sequelize-cli db:seed:undo:all"
   },
   "keywords": [],
   "author": "",
