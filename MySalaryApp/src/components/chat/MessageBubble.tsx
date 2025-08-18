@@ -152,10 +152,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           ) : (
             <View style={styles.userMessageContainer}>
               {message.mediaFiles && message.mediaFiles.length > 0 && (
-                <View style={[
-                  styles.mediaContainer, 
-                  !message.text?.trim() && { marginBottom: 0 }
-                ]}>
+                <View
+                  style={[
+                    styles.mediaContainer,
+                    !message.text?.trim() && { marginBottom: 0 },
+                  ]}>
                   <MediaPreview mediaFiles={message.mediaFiles} />
                 </View>
               )}
@@ -181,7 +182,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         </View>
 
         {renderErrorActions()}
-
       </TouchableOpacity>
     </View>
   );
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   userContainerWithMedia: {
-    marginRight: 40,
+    marginRight: 36,
   },
   avatar: {
     width: 32,
