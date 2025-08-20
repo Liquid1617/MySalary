@@ -276,6 +276,22 @@ const transactionsSlice = createSlice({
         hasMore: true,
       };
     },
+    // Optimistically remove transaction (for confirmed future transactions)
+    removeTransaction: (state, action: PayloadAction<number>) => {
+      state.transactions = state.transactions.filter(
+        transaction => transaction.id !== action.payload
+      );
+    },
+    // Optimistically update transaction status
+    updateTransactionStatus: (state, action: PayloadAction<{ id: number; status: 'posted' | 'scheduled' }>) => {
+      const transaction = state.transactions.find(t => t.id === action.payload.id);
+      if (transaction) {
+        transaction.status = action.payload.status;
+        if (action.payload.status === 'posted') {
+          transaction.transaction_date = new Date().toISOString();
+        }
+      }
+    },
   },
   extraReducers: builder => {
     // Fetch transactions
@@ -358,6 +374,6 @@ const transactionsSlice = createSlice({
   },
 });
 
-export const { clearTransactionsData, setError, resetPagination } =
+export const { clearTransactionsData, setError, resetPagination, removeTransaction, updateTransactionStatus } =
   transactionsSlice.actions;
 export default transactionsSlice.reducer;

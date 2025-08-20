@@ -22,7 +22,8 @@ export const styles = StyleSheet.create({
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 40,
+    paddingTop: 40,
+    paddingBottom: 24,
     gap: 8,
   },
   emptyTitle: {

@@ -36,7 +36,7 @@ import {
   useAccounts,
 } from '../store/hooks';
 import { fetchNetWorth } from '../store/slices/networthSlice';
-import { fetchTransactions } from '../store/slices/transactionsSlice';
+import { fetchTransactions, updateTransactionStatus } from '../store/slices/transactionsSlice';
 import { fetchAccounts } from '../store/slices/accountsSlice';
 import { Transaction } from '../types/transaction';
 
@@ -349,14 +349,20 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
       // Store original transaction for undo
       const originalTransaction = { ...transaction };
 
-      // Refresh transactions from Redux after confirmation
-      dispatch(fetchTransactions({ forceRefresh: true }));
+      // Optimistically update transaction status to 'posted'
+      if (transaction.status === 'scheduled') {
+        dispatch(updateTransactionStatus({ id: transaction.id, status: 'posted' }));
+      }
 
       // Confirm on server - use 'today' mode to set current date for future transactions
       await apiService.confirmTransaction(transaction.id, 'today');
 
       // Invalidate budget cache to refresh spending totals
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
+
+      // Update net worth and accounts data
+      dispatch(fetchNetWorth(true));
+      dispatch(fetchAccounts(true));
 
       // Show success message with undo
       const dateStr = new Date(transaction.transaction_date).toLocaleDateString(
@@ -371,13 +377,6 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
       setSnackBarMessage(`Transaction confirmed for ${dateStr}`);
       setUndoAction(() => () => undoConfirmation(originalTransaction));
       setSnackBarVisible(true);
-
-      // Reload data after a delay
-      setTimeout(() => {
-        dispatch(fetchTransactions({ forceRefresh: true }));
-        dispatch(fetchNetWorth(true));
-        dispatch(fetchAccounts(true));
-      }, 500);
     } catch (error) {
       console.error('Error confirming transaction:', error);
       Alert.alert('Error', 'Failed to confirm transaction');

@@ -16,6 +16,7 @@ import Animated, {
   runOnJS,
   interpolate,
   withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { Transaction } from '../types/transaction';
@@ -63,14 +64,22 @@ export const SwipeableTransactionRow: React.FC<SwipeableTransactionRowProps> = (
         // Auto-trigger confirmation
         runOnJS(triggerHapticFeedback)();
         runOnJS(handleConfirm)();
-        translateX.value = withSpring(0);
+        translateX.value = withTiming(0, { duration: 300 });
       } else if (Math.abs(translateX.value) >= ACTIVATION_THRESHOLD && isScheduled) {
         // Show action button
-        translateX.value = withSpring(-ACTION_WIDTH);
+        translateX.value = withSpring(-ACTION_WIDTH, {
+          damping: 15,
+          stiffness: 150,
+          mass: 1,
+        });
         runOnJS(triggerHapticFeedback)();
       } else {
         // Return to original position
-        translateX.value = withSpring(0);
+        translateX.value = withSpring(0, {
+          damping: 20,
+          stiffness: 200,
+          mass: 1,
+        });
       }
     })
     .enabled(isScheduled);
@@ -96,7 +105,7 @@ export const SwipeableTransactionRow: React.FC<SwipeableTransactionRowProps> = (
   const handleConfirmPress = () => {
     triggerHapticFeedback();
     handleConfirm();
-    translateX.value = withSpring(0);
+    translateX.value = withTiming(0, { duration: 300 });
   };
 
   return (
