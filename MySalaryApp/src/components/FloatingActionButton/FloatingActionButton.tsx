@@ -9,6 +9,8 @@ interface FloatingActionButtonProps {
   icon?: string;
   iconSize?: number;
   iconColor?: string;
+  size?: number;
+  position?: 'absolute' | 'relative';
 }
 
 export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
@@ -16,10 +18,15 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
   icon = 'plus',
   iconSize = 14,
   iconColor = '#252233',
+  size = 54,
+  position = 'absolute',
 }) => {
   return (
     <TouchableOpacity
-      style={styles.container}
+      style={[
+        position === 'absolute' ? styles.container : styles.containerRelative,
+        { width: size, height: size, borderRadius: size / 2 }
+      ]}
       onPress={onPress}
       activeOpacity={0.8}>
       <LinearGradient
@@ -32,7 +39,7 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
         locations={[0.0242, 0.3221, 0.717, 1.0]}
         useAngle={true}
         angle={217.04}
-        style={styles.gradient}>
+        style={[styles.gradient, { width: size, height: size, borderRadius: size / 2 }]}>
         <FontAwesome5
           name={icon}
           size={iconSize}

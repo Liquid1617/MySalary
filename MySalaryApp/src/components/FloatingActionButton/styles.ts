@@ -22,6 +22,24 @@ export const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 6,
   },
+  containerRelative: {
+    position: 'relative',
+    width: 54,
+    height: 54,
+    borderRadius: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+    // Тень
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 2,
+      height: 2,
+    },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 6,
+  },
   gradient: {
     width: 54,
     height: 54,

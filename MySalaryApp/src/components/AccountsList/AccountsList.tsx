@@ -38,8 +38,8 @@ export const AccountsList: React.FC<AccountsListProps> = ({
   if (activeAccounts.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>No accounts yet</Text>
-        <Text style={styles.emptySubtext}>Add your first account to start tracking finances</Text>
+        <Text style={styles.emptyText}>No Accounts yet</Text>
+        <Text style={styles.emptySubtext}>Add your first Account to get started</Text>
       </View>
     );
   }

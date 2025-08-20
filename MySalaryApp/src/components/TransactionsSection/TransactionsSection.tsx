@@ -7,6 +7,7 @@ import {
 import { TransactionItem } from '../TransactionItem/TransactionItem';
 import { FutureTransactionItem } from '../FutureTransactionItem/FutureTransactionItem';
 import { ActionButton } from '../ActionButton/ActionButton';
+import { FloatingActionButton } from '../FloatingActionButton/FloatingActionButton';
 import { styles } from './styles';
 
 interface Transaction {
@@ -49,6 +50,7 @@ interface TransactionsSectionProps {
   onViewChange: (view: TransactionViewType) => void;
   onTransactionPress: (transaction: Transaction) => void;
   onConfirmTransaction?: (transaction: Transaction) => void;
+  onAddPress?: () => void;
 }
 
 export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
@@ -58,6 +60,7 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
   onViewChange,
   onTransactionPress,
   onConfirmTransaction,
+  onAddPress,
 }) => {
   // Deduplicate transactions
   const uniqueTransactions = transactions.filter(
@@ -84,11 +87,17 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Text style={styles.emptyText}>
-        {activeView === 'recent'
-          ? 'No recent transactions'
-          : 'No scheduled transactions'}
-      </Text>
+      <Text style={styles.emptyTitle}>No Transfers yet</Text>
+      <Text style={styles.emptySubtext}>Add your first Transfer to get started</Text>
+      {onAddPress && (
+        <View style={styles.addButtonWrapper}>
+          <FloatingActionButton 
+            onPress={onAddPress} 
+            size={42} 
+            position="relative"
+          />
+        </View>
+      )}
     </View>
   );
 
@@ -132,8 +141,10 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
     );
   };
 
+  const isEmpty = filteredTransactions.length === 0;
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isEmpty && styles.containerEmpty]}>
       <TransactionToggle activeView={activeView} onViewChange={onViewChange} />
       {renderTransactions()}
     </View>

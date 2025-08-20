@@ -15,7 +15,9 @@ import {
   PermissionsAndroid,
   KeyboardAvoidingView,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import { openCamera, MediaFile } from '../../utils/imagePickerUtils';
+import { DropdownArrowIcon } from '../icons/DropdownArrowIcon';
 
 interface MediaPreviewScreenProps {
   visible: boolean;
@@ -28,7 +30,10 @@ interface GalleryAsset {
   type: 'photo' | 'video';
   fileName?: string;
   timestamp?: number;
+  isFavorite?: boolean;
 }
+
+type MediaCategory = 'recent' | 'favourites' | 'video';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const itemSize = (screenWidth - 48) / 3; // 3 columns with margins
@@ -41,6 +46,8 @@ export const MediaPreviewScreen: React.FC<MediaPreviewScreenProps> = ({
   const [selectedMedia, setSelectedMedia] = useState<MediaFile[]>([]);
   const [galleryAssets, setGalleryAssets] = useState<GalleryAsset[]>([]);
   const [messageText, setMessageText] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<MediaCategory>('recent');
 
   useEffect(() => {
     if (visible) {
@@ -66,6 +73,7 @@ export const MediaPreviewScreen: React.FC<MediaPreviewScreenProps> = ({
         type: index % 4 === 0 ? 'video' : 'photo',
         fileName: `media_${index}`,
         timestamp: Date.now() - index * 1000000,
+        isFavorite: index % 5 === 0, // Every 5th item is favorite
       }));
 
       setGalleryAssets(mockAssets);
@@ -106,6 +114,63 @@ export const MediaPreviewScreen: React.FC<MediaPreviewScreenProps> = ({
     setMessageText('');
     setSelectedMedia([]);
     onClose();
+  };
+
+  const handleDropdownToggle = () => {
+    setShowDropdown(!showDropdown);
+  };
+
+  const handleCategorySelect = (category: MediaCategory) => {
+    setSelectedCategory(category);
+    setShowDropdown(false);
+  };
+
+  const getFilteredAssets = () => {
+    switch (selectedCategory) {
+      case 'favourites':
+        return galleryAssets.filter(asset => asset.isFavorite);
+      case 'video':
+        return galleryAssets.filter(asset => asset.type === 'video');
+      case 'recent':
+      default:
+        return galleryAssets;
+    }
+  };
+
+  const getCategoryTitle = () => {
+    switch (selectedCategory) {
+      case 'favourites':
+        return 'Favourites';
+      case 'video':
+        return 'Video';
+      case 'recent':
+      default:
+        return 'Recent';
+    }
+  };
+
+  const getCategoryCount = (category: MediaCategory) => {
+    switch (category) {
+      case 'favourites':
+        return galleryAssets.filter(asset => asset.isFavorite).length;
+      case 'video':
+        return galleryAssets.filter(asset => asset.type === 'video').length;
+      case 'recent':
+      default:
+        return galleryAssets.length;
+    }
+  };
+
+  const getCategoryThumbnail = (category: MediaCategory) => {
+    switch (category) {
+      case 'favourites':
+        return galleryAssets.find(asset => asset.isFavorite)?.uri;
+      case 'video':
+        return galleryAssets.find(asset => asset.type === 'video')?.uri;
+      case 'recent':
+      default:
+        return galleryAssets[0]?.uri;
+    }
   };
 
   const renderGalleryItem = ({ item, index }: { item: GalleryAsset; index: number }) => {
@@ -168,11 +233,40 @@ export const MediaPreviewScreen: React.FC<MediaPreviewScreenProps> = ({
               {/* Header */}
               <View style={styles.header}>
                 <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                  <Text style={styles.closeText}>Закрыть</Text>
+                  <Text style={styles.closeText}>Close</Text>
                 </TouchableOpacity>
                 <View style={styles.titleContainer}>
-                  <Text style={styles.title}>Недавние</Text>
+                  <TouchableOpacity style={styles.titleWrapper} onPress={handleDropdownToggle}>
+                    <Text style={styles.title}>{getCategoryTitle()}</Text>
+                    <DropdownArrowIcon width={8} height={5} color="#252233" />
+                  </TouchableOpacity>
                 </View>
+                {showDropdown && (
+                  <View style={styles.dropdown}>
+                    {(['recent', 'favourites', 'video'] as MediaCategory[]).map((category) => (
+                      <TouchableOpacity
+                        key={category}
+                        style={styles.dropdownItem}
+                        onPress={() => handleCategorySelect(category)}
+                      >
+                        <View style={styles.dropdownItemLeft}>
+                          <Text style={styles.dropdownItemTitle}>
+                            {category === 'recent' ? 'Recent' : category === 'favourites' ? 'Favourites' : 'Video'}
+                          </Text>
+                          <Text style={styles.dropdownItemCount}>
+                            {getCategoryCount(category)} items
+                          </Text>
+                        </View>
+                        {getCategoryThumbnail(category) && (
+                          <Image
+                            source={{ uri: getCategoryThumbnail(category) }}
+                            style={styles.dropdownThumbnail}
+                          />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
                 <View style={styles.headerRight}>
                   {selectedMedia.length > 0 && (
                     <View style={styles.selectedCount}>
@@ -185,7 +279,7 @@ export const MediaPreviewScreen: React.FC<MediaPreviewScreenProps> = ({
               {/* Media Grid */}
               <View style={styles.mediaContainer}>
                 <FlatList
-                  data={[{ type: 'camera' }, ...galleryAssets]}
+                  data={[{ type: 'camera' }, ...getFilteredAssets()]}
                   renderItem={({ item, index }) => {
                     if ('type' in item && item.type === 'camera') {
                       return renderCameraButton();
@@ -205,22 +299,29 @@ export const MediaPreviewScreen: React.FC<MediaPreviewScreenProps> = ({
               <View style={styles.bottomContainer}>
                 <View style={styles.inputContainer}>
                   <TextInput
-                    style={styles.textInput}
-                    placeholder="Добавить подпись..."
-                    placeholderTextColor="#8B8B8B"
+                    style={styles.customInput}
+                    placeholder="Add a caption"
+                    placeholderTextColor="#D3D6D7"
                     value={messageText}
                     onChangeText={setMessageText}
-                    multiline
                   />
                   <TouchableOpacity
-                    style={[
-                      styles.sendButton,
-                      (selectedMedia.length === 0 && !messageText.trim()) && styles.sendButtonDisabled
-                    ]}
+                    style={styles.sendButtonWrapper}
                     onPress={handleSend}
                     disabled={selectedMedia.length === 0 && !messageText.trim()}
                   >
-                    <Text style={styles.sendButtonText}>Отправить</Text>
+                    <LinearGradient
+                      colors={['#C6C2FF', '#72E1F5', '#53EFAE', '#B5FA01']}
+                      locations={[0, 0.2788, 0.6875, 1]}
+                      start={{ x: 0, y: 1 }}
+                      end={{ x: 1, y: 0 }}
+                      style={[
+                        styles.sendButton,
+                        (selectedMedia.length === 0 && !messageText.trim()) && styles.sendButtonDisabled
+                      ]}
+                    >
+                      <Text style={styles.sendButtonText}>Send</Text>
+                    </LinearGradient>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -249,8 +350,9 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    height: screenHeight * 0.67, // 2/3 от высоты экрана
-    backgroundColor: '#1C1C1E',
+    width: '100%',
+    height: 532,
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: 'hidden',
@@ -267,16 +369,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#1C1C1E',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 10,
   },
   closeButton: {
     padding: 8,
     zIndex: 1,
   },
   closeText: {
-    color: '#007AFF',
-    fontSize: 17,
     fontFamily: 'Commissioner',
+    fontWeight: '500',
+    fontSize: 14,
+    lineHeight: 14,
+    color: '#10BC74',
   },
   titleContainer: {
     position: 'absolute',
@@ -285,11 +395,64 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 0,
   },
-  title: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '600',
+  titleWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  dropdown: {
+    position: 'absolute',
+    top: 47,
+    left: 117.5,
+    width: 160,
+    height: 150,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 6,
+    zIndex: 20,
+    gap: 16,
+  },
+  dropdownItem: {
+    width: 135,
+    height: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dropdownItemLeft: {
+    flex: 1,
+  },
+  dropdownItemTitle: {
     fontFamily: 'Commissioner',
+    fontWeight: '400',
+    fontSize: 14,
+    lineHeight: 16,
+    color: '#252233',
+  },
+  dropdownItemCount: {
+    fontFamily: 'Commissioner',
+    fontWeight: '400',
+    fontSize: 12,
+    lineHeight: 14,
+    color: '#D3D6D7',
+    marginTop: 2,
+  },
+  dropdownThumbnail: {
+    width: 18,
+    height: 18,
+    borderRadius: 2,
+  },
+  title: {
+    fontFamily: 'Commissioner',
+    fontWeight: '500',
+    fontSize: 14,
+    lineHeight: 14,
+    color: '#252233',
   },
   headerRight: {
     flexDirection: 'row',
@@ -311,7 +474,7 @@ const styles = StyleSheet.create({
   },
   mediaContainer: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#FFFFFF',
   },
   gridContent: {
     padding: 16,
@@ -394,39 +557,72 @@ const styles = StyleSheet.create({
     fontFamily: 'Commissioner',
   },
   bottomContainer: {
-    backgroundColor: '#1C1C1E',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    paddingTop: 12,
+    paddingRight: 20,
+    paddingBottom: 34, // Extended to include safe area
+    paddingLeft: 20,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 4,
+    elevation: 4,
   },
   inputContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 12,
+    alignItems: 'center',
+    gap: 10,
   },
-  textInput: {
-    flex: 1,
-    backgroundColor: '#2C2C2E',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    color: '#FFFFFF',
-    fontSize: 16,
+  customInput: {
+    width: 288,
+    height: 33,
+    borderRadius: 30,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    backgroundColor: '#FDFDFE',
     fontFamily: 'Commissioner',
-    maxHeight: 100,
+    fontWeight: '500',
+    fontSize: 14,
+    lineHeight: 14,
+    color: '#252233',
+    shadowColor: '#000000',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  sendButtonWrapper: {
+    borderRadius: 30,
   },
   sendButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    width: 76,
+    height: 33,
+    borderRadius: 30,
+    paddingTop: 8,
+    paddingRight: 22,
+    paddingBottom: 8,
+    paddingLeft: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 3,
   },
   sendButtonDisabled: {
-    backgroundColor: '#48484A',
+    opacity: 0.5,
   },
   sendButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
     fontFamily: 'Commissioner',
+    fontWeight: '500',
+    fontSize: 14,
+    lineHeight: 14,
+    color: '#252233',
   },
 });

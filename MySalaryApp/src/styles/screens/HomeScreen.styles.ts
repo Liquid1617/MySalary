@@ -31,7 +31,6 @@ export const homeScreenStyles = StyleSheet.create({
   },
   mainContent: {
     flex: 1,
-    gap: 20,
   },
   featureCard: {
     backgroundColor: colors.white,

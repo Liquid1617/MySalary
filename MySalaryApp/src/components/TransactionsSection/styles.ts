@@ -5,7 +5,6 @@ export const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 16,
-    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -15,16 +14,36 @@ export const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
+  containerEmpty: {
+    paddingBottom: 8,
+  },
   header: {},
   title: {},
   emptyContainer: {
     alignItems: 'center',
-    paddingVertical: 32,
+    justifyContent: 'center',
+    paddingVertical: 40,
+    gap: 8,
   },
-  emptyText: {
-    fontSize: 16,
-    color: '#6B7280',
+  emptyTitle: {
+    fontFamily: 'Commissioner',
+    fontWeight: '700',
+    fontSize: 14,
+    lineHeight: 14,
+    color: '#7A7E85',
     textAlign: 'center',
+  },
+  emptySubtext: {
+    fontFamily: 'Commissioner',
+    fontWeight: '400',
+    fontSize: 14,
+    lineHeight: 14,
+    color: '#D3D6D7',
+    textAlign: 'center',
+  },
+  addButtonWrapper: {
+    marginTop: 8,
+    position: 'relative',
   },
   transactionsList: {
     marginTop: 16,

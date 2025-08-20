@@ -511,13 +511,11 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                   alignItems: 'center',
                   backgroundColor: 'white',
                   borderRadius: 16,
-                  shadowColor: '#000000',
-                  shadowOffset: { width: 2, height: 2 },
-                  shadowOpacity: 0.04,
-                  shadowRadius: 6,
-                  elevation: 3,
-                  borderWidth: 1,
-                  borderColor: '#F7F7F8',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 8,
+                  elevation: 4,
                 }}>
                 <Text style={{ fontSize: 16, color: '#666' }}>
                   Loading budgets...
@@ -531,20 +529,31 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                   alignItems: 'center',
                   backgroundColor: 'white',
                   borderRadius: 16,
-                  shadowColor: '#000000',
-                  shadowOffset: { width: 2, height: 2 },
-                  shadowOpacity: 0.04,
-                  shadowRadius: 6,
-                  elevation: 3,
-                  borderWidth: 1,
-                  borderColor: '#F7F7F8',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 8,
+                  elevation: 4,
                 }}>
                 <Text
-                  style={{ fontSize: 14, fontWeight: '500', color: '#7A7E85' }}>
-                  No budgets yet
+                  style={{ 
+                    fontFamily: 'Commissioner',
+                    fontSize: 14, 
+                    fontWeight: '700', 
+                    lineHeight: 14,
+                    color: '#7A7E85' 
+                  }}>
+                  No Budgets yet
                 </Text>
-                <Text style={{ fontSize: 12, color: '#D3D6D7', marginTop: 4 }}>
-                  Create your first budget to get started
+                <Text style={{ 
+                  fontFamily: 'Commissioner',
+                  fontSize: 14, 
+                  fontWeight: '400',
+                  lineHeight: 14,
+                  color: '#D3D6D7', 
+                  marginTop: 8 
+                }}>
+                  Add your first Budget to get started
                 </Text>
               </View>
             ) : (
@@ -573,7 +582,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
           </View>
 
           <View
-            style={[homeScreenStyles.mainContent, { marginTop: 0, gap: 10 }]}>
+            style={[homeScreenStyles.mainContent, { marginTop: 0 }]}>
             {/* Accounts Section */}
             <View style={{ marginBottom: 24 }}>
               <View
@@ -628,6 +637,7 @@ export const FinancesScreen: React.FC<{ navigation: any }> = ({
                 onViewChange={setTransactionView}
                 onTransactionPress={handleTransactionPress}
                 onConfirmTransaction={handleConfirmTransaction as any}
+                onAddPress={() => setShowAddTransactionModal(true)}
               />
             </View>
           </View>

@@ -7,23 +7,23 @@ module.exports = {
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setMonth(now.getMonth() - 3);
 
-    // 1. Создаем демо пользователя (созданного 3 месяца назад)
-    const [demoUser] = await queryInterface.bulkInsert('Users', [{
-      name: 'Демо Пользователь',
-      login: 'demo_user',
-      email: 'demo@example.com',
-      phone: '+79001234567',
-      password: '$2b$10$LQv3c1yqBfVFaogkjPVtEOPP4RFZKDqY5xOoQY5oQoQY5oQY5oQY5', // demo123
-      primary_currency_id: 1, // RUB
-      country_id: 1, // Russia
-      createdAt: threeMonthsAgo,
-      updatedAt: now,
-    }], { returning: true });
+    // 1. Используем существующего демо пользователя с id=8
+    const userId = 8;
+    console.log(`🔄 Добавляем транзакции для существующего пользователя ID: ${userId}`);
 
-    const userId = demoUser.id;
+    // 2. Получаем существующие аккаунты пользователя
+    let accounts = await queryInterface.sequelize.query(
+      'SELECT * FROM "Accounts" WHERE user_id = :userId',
+      {
+        replacements: { userId },
+        type: Sequelize.QueryTypes.SELECT
+      }
+    );
 
-    // 2. Создаем 5 аккаунтов разного типа с деньгами
-    const accounts = await queryInterface.bulkInsert('Accounts', [
+    // Если у пользователя нет аккаунтов, создаем их
+    if (accounts.length === 0) {
+      console.log('🏦 Создаем аккаунты для пользователя...');
+      accounts = await queryInterface.bulkInsert('Accounts', [
       {
         user_id: userId,
         account_type: 'cash',
@@ -80,49 +80,151 @@ module.exports = {
         updatedAt: now,
       }
     ], { returning: true });
+    } else {
+      console.log(`✅ Найдено ${accounts.length} существующих аккаунтов`);
+    }
 
     // 3. Получаем категории для транзакций
-    const categories = await queryInterface.sequelize.query('SELECT * FROM "Categories" WHERE "is_system" = true LIMIT 20', { type: Sequelize.QueryTypes.SELECT });
+    const categories = await queryInterface.sequelize.query('SELECT * FROM "Categories"', { type: Sequelize.QueryTypes.SELECT });
+    const expenseCategories = categories.filter(c => c.category_type === 'expense');
+    const incomeCategories = categories.filter(c => c.category_type === 'income');
     
     // Функция для генерации случайной даты в пределах диапазона
     const randomDate = (start, end) => {
       return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
     };
 
-    // 4. Создаем 100+ транзакций за последние 3 месяца
-    const transactions = [];
-    for (let i = 0; i < 100; i++) {
-      const randomAccount = accounts[Math.floor(Math.random() * accounts.length)];
-      const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-      const isExpense = Math.random() > 0.3; // 70% расходов, 30% доходов
-      const transactionDate = randomDate(threeMonthsAgo, now);
-      
-      let amount, transactionType, categoryId;
-      if (isExpense) {
-        amount = Math.random() * 15000 + 100; // Расходы от 100 до 15100 (ПОЛОЖИТЕЛЬНЫЕ!)
-        transactionType = 'expense';
-        categoryId = categories.find(c => c.category_type === 'expense')?.id || randomCategory.id;
-      } else {
-        amount = Math.random() * 50000 + 1000; // Доходы от 1000 до 51000 (положительные)
-        transactionType = 'income';
-        categoryId = categories.find(c => c.category_type === 'income')?.id || randomCategory.id;
-      }
+    // Определяем типичные суммы для разных категорий
+    const expenseAmountRanges = {
+      'Продукты питания': { min: 300, max: 5000 },
+      'Транспорт': { min: 50, max: 1500 },
+      'Коммунальные услуги': { min: 3000, max: 15000 },
+      'Развлечения': { min: 500, max: 8000 },
+      'Одежда и обувь': { min: 1000, max: 20000 },
+      'Медицина и здоровье': { min: 500, max: 10000 },
+      'Образование': { min: 2000, max: 30000 },
+      'Дом и быт': { min: 200, max: 5000 },
+      'Кредиты и займы': { min: 5000, max: 50000 },
+      'Спорт и фитнес': { min: 1500, max: 5000 },
+      'Путешествия': { min: 10000, max: 100000 },
+      'Рестораны и кафе': { min: 800, max: 5000 },
+      'Бензин и парковка': { min: 500, max: 5000 },
+      'Красота и уход': { min: 1000, max: 8000 },
+      'Подарки': { min: 500, max: 10000 },
+      'Прочие расходы': { min: 100, max: 5000 }
+    };
 
-      transactions.push({
-        user_id: userId,
-        account_id: randomAccount.id,
-        category_id: categoryId,
-        amount: Math.round(amount * 100) / 100, // Округляем до копеек
-        transaction_type: transactionType,
-        description: isExpense 
-          ? `Покупка в категории ${randomCategory.category_name}` 
-          : `Доход: ${randomCategory.category_name}`,
-        transaction_date: transactionDate.toISOString().split('T')[0], // DATEONLY format
-        status: 'posted',
-        confirmed_at: transactionDate,
-        createdAt: transactionDate,
-        updatedAt: transactionDate,
-      });
+    const incomeAmountRanges = {
+      'Зарплата': { min: 50000, max: 150000 },
+      'Премии и бонусы': { min: 10000, max: 50000 },
+      'Фриланс и подработка': { min: 5000, max: 40000 },
+      'Инвестиции и дивиденды': { min: 1000, max: 30000 },
+      'Продажи и торговля': { min: 1000, max: 50000 },
+      'Аренда и недвижимость': { min: 20000, max: 80000 },
+      'Пенсия и пособия': { min: 10000, max: 30000 },
+      'Стипендия': { min: 2000, max: 10000 },
+      'Подарки и наследство': { min: 1000, max: 100000 },
+      'Возврат налогов': { min: 5000, max: 50000 },
+      'Кэшбэк и бонусы': { min: 100, max: 5000 },
+      'Прочие доходы': { min: 500, max: 20000 }
+    };
+
+    // Определяем описания для разных категорий
+    const expenseDescriptions = {
+      'Продукты питания': ['Пятерочка', 'Перекресток', 'Ашан', 'Магнит', 'Вкусвилл', 'Metro Cash & Carry', 'Лента', 'Дикси'],
+      'Транспорт': ['Яндекс.Такси', 'Uber', 'Метро', 'Автобус', 'Электричка', 'Каршеринг Делимобиль', 'Ситидрайв', 'БелкаКар'],
+      'Коммунальные услуги': ['Квартплата', 'Электричество', 'Газ', 'Интернет Ростелеком', 'Мобильная связь МТС', 'Домофон', 'Водоснабжение'],
+      'Развлечения': ['Кинотеатр КАРО', 'Концерт', 'Театр', 'Боулинг', 'Квест', 'Парк аттракционов', 'Аквапарк', 'Зоопарк'],
+      'Одежда и обувь': ['H&M', 'Zara', 'Uniqlo', 'Спортмастер', 'Декатлон', 'Reserved', 'Mango', 'Массимо Дутти'],
+      'Медицина и здоровье': ['Аптека Ригла', 'Поликлиника', 'Стоматология', 'Анализы Инвитро', 'Массаж', 'МРТ', 'УЗИ', 'Витамины'],
+      'Образование': ['Курсы английского', 'Онлайн-курс Skillbox', 'Учебники', 'Репетитор', 'Автошкола', 'Семинар', 'Вебинар', 'Подписка Coursera'],
+      'Дом и быт': ['IKEA', 'Леруа Мерлен', 'OBI', 'Хозтовары', 'Посуда', 'Бытовая химия', 'Товары для дома', 'Ремонт техники'],
+      'Кредиты и займы': ['Ипотека Сбербанк', 'Кредит Тинькофф', 'Погашение кредитной карты', 'Займ другу', 'Автокредит', 'Потребительский кредит'],
+      'Спорт и фитнес': ['Фитнес-клуб WorldClass', 'Бассейн', 'Йога', 'Тренажерный зал', 'Спортивное питание', 'Экипировка', 'Теннис'],
+      'Путешествия': ['Авиабилеты Аэрофлот', 'Отель Booking', 'Airbnb', 'Туристическая страховка', 'Экскурсии', 'Виза', 'Трансфер'],
+      'Рестораны и кафе': ['Шоколадница', 'Starbucks', 'KFC', 'Теремок', 'Вкусно и точка', 'Додо Пицца', 'Тануки', 'Якитория'],
+      'Бензин и парковка': ['Лукойл', 'Газпромнефть', 'Shell', 'BP', 'Парковка центр', 'Платная парковка', 'Мойка авто', 'Техосмотр'],
+      'Красота и уход': ['Парикмахерская', 'Маникюр', 'Косметолог', 'СПА', 'Солярий', 'Барбершоп', 'Косметика', 'Парфюмерия'],
+      'Подарки': ['Подарок на день рождения', 'Свадебный подарок', 'Новогодний подарок', 'Цветы', 'Подарочный сертификат', 'Сувениры'],
+      'Прочие расходы': ['Нотариус', 'Госпошлина', 'Штраф', 'Комиссия банка', 'Страховка', 'Подписка', 'Благотворительность']
+    };
+
+    const incomeDescriptions = {
+      'Зарплата': ['Зарплата за месяц', 'Аванс', 'Основная зарплата', 'Зарплата с премией'],
+      'Премии и бонусы': ['Квартальная премия', 'Годовой бонус', '13-я зарплата', 'Премия за проект', 'Бонус за KPI'],
+      'Фриланс и подработка': ['Проект для клиента', 'Консультация', 'Разработка сайта', 'Дизайн логотипа', 'Написание статей', 'Переводы'],
+      'Инвестиции и дивиденды': ['Дивиденды Сбербанк', 'Доход от акций', 'Проценты по вкладу', 'Купонный доход', 'Продажа акций'],
+      'Продажи и торговля': ['Продажа на Авито', 'Продажа старой техники', 'Продажа одежды', 'Handmade изделия', 'Продажа авто'],
+      'Аренда и недвижимость': ['Аренда квартиры', 'Сдача комнаты', 'Аренда гаража', 'Сдача дачи', 'Коммерческая недвижимость'],
+      'Пенсия и пособия': ['Пенсия', 'Пособие по безработице', 'Детское пособие', 'Социальная выплата', 'Материнский капитал'],
+      'Стипендия': ['Стипендия за учебу', 'Повышенная стипендия', 'Стипендия за научную работу', 'Грант'],
+      'Подарки и наследство': ['Подарок от родителей', 'Денежный подарок на свадьбу', 'Наследство', 'Подарок на день рождения'],
+      'Возврат налогов': ['Налоговый вычет за квартиру', 'Вычет за обучение', 'Вычет за лечение', 'Возврат НДС', '3-НДФЛ'],
+      'Кэшбэк и бонусы': ['Кэшбэк Тинькофф', 'Бонусы Спасибо', 'Кэшбэк за покупки', 'Мили Аэрофлот', 'Баллы лояльности'],
+      'Прочие доходы': ['Выигрыш в лотерею', 'Находка', 'Компенсация', 'Возврат долга', 'Страховая выплата']
+    };
+
+    // 4. Создаем 200 транзакций за последние 3 месяца с равномерным распределением по категориям
+    const transactions = [];
+    
+    // Создаем транзакции для каждой категории расходов
+    for (const category of expenseCategories) {
+      const range = expenseAmountRanges[category.category_name] || { min: 100, max: 5000 };
+      const descriptions = expenseDescriptions[category.category_name] || ['Расход'];
+      
+      // 5-8 транзакций на категорию
+      const transactionCount = Math.floor(Math.random() * 4) + 5;
+      
+      for (let i = 0; i < transactionCount; i++) {
+        const randomAccount = accounts[Math.floor(Math.random() * accounts.length)];
+        const transactionDate = randomDate(threeMonthsAgo, now);
+        const amount = Math.random() * (range.max - range.min) + range.min;
+        const description = descriptions[Math.floor(Math.random() * descriptions.length)];
+        
+        transactions.push({
+          user_id: userId,
+          account_id: randomAccount.id,
+          category_id: category.id,
+          amount: Math.round(amount * 100) / 100,
+          transaction_type: 'expense',
+          description: description,
+          transaction_date: transactionDate.toISOString().split('T')[0],
+          status: 'posted',
+          confirmed_at: transactionDate,
+          createdAt: transactionDate,
+          updatedAt: transactionDate,
+        });
+      }
+    }
+    
+    // Создаем транзакции для каждой категории доходов
+    for (const category of incomeCategories) {
+      const range = incomeAmountRanges[category.category_name] || { min: 1000, max: 20000 };
+      const descriptions = incomeDescriptions[category.category_name] || ['Доход'];
+      
+      // 2-4 транзакции на категорию (доходов обычно меньше)
+      const transactionCount = Math.floor(Math.random() * 3) + 2;
+      
+      for (let i = 0; i < transactionCount; i++) {
+        const randomAccount = accounts[Math.floor(Math.random() * accounts.length)];
+        const transactionDate = randomDate(threeMonthsAgo, now);
+        const amount = Math.random() * (range.max - range.min) + range.min;
+        const description = descriptions[Math.floor(Math.random() * descriptions.length)];
+        
+        transactions.push({
+          user_id: userId,
+          account_id: randomAccount.id,
+          category_id: category.id,
+          amount: Math.round(amount * 100) / 100,
+          transaction_type: 'income',
+          description: description,
+          transaction_date: transactionDate.toISOString().split('T')[0],
+          status: 'posted',
+          confirmed_at: transactionDate,
+          createdAt: transactionDate,
+          updatedAt: transactionDate,
+        });
+      }
     }
 
     // Добавляем будущие транзакции (запланированные)
@@ -179,8 +281,19 @@ module.exports = {
 
     await queryInterface.bulkInsert('Transactions', transactions);
 
-    // 5. Создаем бюджеты (новая структура)
-    const budgets = await queryInterface.bulkInsert('Budgets', [
+    // 5. Проверяем существующие бюджеты и создаем новые при необходимости
+    const existingBudgets = await queryInterface.sequelize.query(
+      'SELECT * FROM "Budgets" WHERE user_id = :userId',
+      {
+        replacements: { userId },
+        type: Sequelize.QueryTypes.SELECT
+      }
+    );
+
+    let budgets = existingBudgets;
+    if (existingBudgets.length === 0) {
+      console.log('💰 Создаем бюджеты для пользователя...');
+      budgets = await queryInterface.bulkInsert('Budgets', [
       {
         user_id: userId,
         name: 'Бюджет на продукты',
@@ -215,14 +328,25 @@ module.exports = {
         updated_at: now,
       }
     ], { returning: true });
+    } else {
+      console.log(`✅ Найдено ${existingBudgets.length} существующих бюджетов`);
+    }
 
     // 6. Связываем бюджеты с категориями через BudgetCategories
     const budgetCategories = [];
     
-    // Пытаемся найти подходящие категории по именам
-    const expenseCategories = categories.filter(c => c.category_type === 'expense');
-    
-    if (budgets.length > 0 && expenseCategories.length > 0) {
+    // Проверяем существующие связи бюджет-категория
+    const existingBudgetCategories = await queryInterface.sequelize.query(
+      'SELECT * FROM "BudgetCategories" WHERE budget_id IN (SELECT id FROM "Budgets" WHERE user_id = :userId)',
+      {
+        replacements: { userId },
+        type: Sequelize.QueryTypes.SELECT
+      }
+    );
+
+    // Создаем связи только если их еще нет
+    if (existingBudgetCategories.length === 0 && budgets.length > 0 && expenseCategories.length > 0) {
+      console.log('🔗 Создаем связи бюджет-категория...');
       // Связываем каждый бюджет с подходящей категорией
       for (let i = 0; i < Math.min(budgets.length, expenseCategories.length); i++) {
         budgetCategories.push({
@@ -232,48 +356,32 @@ module.exports = {
           updated_at: now,
         });
       }
+      
+      if (budgetCategories.length > 0) {
+        await queryInterface.bulkInsert('BudgetCategories', budgetCategories);
+      }
+    } else {
+      console.log(`✅ Найдено ${existingBudgetCategories.length} существующих связей бюджет-категория`);
     }
 
-    if (budgetCategories.length > 0) {
-      await queryInterface.bulkInsert('BudgetCategories', budgetCategories);
-    }
-
-    console.log('✅ Демо пользователь создан успешно!');
+    console.log('\n✅ Данные для демо пользователя добавлены успешно!');
     console.log(`👤 Пользователь ID: ${userId}`);
-    console.log(`💳 Создано ${accounts.length} аккаунтов`);
-    console.log(`💸 Создано ${transactions.length} транзакций`);
-    console.log(`📊 Создано ${budgets.length} бюджетов`);
-    console.log(`🔗 Создано ${budgetCategories.length} связей бюджет-категория`);
+    console.log(`💳 Аккаунтов: ${accounts.length}`);
+    console.log(`💸 Добавлено ${transactions.length} транзакций`);
+    console.log(`📊 Бюджетов: ${budgets.length}`);
+    console.log(`🔗 Связей бюджет-категория: ${budgetCategories.length}`);
+    console.log(`📈 Использовано категорий расходов: ${expenseCategories.length}`);
+    console.log(`💰 Использовано категорий доходов: ${incomeCategories.length}`);
   },
 
   async down(queryInterface, Sequelize) {
-    // Удаляем все данные демо пользователя
-    const demoUser = await queryInterface.sequelize.query(
-      'SELECT id FROM "Users" WHERE login = ? LIMIT 1',
-      {
-        replacements: ['demo_user'],
-        type: Sequelize.QueryTypes.SELECT
-      }
-    );
-
-    if (demoUser.length > 0) {
-      const userId = demoUser[0].id;
-      
-      // Удаляем в правильном порядке (из-за foreign keys)
-      await queryInterface.bulkDelete('BudgetCategories', {
-        budget_id: {
-          [Sequelize.Op.in]: queryInterface.sequelize.literal(
-            `(SELECT id FROM "Budgets" WHERE user_id = ${userId})`
-          )
-        }
-      });
-      
-      await queryInterface.bulkDelete('Transactions', { user_id: userId });
-      await queryInterface.bulkDelete('Budgets', { user_id: userId });
-      await queryInterface.bulkDelete('Accounts', { user_id: userId });
-      await queryInterface.bulkDelete('Users', { id: userId });
-      
-      console.log('✅ Демо данные удалены');
-    }
+    // Удаляем только транзакции, созданные этим сидом (оставляем пользователя и аккаунты)
+    const userId = 8;
+    console.log(`\n🗑️  Удаляем транзакции для пользователя ID: ${userId}`);
+    
+    // Удаляем только транзакции (оставляем пользователя, аккаунты и бюджеты)
+    await queryInterface.bulkDelete('Transactions', { user_id: userId });
+    
+    console.log('✅ Транзакции удалены');
   }
 };

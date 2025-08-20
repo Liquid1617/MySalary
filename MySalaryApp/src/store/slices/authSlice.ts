@@ -37,7 +37,7 @@ const initialState: AuthState = {
 // Async thunk to login
 export const login = createAsyncThunk(
   'auth/login',
-  async ({ login, password }: { login: string; password: string }, { rejectWithValue }) => {
+  async ({ login, password }: { login: string; password: string }, { rejectWithValue, dispatch }) => {
     try {
       const response = await axios.post(`${API_BASE_URL}/auth/login`, {
         login,
@@ -48,6 +48,11 @@ export const login = createAsyncThunk(
       
       // Store token in AsyncStorage
       await AsyncStorage.setItem('token', token);
+
+      // Clear all cached data from previous user
+      dispatch({ type: 'networth/clearNetWorthData' });
+      dispatch({ type: 'accounts/clearAccountsData' });
+      dispatch({ type: 'transactions/clearTransactionsData' });
 
       return { token, user };
     } catch (error: any) {
@@ -72,7 +77,7 @@ export const register = createAsyncThunk(
     login: string; 
     email: string; 
     password: string; 
-  }, { rejectWithValue }) => {
+  }, { rejectWithValue, dispatch }) => {
     try {
       const response = await axios.post(`${API_BASE_URL}/auth/register`, {
         name,
@@ -85,6 +90,11 @@ export const register = createAsyncThunk(
       
       // Store token in AsyncStorage
       await AsyncStorage.setItem('token', token);
+
+      // Clear all cached data from previous user (if any)
+      dispatch({ type: 'networth/clearNetWorthData' });
+      dispatch({ type: 'accounts/clearAccountsData' });
+      dispatch({ type: 'transactions/clearTransactionsData' });
 
       return { token, user };
     } catch (error: any) {
